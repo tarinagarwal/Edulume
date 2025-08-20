@@ -5,6 +5,8 @@ import authRoutes from "./routes/auth.js";
 import pdfRoutes from "./routes/pdfs.js";
 import ebookRoutes from "./routes/ebooks.js";
 import uploadRoutes from "./routes/upload.js";
+import discussionRoutes from "./routes/discussions.js";
+import imageRoutes from "./routes/images.js";
 
 // Load environment variables
 dotenv.config();
@@ -22,6 +24,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/pdfs", pdfRoutes);
 app.use("/api/ebooks", ebookRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/discussions", discussionRoutes);
+app.use("/api/images", imageRoutes);
 
 // Health check endpoint
 app.get("/api/health", (req, res) => {

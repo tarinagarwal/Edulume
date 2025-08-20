@@ -1,8 +1,15 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { FileText, BookOpen, Users, Shield, Zap, Database } from "lucide-react";
+import {
+  FileText,
+  BookOpen,
+  Users,
+  Shield,
+  Zap,
+  Database,
+  MessageSquare,
+} from "lucide-react";
 import { isAuthenticated } from "../utils/auth";
-
 
 const LandingPage: React.FC = () => {
   const authenticated = isAuthenticated();
@@ -33,6 +40,13 @@ const LandingPage: React.FC = () => {
               <Link to="/ebooks" className="alien-button text-lg px-8 py-4">
                 <BookOpen className="inline mr-2" size={24} />
                 Browse E-books
+              </Link>
+              <Link
+                to="/discussions"
+                className="alien-button text-lg px-8 py-4"
+              >
+                <MessageSquare className="inline mr-2" size={24} />
+                Join Discussions
               </Link>
             </div>
           </div>
@@ -79,14 +93,28 @@ const LandingPage: React.FC = () => {
 
               <div className="smoke-card p-8 text-center relative smoke-effect">
                 <div className="w-16 h-16 bg-alien-green rounded-full flex items-center justify-center mx-auto mb-6 shadow-alien-glow">
+                  <MessageSquare className="text-royal-black" size={32} />
+                </div>
+                <h3 className="text-xl font-alien font-bold mb-4 text-alien-green">
+                  Q&A Forum
+                </h3>
+                <p className="text-gray-300">
+                  Ask questions, get help from peers and faculty. Share
+                  knowledge through our interactive discussion forum with voting
+                  and best answers.
+                </p>
+              </div>
+
+              <div className="smoke-card p-8 text-center relative smoke-effect">
+                <div className="w-16 h-16 bg-alien-green rounded-full flex items-center justify-center mx-auto mb-6 shadow-alien-glow">
                   <Users className="text-royal-black" size={32} />
                 </div>
                 <h3 className="text-xl font-alien font-bold mb-4 text-alien-green">
                   Community Driven
                 </h3>
                 <p className="text-gray-300">
-                  Built by students, for students. Share your notes and
-                  resources to help your fellow classmates succeed.
+                  Built by students, for students. Share your notes, ask
+                  questions, and help your fellow classmates succeed together.
                 </p>
               </div>
             </div>
@@ -111,10 +139,10 @@ const LandingPage: React.FC = () => {
                 </Link>
               )}
               <Link
-                to="/pdfs"
+                to="/discussions"
                 className="bg-transparent border-2 border-alien-green text-alien-green hover:bg-alien-green hover:text-royal-black font-bold py-4 px-8 rounded-lg transition-all duration-300 shadow-alien-glow hover:shadow-alien-glow-strong"
               >
-                Browse Resources
+                Join Discussions
               </Link>
             </div>
           </div>

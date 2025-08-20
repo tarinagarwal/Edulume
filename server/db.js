@@ -95,6 +95,165 @@ const initializeDatabase = () => {
         }
       );
 
+      // Create discussions table
+      db.run(
+        `
+        CREATE TABLE IF NOT EXISTS discussions (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          content TEXT NOT NULL,
+          category TEXT NOT NULL,
+          tags TEXT, -- JSON array of tags
+          images TEXT, -- JSON array of image URLs
+          author_id INTEGER NOT NULL,
+          views INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (author_id) REFERENCES users (id)
+        )
+      `,
+        (err) => {
+          if (err) {
+            console.error("Error creating discussions table:", err.message);
+            reject(err);
+            return;
+          }
+          console.log("Discussions table ready");
+        }
+      );
+
+      // Create discussion_answers table
+      db.run(
+        `
+        CREATE TABLE IF NOT EXISTS discussion_answers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          discussion_id INTEGER NOT NULL,
+          content TEXT NOT NULL,
+          images TEXT, -- JSON array of image URLs
+          author_id INTEGER NOT NULL,
+          is_best_answer INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (discussion_id) REFERENCES discussions (id),
+          FOREIGN KEY (author_id) REFERENCES users (id)
+        )
+      `,
+        (err) => {
+          if (err) {
+            console.error(
+              "Error creating discussion_answers table:",
+              err.message
+            );
+            reject(err);
+            return;
+          }
+          console.log("Discussion answers table ready");
+        }
+      );
+
+      // Create discussion_replies table
+      db.run(
+        `
+        CREATE TABLE IF NOT EXISTS discussion_replies (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          answer_id INTEGER NOT NULL,
+          content TEXT NOT NULL,
+          images TEXT, -- JSON array of image URLs
+          author_id INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (answer_id) REFERENCES discussion_answers (id),
+          FOREIGN KEY (author_id) REFERENCES users (id)
+        )
+      `,
+        (err) => {
+          if (err) {
+            console.error(
+              "Error creating discussion_replies table:",
+              err.message
+            );
+            reject(err);
+            return;
+          }
+          console.log("Discussion replies table ready");
+        }
+      );
+
+      // Create discussion_votes table
+      db.run(
+        `
+        CREATE TABLE IF NOT EXISTS discussion_votes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          discussion_id INTEGER NOT NULL,
+          user_id INTEGER NOT NULL,
+          vote_type TEXT NOT NULL CHECK (vote_type IN ('up', 'down')),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(discussion_id, user_id),
+          FOREIGN KEY (discussion_id) REFERENCES discussions (id),
+          FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+      `,
+        (err) => {
+          if (err) {
+            console.error(
+              "Error creating discussion_votes table:",
+              err.message
+            );
+            reject(err);
+            return;
+          }
+          console.log("Discussion votes table ready");
+        }
+      );
+
+      // Create answer_votes table
+      db.run(
+        `
+        CREATE TABLE IF NOT EXISTS answer_votes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          answer_id INTEGER NOT NULL,
+          user_id INTEGER NOT NULL,
+          vote_type TEXT NOT NULL CHECK (vote_type IN ('up', 'down')),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(answer_id, user_id),
+          FOREIGN KEY (answer_id) REFERENCES discussion_answers (id),
+          FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+      `,
+        (err) => {
+          if (err) {
+            console.error("Error creating answer_votes table:", err.message);
+            reject(err);
+            return;
+          }
+          console.log("Answer votes table ready");
+        }
+      );
+
+      // Create reply_votes table
+      db.run(
+        `
+        CREATE TABLE IF NOT EXISTS reply_votes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          reply_id INTEGER NOT NULL,
+          user_id INTEGER NOT NULL,
+          vote_type TEXT NOT NULL CHECK (vote_type IN ('up', 'down')),
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(reply_id, user_id),
+          FOREIGN KEY (reply_id) REFERENCES discussion_replies (id),
+          FOREIGN KEY (user_id) REFERENCES users (id)
+        )
+      `,
+        (err) => {
+          if (err) {
+            console.error("Error creating reply_votes table:", err.message);
+            reject(err);
+            return;
+          }
+          console.log("Reply votes table ready");
+        }
+      );
+
       // Create ebooks table
       db.run(
         `
@@ -119,6 +278,35 @@ const initializeDatabase = () => {
             return;
           }
           console.log("E-books table ready");
+        }
+      );
+
+      // Create notifications table
+      db.run(
+        `
+        CREATE TABLE IF NOT EXISTS notifications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          type TEXT NOT NULL, -- 'new_answer', 'mention', 'best_answer', 'reply'
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+          related_id INTEGER, -- discussion_id or answer_id
+          related_type TEXT, -- 'discussion' or 'answer'
+          from_user_id INTEGER,
+          from_username TEXT,
+          is_read INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (user_id) REFERENCES users (id),
+          FOREIGN KEY (from_user_id) REFERENCES users (id)
+        )
+      `,
+        (err) => {
+          if (err) {
+            console.error("Error creating notifications table:", err.message);
+            reject(err);
+            return;
+          }
+          console.log("Notifications table ready");
           resolve();
         }
       );

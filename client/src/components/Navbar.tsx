@@ -10,10 +10,12 @@ import {
   User,
   ChevronDown,
   Lock,
+  MessageSquare,
 } from "lucide-react";
 import { isAuthenticated, removeToken } from "../utils/auth";
 import { getUserProfile } from "../utils/api";
 import { User as UserType } from "../types";
+import NotificationDropdown from "./NotificationDropdown";
 
 const Navbar: React.FC = () => {
   const location = useLocation();
@@ -128,6 +130,18 @@ const Navbar: React.FC = () => {
               <span>E-books</span>
             </Link>
 
+            <Link
+              to="/discussions"
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                isActive("/discussions")
+                  ? "text-alien-green shadow-alien-glow"
+                  : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
+              }`}
+            >
+              <MessageSquare size={20} />
+              <span>Discussions</span>
+            </Link>
+
             {authenticated ? (
               <>
                 <Link
@@ -141,6 +155,9 @@ const Navbar: React.FC = () => {
                   <Upload size={20} />
                   <span>Upload</span>
                 </Link>
+
+                {/* Notifications */}
+                {/* <NotificationDropdown /> */}
 
                 {/* Profile Dropdown */}
                 <div className="relative" ref={dropdownRef}>
@@ -241,6 +258,19 @@ const Navbar: React.FC = () => {
             >
               <BookOpen size={20} />
               <span>E-books</span>
+            </Link>
+
+            <Link
+              to="/discussions"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                isActive("/discussions")
+                  ? "text-alien-green shadow-alien-glow bg-alien-green/10"
+                  : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
+              }`}
+            >
+              <MessageSquare size={20} />
+              <span>Discussions</span>
             </Link>
 
             {authenticated ? (

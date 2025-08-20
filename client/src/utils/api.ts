@@ -8,6 +8,15 @@ import {
   UploadUrlResponse,
   User,
 } from "../types/index";
+import {
+  Discussion,
+  DiscussionAnswer,
+  DiscussionReply,
+  Notification,
+  CreateDiscussionData,
+  DiscussionsResponse,
+  DiscussionDetailResponse,
+} from "../types/discussions";
 
 const api = axios.create({
   baseURL: "/api",
@@ -172,4 +181,177 @@ export const uploadToVercelBlob = async (
 
   const result = await response.json();
   return result.url;
+};
+
+// Discussion API
+export const getDiscussions = async (params?: {
+  category?: string;
+  tag?: string;
+  search?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}): Promise<DiscussionsResponse> => {
+  const response = await api.get("/discussions", { params });
+  return response.data;
+};
+
+export const getDiscussion = async (
+  id: string
+): Promise<DiscussionDetailResponse> => {
+  const response = await api.get(`/discussions/${id}`);
+  return response.data;
+};
+
+export const createDiscussion = async (
+  data: CreateDiscussionData
+): Promise<{ id: number; message: string }> => {
+  const response = await api.post("/discussions", data, {
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const addAnswer = async (
+  discussionId: string,
+  content: string,
+  images?: string[]
+): Promise<{ id: number; message: string }> => {
+  const response = await api.post(
+    `/discussions/${discussionId}/answers`,
+    { content, images },
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const voteDiscussion = async (
+  discussionId: string,
+  voteType: "up" | "down"
+): Promise<{ message: string }> => {
+  const response = await api.post(
+    `/discussions/${discussionId}/vote`,
+    { voteType },
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const voteAnswer = async (
+  answerId: string,
+  voteType: "up" | "down"
+): Promise<{ message: string }> => {
+  const response = await api.post(
+    `/discussions/answers/${answerId}/vote`,
+    { voteType },
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const markBestAnswer = async (
+  answerId: string
+): Promise<{ message: string }> => {
+  const response = await api.post(
+    `/discussions/answers/${answerId}/best`,
+    {},
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const getPopularTags = async (): Promise<
+  { tag: string; count: number }[]
+> => {
+  const response = await api.get("/discussions/tags/popular");
+  return response.data;
+};
+
+export const addReply = async (
+  answerId: string,
+  content: string,
+  images?: string[]
+): Promise<{ id: number; message: string }> => {
+  const response = await api.post(
+    `/discussions/answers/${answerId}/replies`,
+    { content, images },
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const voteReply = async (
+  replyId: string,
+  voteType: "up" | "down"
+): Promise<{ message: string }> => {
+  const response = await api.post(
+    `/discussions/replies/${replyId}/vote`,
+    { voteType },
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const getNotifications = async (): Promise<{
+  notifications: Notification[];
+  unreadCount: number;
+}> => {
+  const response = await api.get("/discussions/notifications", {
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const markNotificationAsRead = async (
+  notificationId: string
+): Promise<{ message: string }> => {
+  const response = await api.put(
+    `/discussions/notifications/${notificationId}/read`,
+    {},
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const markAllNotificationsAsRead = async (): Promise<{
+  message: string;
+}> => {
+  const response = await api.put(
+    "/discussions/notifications/read-all",
+    {},
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+};
+
+export const searchUsers = async (query: string): Promise<string[]> => {
+  const response = await api.get("/discussions/users/search", {
+    params: { q: query },
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+};
+
+export const uploadImage = async (
+  imageFile: File,
+  name?: string
+): Promise<{ url: string; thumbnail: string; deleteUrl: string }> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64 = reader.result as string;
+        const response = await api.post(
+          "/images/upload",
+          { image: base64, name },
+          { headers: getAuthHeaders() }
+        );
+        resolve(response.data);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(imageFile);
+  });
 };
