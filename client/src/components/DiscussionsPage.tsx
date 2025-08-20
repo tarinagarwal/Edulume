@@ -341,23 +341,6 @@ const DiscussionsPage: React.FC = () => {
                       className="smoke-card p-6 relative smoke-effect hover:shadow-alien-glow transition-all duration-300"
                     >
                       <div className="flex items-start space-x-4">
-                        {/* Vote Section */}
-                        <div className="flex flex-col items-center space-y-2 min-w-[60px]">
-                          <div className="flex flex-col items-center text-sm">
-                            <ChevronUp
-                              className="text-gray-400 hover:text-alien-green cursor-pointer"
-                              size={20}
-                            />
-                            <span className="text-alien-green font-bold">
-                              {discussion.vote_count || 0}
-                            </span>
-                            <ChevronDown
-                              className="text-gray-400 hover:text-red-400 cursor-pointer"
-                              size={20}
-                            />
-                          </div>
-                        </div>
-
                         {/* Content */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between mb-2">

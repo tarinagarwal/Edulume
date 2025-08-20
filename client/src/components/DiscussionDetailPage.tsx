@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Tag,
   Reply,
+  Users,
 } from "lucide-react";
 import {
   getDiscussion,
@@ -32,18 +33,22 @@ import { DISCUSSION_CATEGORIES } from "../types/discussions";
 import { isAuthenticated } from "../utils/auth";
 import { getUserProfile } from "../utils/api";
 import MentionInput from "./MentionInput";
+import useSocket from "../hooks/useSocket";
 
 const DiscussionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const authenticated = isAuthenticated();
+  const socket = useSocket();
 
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
   const [answers, setAnswers] = useState<DiscussionAnswer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [typingUsers, setTypingUsers] = useState<{ [key: string]: string }>({});
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
 
   // Answer form state
   const [answerContent, setAnswerContent] = useState("");
@@ -58,6 +63,8 @@ const DiscussionDetailPage: React.FC = () => {
   const [submittingReply, setSubmittingReply] = useState(false);
   const [replyToUsername, setReplyToUsername] = useState<string>("");
 
+  // Typing indicator timeout
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (id) {
       fetchDiscussion();
@@ -67,6 +74,102 @@ const DiscussionDetailPage: React.FC = () => {
     }
   }, [id, authenticated]);
 
+  // Socket event handlers
+  useEffect(() => {
+    if (!socket || !id) return;
+
+    // Join discussion room
+    socket.emit("join_discussion", id);
+
+    // Listen for new answers
+    socket.on("new_answer", (newAnswer: DiscussionAnswer) => {
+      setAnswers((prev) => [...prev, newAnswer]);
+    });
+
+    // Listen for new replies
+    socket.on("new_reply", ({ answerId, reply }) => {
+      setAnswers((prev) =>
+        prev.map((answer) =>
+          answer.id === parseInt(answerId)
+            ? { ...answer, replies: [...(answer.replies || []), reply] }
+            : answer
+        )
+      );
+    });
+
+    // Listen for best answer updates
+    socket.on("best_answer_marked", ({ answerId }) => {
+      setAnswers((prev) =>
+        prev.map((answer) => ({
+          ...answer,
+          is_best_answer: answer.id === parseInt(answerId) ? 1 : 0,
+        }))
+      );
+
+      if (discussion) {
+        setDiscussion((prev) =>
+          prev ? { ...prev, has_best_answer: 1 } : null
+        );
+      }
+    });
+
+    // Listen for vote updates
+    socket.on("vote_count_updated", ({ targetId, targetType, voteCount }) => {
+      if (
+        targetType === "discussion" &&
+        discussion?.id === parseInt(targetId)
+      ) {
+        setDiscussion((prev) =>
+          prev ? { ...prev, vote_count: voteCount } : null
+        );
+      } else if (targetType === "answer") {
+        setAnswers((prev) =>
+          prev.map((answer) =>
+            answer.id === parseInt(targetId)
+              ? { ...answer, vote_count: voteCount }
+              : answer
+          )
+        );
+      } else if (targetType === "reply") {
+        setAnswers((prev) =>
+          prev.map((answer) => ({
+            ...answer,
+            replies:
+              answer.replies?.map((reply) =>
+                reply.id === parseInt(targetId)
+                  ? { ...reply, vote_count: voteCount }
+                  : reply
+              ) || [],
+          }))
+        );
+      }
+    });
+
+    // Listen for typing indicators
+    socket.on("user_typing", ({ userId, username, type }) => {
+      if (userId !== currentUser?.id) {
+        setTypingUsers((prev) => ({ ...prev, [userId]: username }));
+      }
+    });
+
+    socket.on("user_stop_typing", ({ userId }) => {
+      setTypingUsers((prev) => {
+        const newTyping = { ...prev };
+        delete newTyping[userId];
+        return newTyping;
+      });
+    });
+
+    return () => {
+      socket.emit("leave_discussion", id);
+      socket.off("new_answer");
+      socket.off("new_reply");
+      socket.off("best_answer_marked");
+      socket.off("vote_count_updated");
+      socket.off("user_typing");
+      socket.off("user_stop_typing");
+    };
+  }, [socket, id, discussion, currentUser]);
   const fetchDiscussion = async () => {
     try {
       setLoading(true);
@@ -97,7 +200,16 @@ const DiscussionDetailPage: React.FC = () => {
 
     try {
       await voteDiscussion(id!, voteType);
-      fetchDiscussion(); // Refresh to get updated vote counts
+
+      // Emit real-time vote update
+      if (socket) {
+        socket.emit("vote_update", {
+          discussionId: id,
+          targetId: id,
+          targetType: "discussion",
+          voteType,
+        });
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to vote");
     }
@@ -114,7 +226,16 @@ const DiscussionDetailPage: React.FC = () => {
 
     try {
       await voteAnswer(answerId, voteType);
-      fetchDiscussion(); // Refresh to get updated vote counts
+
+      // Emit real-time vote update
+      if (socket) {
+        socket.emit("vote_update", {
+          discussionId: id,
+          targetId: answerId,
+          targetType: "answer",
+          voteType,
+        });
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to vote");
     }
@@ -128,7 +249,16 @@ const DiscussionDetailPage: React.FC = () => {
 
     try {
       await voteReply(replyId, voteType);
-      fetchDiscussion(); // Refresh to get updated vote counts
+
+      // Emit real-time vote update
+      if (socket) {
+        socket.emit("vote_update", {
+          discussionId: id,
+          targetId: replyId,
+          targetType: "reply",
+          voteType,
+        });
+      }
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to vote");
     }
@@ -146,7 +276,6 @@ const DiscussionDetailPage: React.FC = () => {
 
     try {
       await markBestAnswer(answerId);
-      fetchDiscussion(); // Refresh to get updated data
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to mark best answer");
     }
@@ -232,9 +361,6 @@ const DiscussionDetailPage: React.FC = () => {
 
       // Reset form
       handleCancelReply();
-
-      // Refresh discussion
-      fetchDiscussion();
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to submit reply");
     } finally {
@@ -268,9 +394,6 @@ const DiscussionDetailPage: React.FC = () => {
       // Reset form
       setAnswerContent("");
       setAnswerImages([]);
-
-      // Refresh discussion
-      fetchDiscussion();
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to submit answer");
     } finally {
@@ -278,6 +401,33 @@ const DiscussionDetailPage: React.FC = () => {
     }
   };
 
+  // Handle typing indicators
+  const handleTypingStart = (type: "answer" | "reply") => {
+    if (socket && id) {
+      socket.emit("typing_start", { discussionId: id, type });
+
+      // Clear existing timeout
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      // Set timeout to stop typing indicator
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit("typing_stop", { discussionId: id });
+      }, 3000);
+    }
+  };
+
+  const handleTypingStop = () => {
+    if (socket && id) {
+      socket.emit("typing_stop", { discussionId: id });
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    }
+  };
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -445,12 +595,131 @@ const DiscussionDetailPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Add Answer Form */}
+        {authenticated && (
+          <div className="smoke-card p-6 mt-10 mb-5 smoke-effect">
+            <h3 className="text-lg font-alien font-bold text-alien-green mb-4">
+              Your Answer
+            </h3>
+            <form onSubmit={handleSubmitAnswer} className="space-y-4">
+              <MentionInput
+                value={answerContent}
+                onChange={(value) => {
+                  setAnswerContent(value);
+                  if (value.trim()) {
+                    handleTypingStart("answer");
+                  } else {
+                    handleTypingStop();
+                  }
+                }}
+                placeholder="Write your answer..."
+                className="alien-input w-full h-32 resize-none"
+                rows={6}
+              />
+
+              {/* Image Upload */}
+              <div className="flex items-center space-x-4">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={imageUploading || answerImages.length >= 3}
+                  className="flex items-center space-x-2 px-4 py-2 border border-smoke-light rounded text-gray-400 hover:border-alien-green hover:text-alien-green disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                >
+                  {imageUploading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-alien-green border-t-transparent rounded-full animate-spin"></div>
+                      <span>Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon size={16} />
+                      <span>Add Images ({answerImages.length}/3)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* Answer Image Preview */}
+              {answerImages.length > 0 && (
+                <div className="grid grid-cols-3 gap-4">
+                  {answerImages.map((imageUrl, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={imageUrl || "/placeholder.svg"}
+                        alt={`Answer upload ${index + 1}`}
+                        className="w-full h-24 object-cover rounded border border-smoke-light"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeAnswerImage(index)}
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={!answerContent.trim() || submittingAnswer}
+                  className="alien-button disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingAnswer ? "Posting Answer..." : "Post Answer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {!authenticated && (
+          <div className="smoke-card p-6 text-center smoke-effect">
+            <p className="text-gray-400 mb-4">
+              Please sign in to post an answer or reply to this discussion.
+            </p>
+            <Link to="/auth" className="alien-button">
+              Sign In
+            </Link>
+          </div>
+        )}
+
         {/* Answers */}
         <div className="space-y-6">
           <h2 className="text-xl font-alien font-bold text-alien-green">
             {answers.length} {answers.length === 1 ? "Answer" : "Answers"}
           </h2>
 
+          {/* Typing Indicators */}
+          {Object.keys(typingUsers).length > 0 && (
+            <div className="flex items-center space-x-2 text-sm text-gray-400 bg-smoke-light/20 px-4 py-2 rounded-lg">
+              <Users size={16} />
+              <span>
+                {Object.values(typingUsers).join(", ")}
+                {Object.keys(typingUsers).length === 1 ? " is" : " are"}{" "}
+                typing...
+              </span>
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-alien-green rounded-full animate-bounce"></div>
+                <div
+                  className="w-2 h-2 bg-alien-green rounded-full animate-bounce"
+                  style={{ animationDelay: "0.1s" }}
+                ></div>
+                <div
+                  className="w-2 h-2 bg-alien-green rounded-full animate-bounce"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+              </div>
+            </div>
+          )}
           {answers.map((answer) => {
             const answerImages = parseImages(answer.images);
             const canMarkBest =
@@ -749,96 +1018,6 @@ const DiscussionDetailPage: React.FC = () => {
             );
           })}
         </div>
-
-        {/* Add Answer Form */}
-        {authenticated && (
-          <div className="smoke-card p-6 mt-10 smoke-effect">
-            <h3 className="text-lg font-alien font-bold text-alien-green mb-4">
-              Your Answer
-            </h3>
-            <form onSubmit={handleSubmitAnswer} className="space-y-4">
-              <MentionInput
-                value={answerContent}
-                onChange={setAnswerContent}
-                placeholder="Write your answer..."
-                className="alien-input w-full h-32 resize-none"
-                rows={6}
-              />
-
-              {/* Image Upload */}
-              <div className="flex items-center space-x-4">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileSelect}
-                  accept="image/*"
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={imageUploading || answerImages.length >= 3}
-                  className="flex items-center space-x-2 px-4 py-2 border border-smoke-light rounded text-gray-400 hover:border-alien-green hover:text-alien-green disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
-                >
-                  {imageUploading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-alien-green border-t-transparent rounded-full animate-spin"></div>
-                      <span>Uploading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <ImageIcon size={16} />
-                      <span>Add Images ({answerImages.length}/3)</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              {/* Answer Image Preview */}
-              {answerImages.length > 0 && (
-                <div className="grid grid-cols-3 gap-4">
-                  {answerImages.map((imageUrl, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={imageUrl || "/placeholder.svg"}
-                        alt={`Answer upload ${index + 1}`}
-                        className="w-full h-24 object-cover rounded border border-smoke-light"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeAnswerImage(index)}
-                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  disabled={!answerContent.trim() || submittingAnswer}
-                  className="alien-button disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submittingAnswer ? "Posting Answer..." : "Post Answer"}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {!authenticated && (
-          <div className="smoke-card p-6 text-center smoke-effect">
-            <p className="text-gray-400 mb-4">
-              Please sign in to post an answer or reply to this discussion.
-            </p>
-            <Link to="/auth" className="alien-button">
-              Sign In
-            </Link>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -1,6 +1,13 @@
 import express from "express";
 import { dbAll, dbRun, dbGet } from "../db.js";
 import { authenticateToken } from "../middleware/auth.js";
+import {
+  emitNewAnswer,
+  emitNewReply,
+  emitBestAnswerMarked,
+  emitVoteUpdate,
+  emitNotification,
+} from "../socket/socketHandlers.js";
 
 // Helper function to extract mentions from content
 const extractMentions = (content) => {
@@ -22,10 +29,11 @@ const createNotification = async (
   relatedId,
   relatedType,
   fromUserId,
-  fromUsername
+  fromUsername,
+  io = null
 ) => {
   try {
-    await dbRun(
+    const result = await dbRun(
       `INSERT INTO notifications (user_id, type, title, message, related_id, related_type, from_user_id, from_username)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
@@ -39,6 +47,24 @@ const createNotification = async (
         fromUsername,
       ]
     );
+
+    // Emit real-time notification if io is available
+    if (io) {
+      const notification = {
+        id: result.id,
+        user_id: userId,
+        type,
+        title,
+        message,
+        related_id: relatedId,
+        related_type: relatedType,
+        from_user_id: fromUserId,
+        from_username: fromUsername,
+        is_read: 0,
+        created_at: new Date().toISOString(),
+      };
+      emitNotification(io, userId, notification);
+    }
   } catch (error) {
     console.error("Error creating notification:", error);
   }
@@ -271,6 +297,7 @@ router.post("/:id/answers", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { content, images } = req.body;
+    const io = req.app.get("io");
 
     if (!content) {
       return res.status(400).json({ error: "Content is required" });
@@ -292,6 +319,28 @@ router.post("/:id/answers", authenticateToken, async (req, res) => {
       [id, content, images ? JSON.stringify(images) : null, req.user.id]
     );
 
+    // Get the complete answer data for real-time emission
+    const newAnswer = await dbGet(
+      `
+      SELECT 
+        a.*,
+        u.username as author_username,
+        0 as reply_count,
+        0 as vote_count,
+        0 as upvotes,
+        0 as downvotes
+      FROM discussion_answers a
+      LEFT JOIN users u ON a.author_id = u.id
+      WHERE a.id = ?
+    `,
+      [result.id]
+    );
+    newAnswer.replies = [];
+
+    // Emit real-time update
+    if (io) {
+      emitNewAnswer(io, id, newAnswer);
+    }
     const discussionDetails = await dbGet(
       "SELECT author_id, title FROM discussions WHERE id = ?",
       [id]
@@ -305,7 +354,8 @@ router.post("/:id/answers", authenticateToken, async (req, res) => {
         parseInt(id),
         "discussion",
         req.user.id,
-        req.user.username
+        req.user.username,
+        io
       );
     }
 
@@ -325,7 +375,8 @@ router.post("/:id/answers", authenticateToken, async (req, res) => {
           parseInt(id),
           "discussion",
           req.user.id,
-          req.user.username
+          req.user.username,
+          io
         );
       }
     }
@@ -345,6 +396,7 @@ router.post("/:id/vote", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { voteType } = req.body; // 'up' or 'down'
+    const io = req.app.get("io");
 
     if (!["up", "down"].includes(voteType)) {
       return res.status(400).json({ error: "Invalid vote type" });
@@ -362,14 +414,12 @@ router.post("/:id/vote", authenticateToken, async (req, res) => {
         await dbRun("DELETE FROM discussion_votes WHERE id = ?", [
           existingVote.id,
         ]);
-        return res.json({ message: "Vote removed" });
       } else {
         // Update vote type
         await dbRun("UPDATE discussion_votes SET vote_type = ? WHERE id = ?", [
           voteType,
           existingVote.id,
         ]);
-        return res.json({ message: "Vote updated" });
       }
     } else {
       // Add new vote
@@ -377,8 +427,20 @@ router.post("/:id/vote", authenticateToken, async (req, res) => {
         "INSERT INTO discussion_votes (discussion_id, user_id, vote_type) VALUES (?, ?, ?)",
         [id, req.user.id, voteType]
       );
-      return res.json({ message: "Vote added" });
     }
+
+    // Get updated vote count
+    const voteCount = await dbGet(
+      "SELECT COUNT(*) as count FROM discussion_votes WHERE discussion_id = ?",
+      [id]
+    );
+
+    // Emit real-time vote update
+    if (io) {
+      emitVoteUpdate(io, id, id, "discussion", voteCount.count);
+    }
+
+    res.json({ message: "Vote processed successfully" });
   } catch (error) {
     console.error("Error voting on discussion:", error);
     res.status(500).json({ error: "Failed to vote" });
@@ -390,6 +452,7 @@ router.post("/answers/:id/vote", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { voteType } = req.body;
+    const io = req.app.get("io");
 
     if (!["up", "down"].includes(voteType)) {
       return res.status(400).json({ error: "Invalid vote type" });
@@ -403,21 +466,41 @@ router.post("/answers/:id/vote", authenticateToken, async (req, res) => {
     if (existingVote) {
       if (existingVote.vote_type === voteType) {
         await dbRun("DELETE FROM answer_votes WHERE id = ?", [existingVote.id]);
-        return res.json({ message: "Vote removed" });
       } else {
         await dbRun("UPDATE answer_votes SET vote_type = ? WHERE id = ?", [
           voteType,
           existingVote.id,
         ]);
-        return res.json({ message: "Vote updated" });
       }
     } else {
       await dbRun(
         "INSERT INTO answer_votes (answer_id, user_id, vote_type) VALUES (?, ?, ?)",
         [id, req.user.id, voteType]
       );
-      return res.json({ message: "Vote added" });
     }
+
+    // Get discussion ID and vote count
+    const answerInfo = await dbGet(
+      "SELECT discussion_id FROM discussion_answers WHERE id = ?",
+      [id]
+    );
+    const voteCount = await dbGet(
+      "SELECT COUNT(*) as count FROM answer_votes WHERE answer_id = ?",
+      [id]
+    );
+
+    // Emit real-time vote update
+    if (io && answerInfo) {
+      emitVoteUpdate(
+        io,
+        answerInfo.discussion_id,
+        id,
+        "answer",
+        voteCount.count
+      );
+    }
+
+    res.json({ message: "Vote processed successfully" });
   } catch (error) {
     console.error("Error voting on answer:", error);
     res.status(500).json({ error: "Failed to vote" });
@@ -428,6 +511,7 @@ router.post("/answers/:id/vote", authenticateToken, async (req, res) => {
 router.post("/answers/:id/best", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
+    const io = req.app.get("io");
 
     // Get answer and discussion details
     const answer = await dbGet(
@@ -463,6 +547,10 @@ router.post("/answers/:id/best", authenticateToken, async (req, res) => {
       [id]
     );
 
+    // Emit real-time best answer update
+    if (io) {
+      emitBestAnswerMarked(io, answer.discussion_id, id);
+    }
     // Create notification for answer author
     if (answer.author_id !== req.user.id) {
       const discussion = await dbGet(
@@ -477,7 +565,8 @@ router.post("/answers/:id/best", authenticateToken, async (req, res) => {
         answer.discussion_id,
         "discussion",
         req.user.id,
-        req.user.username
+        req.user.username,
+        io
       );
     }
 
@@ -493,6 +582,7 @@ router.post("/answers/:id/replies", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { content, images } = req.body;
+    const io = req.app.get("io");
 
     if (!content) {
       return res.status(400).json({ error: "Content is required" });
@@ -515,6 +605,26 @@ router.post("/answers/:id/replies", authenticateToken, async (req, res) => {
       [id, content, images ? JSON.stringify(images) : null, req.user.id]
     );
 
+    // Get the complete reply data for real-time emission
+    const newReply = await dbGet(
+      `
+      SELECT 
+        r.*,
+        u.username as author_username,
+        0 as vote_count,
+        0 as upvotes,
+        0 as downvotes
+      FROM discussion_replies r
+      LEFT JOIN users u ON r.author_id = u.id
+      WHERE r.id = ?
+    `,
+      [result.id]
+    );
+
+    // Emit real-time update
+    if (io) {
+      emitNewReply(io, answer.discussion_id, id, newReply);
+    }
     // Create notification for answer author
     if (answer.author_id !== req.user.id) {
       await createNotification(
@@ -525,7 +635,8 @@ router.post("/answers/:id/replies", authenticateToken, async (req, res) => {
         answer.discussion_id,
         "discussion",
         req.user.id,
-        req.user.username
+        req.user.username,
+        io
       );
     }
 
@@ -545,7 +656,8 @@ router.post("/answers/:id/replies", authenticateToken, async (req, res) => {
           answer.discussion_id,
           "discussion",
           req.user.id,
-          req.user.username
+          req.user.username,
+          io
         );
       }
     }
@@ -565,6 +677,7 @@ router.post("/replies/:id/vote", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { voteType } = req.body;
+    const io = req.app.get("io");
 
     if (!["up", "down"].includes(voteType)) {
       return res.status(400).json({ error: "Invalid vote type" });
@@ -578,21 +691,38 @@ router.post("/replies/:id/vote", authenticateToken, async (req, res) => {
     if (existingVote) {
       if (existingVote.vote_type === voteType) {
         await dbRun("DELETE FROM reply_votes WHERE id = ?", [existingVote.id]);
-        return res.json({ message: "Vote removed" });
       } else {
         await dbRun("UPDATE reply_votes SET vote_type = ? WHERE id = ?", [
           voteType,
           existingVote.id,
         ]);
-        return res.json({ message: "Vote updated" });
       }
     } else {
       await dbRun(
         "INSERT INTO reply_votes (reply_id, user_id, vote_type) VALUES (?, ?, ?)",
         [id, req.user.id, voteType]
       );
-      return res.json({ message: "Vote added" });
     }
+
+    // Get discussion ID and vote count
+    const replyInfo = await dbGet(
+      `SELECT a.discussion_id 
+       FROM discussion_replies r 
+       JOIN discussion_answers a ON r.answer_id = a.id 
+       WHERE r.id = ?`,
+      [id]
+    );
+    const voteCount = await dbGet(
+      "SELECT COUNT(*) as count FROM reply_votes WHERE reply_id = ?",
+      [id]
+    );
+
+    // Emit real-time vote update
+    if (io && replyInfo) {
+      emitVoteUpdate(io, replyInfo.discussion_id, id, "reply", voteCount.count);
+    }
+
+    res.json({ message: "Vote processed successfully" });
   } catch (error) {
     console.error("Error voting on reply:", error);
     res.status(500).json({ error: "Failed to vote" });

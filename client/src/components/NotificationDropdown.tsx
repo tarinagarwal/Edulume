@@ -16,6 +16,7 @@ import {
   markAllNotificationsAsRead,
 } from "../utils/api";
 import { Notification } from "../types/discussions";
+import useSocket from "../hooks/useSocket";
 
 const NotificationDropdown: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -24,6 +25,7 @@ const NotificationDropdown: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const socket = useSocket();
 
   useEffect(() => {
     fetchNotifications();
@@ -33,6 +35,27 @@ const NotificationDropdown: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Listen for real-time notifications
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("new_notification", (notification: Notification) => {
+      setNotifications((prev) => [notification, ...prev]);
+      setUnreadCount((prev) => prev + 1);
+
+      // Show browser notification if permission granted
+      if (Notification.permission === "granted") {
+        new Notification(notification.title, {
+          body: notification.message,
+          icon: "/logo.png",
+        });
+      }
+    });
+
+    return () => {
+      socket.off("new_notification");
+    };
+  }, [socket]);
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -55,6 +78,11 @@ const NotificationDropdown: React.FC = () => {
       const response = await getNotifications();
       setNotifications(response.notifications);
       setUnreadCount(response.unreadCount);
+
+      // Request notification permission if not already granted
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
       // Don't show error to user for notifications, just log it
