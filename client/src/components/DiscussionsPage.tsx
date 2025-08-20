@@ -1,4 +1,7 @@
-import React, { useState, useEffect } from "react";
+"use client";
+
+import type React from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   MessageSquare,
@@ -6,11 +9,8 @@ import {
   Search,
   Filter,
   TrendingUp,
-  Clock,
   MessageCircle,
   Eye,
-  ChevronUp,
-  ChevronDown,
   Tag,
   User,
   Calendar,
@@ -18,7 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { getDiscussions, getPopularTags } from "../utils/api";
-import { Discussion } from "../types/discussions";
+import type { Discussion } from "../types/discussions";
 import { DISCUSSION_CATEGORIES } from "../types/discussions";
 import { isAuthenticated } from "../utils/auth";
 
@@ -42,10 +42,11 @@ const DiscussionsPage: React.FC = () => {
   const [selectedTag, setSelectedTag] = useState(searchParams.get("tag") || "");
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "recent");
   const [showFilters, setShowFilters] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(
-    parseInt(searchParams.get("page") || "1")
+    Number.parseInt(searchParams.get("page") || "1")
   );
   const [totalPages, setTotalPages] = useState(1);
   const [totalDiscussions, setTotalDiscussions] = useState(0);
@@ -184,6 +185,93 @@ const DiscussionsPage: React.FC = () => {
         )}
 
         <div className="grid lg:grid-cols-4 gap-8">
+          {/* Desktop Sidebar - Hidden on mobile */}
+          <div className="hidden lg:block lg:col-span-1">
+            <div className="space-y-6">
+              {/* Popular Tags */}
+              <div className="smoke-card p-6 relative smoke-effect">
+                <h3 className="text-lg font-alien font-bold text-alien-green mb-4 flex items-center">
+                  <Tag className="mr-2" size={20} />
+                  Popular Tags
+                </h3>
+                <div className="space-y-2">
+                  {popularTags.map((tag) => (
+                    <button
+                      key={tag.tag}
+                      onClick={() => setSelectedTag(tag.tag)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
+                        selectedTag === tag.tag
+                          ? "bg-alien-green/20 text-alien-green"
+                          : "text-gray-400 hover:bg-smoke-light hover:text-alien-green"
+                      }`}
+                    >
+                      <span className="font-medium">#{tag.tag}</span>
+                      <span className="text-xs text-gray-500 ml-2">
+                        ({tag.count})
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Categories */}
+              <div className="smoke-card p-6 relative smoke-effect">
+                <h3 className="text-lg font-alien font-bold text-alien-green mb-4 flex items-center">
+                  <Filter className="mr-2" size={20} />
+                  Categories
+                </h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setSelectedCategory("all")}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
+                      selectedCategory === "all"
+                        ? "bg-alien-green/20 text-alien-green"
+                        : "text-gray-400 hover:bg-smoke-light hover:text-alien-green"
+                    }`}
+                  >
+                    All Categories
+                  </button>
+                  {DISCUSSION_CATEGORIES.map((category) => (
+                    <button
+                      key={category.value}
+                      onClick={() => setSelectedCategory(category.value)}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
+                        selectedCategory === category.value
+                          ? "bg-alien-green/20 text-alien-green"
+                          : "text-gray-400 hover:bg-smoke-light hover:text-alien-green"
+                      }`}
+                    >
+                      <span className="mr-2">{category.icon}</span>
+                      {category.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="smoke-card p-6 relative smoke-effect">
+                <h3 className="text-lg font-alien font-bold text-alien-green mb-4 flex items-center">
+                  <TrendingUp className="mr-2" size={20} />
+                  Quick Stats
+                </h3>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Total Discussions</span>
+                    <span className="text-white font-bold">
+                      {totalDiscussions}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Popular Tags</span>
+                    <span className="text-white font-bold">
+                      {popularTags.length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Main Content */}
           <div className="lg:col-span-3">
             {/* Search and Filter Controls */}
@@ -206,15 +294,38 @@ const DiscussionsPage: React.FC = () => {
               {/* Filter Controls */}
               <div className="flex flex-wrap items-center gap-4 mb-4">
                 <button
-                  onClick={() => setShowFilters(!showFilters)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${
-                    showFilters || hasActiveFilters
+                  onClick={() => setShowMobileFilters(true)}
+                  className={`lg:hidden flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${
+                    hasActiveFilters
                       ? "border-alien-green bg-alien-green/10 text-alien-green"
                       : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
                   }`}
                 >
                   <Filter size={16} />
                   <span>Filters</span>
+                  {hasActiveFilters && (
+                    <span className="bg-alien-green text-royal-black text-xs px-2 py-1 rounded-full">
+                      {
+                        [
+                          searchTerm,
+                          selectedCategory !== "all",
+                          selectedTag,
+                        ].filter(Boolean).length
+                      }
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`hidden lg:flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${
+                    showFilters || hasActiveFilters
+                      ? "border-alien-green bg-alien-green/10 text-alien-green"
+                      : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
+                  }`}
+                >
+                  <Filter size={16} />
+                  <span>Advanced Filters</span>
                   {hasActiveFilters && (
                     <span className="bg-alien-green text-royal-black text-xs px-2 py-1 rounded-full">
                       {
@@ -253,9 +364,9 @@ const DiscussionsPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Advanced Filters */}
+              {/* Desktop Advanced Filters */}
               {showFilters && (
-                <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-smoke-light">
+                <div className="hidden lg:grid md:grid-cols-2 gap-4 pt-4 border-t border-smoke-light">
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       Category
@@ -330,90 +441,92 @@ const DiscussionsPage: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
-                {discussions.map((discussion) => {
-                  const categoryInfo = getCategoryInfo(discussion.category);
-                  const tags = parseTags(discussion.tags);
+              <div>
+                <div className="max-h-[800px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-alien-green/30 scrollbar-track-smoke-light/20">
+                  {discussions.map((discussion) => {
+                    const categoryInfo = getCategoryInfo(discussion.category);
+                    const tags = parseTags(discussion.tags);
 
-                  return (
-                    <div
-                      key={discussion.id}
-                      className="smoke-card p-6 relative smoke-effect hover:shadow-alien-glow transition-all duration-300"
-                    >
-                      <div className="flex items-start space-x-4">
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between mb-2">
-                            <Link
-                              to={`/discussions/${discussion.id}`}
-                              className="text-lg font-alien font-bold text-white hover:text-alien-green transition-colors duration-300 line-clamp-2"
-                            >
-                              {discussion.title}
-                            </Link>
-                            {discussion.has_best_answer === 1 && (
-                              <CheckCircle
-                                className="text-alien-green ml-2 flex-shrink-0"
-                                size={20}
-                              />
-                            )}
-                          </div>
-
-                          <p className="text-gray-400 text-sm mb-3 line-clamp-2">
-                            {discussion.content.replace(/<[^>]*>/g, "")}
-                          </p>
-
-                          {/* Tags */}
-                          {tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-3">
-                              {tags.slice(0, 3).map((tag) => (
-                                <button
-                                  key={tag}
-                                  onClick={() => setSelectedTag(tag)}
-                                  className="text-xs bg-smoke-light text-alien-green px-2 py-1 rounded-full hover:bg-alien-green/20 transition-colors duration-300"
-                                >
-                                  #{tag}
-                                </button>
-                              ))}
-                              {tags.length > 3 && (
-                                <span className="text-xs text-gray-500">
-                                  +{tags.length - 3} more
-                                </span>
+                    return (
+                      <div
+                        key={discussion.id}
+                        className="smoke-card p-6 relative smoke-effect hover:shadow-alien-glow transition-all duration-300"
+                      >
+                        <div className="flex items-start space-x-4">
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between mb-2">
+                              <Link
+                                to={`/discussions/${discussion.id}`}
+                                className="text-lg font-alien font-bold text-white hover:text-alien-green transition-colors duration-300 line-clamp-2"
+                              >
+                                {discussion.title}
+                              </Link>
+                              {discussion.has_best_answer === 1 && (
+                                <CheckCircle
+                                  className="text-alien-green ml-2 flex-shrink-0"
+                                  size={20}
+                                />
                               )}
                             </div>
-                          )}
 
-                          {/* Meta Information */}
-                          <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
-                            <div className="flex items-center space-x-1">
-                              <span className="text-lg">
-                                {categoryInfo.icon}
-                              </span>
-                              <span>{categoryInfo.label}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <User size={14} />
-                              <span>{discussion.author_username}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Calendar size={14} />
-                              <span>
-                                {formatTimeAgo(discussion.created_at)}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <MessageCircle size={14} />
-                              <span>{discussion.answer_count} answers</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Eye size={14} />
-                              <span>{discussion.views} views</span>
+                            <p className="text-gray-400 text-sm mb-3 line-clamp-2">
+                              {discussion.content.replace(/<[^>]*>/g, "")}
+                            </p>
+
+                            {/* Tags */}
+                            {tags.length > 0 && (
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                {tags.slice(0, 3).map((tag) => (
+                                  <button
+                                    key={tag}
+                                    onClick={() => setSelectedTag(tag)}
+                                    className="text-xs bg-smoke-light text-alien-green px-2 py-1 rounded-full hover:bg-alien-green/20 transition-colors duration-300"
+                                  >
+                                    #{tag}
+                                  </button>
+                                ))}
+                                {tags.length > 3 && (
+                                  <span className="text-xs text-gray-500">
+                                    +{tags.length - 3} more
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Meta Information */}
+                            <div className="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                              <div className="flex items-center space-x-1">
+                                <span className="text-lg">
+                                  {categoryInfo.icon}
+                                </span>
+                                <span>{categoryInfo.label}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <User size={14} />
+                                <span>{discussion.author_username}</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Calendar size={14} />
+                                <span>
+                                  {formatTimeAgo(discussion.created_at)}
+                                </span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <MessageCircle size={14} />
+                                <span>{discussion.answer_count} answers</span>
+                              </div>
+                              <div className="flex items-center space-x-1">
+                                <Eye size={14} />
+                                <span>{discussion.views} views</span>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (
@@ -459,94 +572,132 @@ const DiscussionsPage: React.FC = () => {
               </div>
             )}
           </div>
+        </div>
 
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="space-y-6">
-              {/* Popular Tags */}
-              <div className="smoke-card p-6 relative smoke-effect">
-                <h3 className="text-lg font-alien font-bold text-alien-green mb-4 flex items-center">
-                  <Tag className="mr-2" size={20} />
-                  Popular Tags
-                </h3>
-                <div className="space-y-2">
-                  {popularTags.map((tag) => (
+        {showMobileFilters && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 lg:hidden">
+            <div className="fixed inset-x-4 top-4 bottom-4 bg-royal-black border border-smoke-light rounded-lg overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-smoke-light">
+                <h2 className="text-lg font-alien font-bold text-alien-green">
+                  Filters & Categories
+                </h2>
+                <button
+                  onClick={() => setShowMobileFilters(false)}
+                  className="text-gray-400 hover:text-white transition-colors duration-300"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+
+              <div className="p-4 overflow-y-auto max-h-full space-y-6">
+                {/* Categories */}
+                <div>
+                  <h3 className="text-md font-alien font-bold text-alien-green mb-3 flex items-center">
+                    <Filter className="mr-2" size={18} />
+                    Categories
+                  </h3>
+                  <div className="space-y-2">
                     <button
-                      key={tag.tag}
-                      onClick={() => setSelectedTag(tag.tag)}
-                      className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
-                        selectedTag === tag.tag
+                      onClick={() => {
+                        setSelectedCategory("all");
+                        setShowMobileFilters(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
+                        selectedCategory === "all"
                           ? "bg-alien-green/20 text-alien-green"
                           : "text-gray-400 hover:bg-smoke-light hover:text-alien-green"
                       }`}
                     >
-                      <span className="font-medium">#{tag.tag}</span>
-                      <span className="text-xs text-gray-500 ml-2">
-                        ({tag.count})
+                      All Categories
+                    </button>
+                    {DISCUSSION_CATEGORIES.map((category) => (
+                      <button
+                        key={category.value}
+                        onClick={() => {
+                          setSelectedCategory(category.value);
+                          setShowMobileFilters(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
+                          selectedCategory === category.value
+                            ? "bg-alien-green/20 text-alien-green"
+                            : "text-gray-400 hover:bg-smoke-light hover:text-alien-green"
+                        }`}
+                      >
+                        <span className="mr-2">{category.icon}</span>
+                        {category.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Popular Tags */}
+                <div>
+                  <h3 className="text-md font-alien font-bold text-alien-green mb-3 flex items-center">
+                    <Tag className="mr-2" size={18} />
+                    Popular Tags
+                  </h3>
+                  <div className="space-y-2">
+                    {popularTags.map((tag) => (
+                      <button
+                        key={tag.tag}
+                        onClick={() => {
+                          setSelectedTag(tag.tag);
+                          setShowMobileFilters(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
+                          selectedTag === tag.tag
+                            ? "bg-alien-green/20 text-alien-green"
+                            : "text-gray-400 hover:bg-smoke-light hover:text-alien-green"
+                        }`}
+                      >
+                        <span className="font-medium">#{tag.tag}</span>
+                        <span className="text-xs text-gray-500 ml-2">
+                          ({tag.count})
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quick Stats */}
+                <div>
+                  <h3 className="text-md font-alien font-bold text-alien-green mb-3 flex items-center">
+                    <TrendingUp className="mr-2" size={18} />
+                    Quick Stats
+                  </h3>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Total Discussions</span>
+                      <span className="text-white font-bold">
+                        {totalDiscussions}
                       </span>
-                    </button>
-                  ))}
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-400">Popular Tags</span>
+                      <span className="text-white font-bold">
+                        {popularTags.length}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Categories */}
-              <div className="smoke-card p-6 relative smoke-effect">
-                <h3 className="text-lg font-alien font-bold text-alien-green mb-4 flex items-center">
-                  <Filter className="mr-2" size={20} />
-                  Categories
-                </h3>
-                <div className="space-y-2">
+                {/* Clear Filters */}
+                {hasActiveFilters && (
                   <button
-                    onClick={() => setSelectedCategory("all")}
-                    className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
-                      selectedCategory === "all"
-                        ? "bg-alien-green/20 text-alien-green"
-                        : "text-gray-400 hover:bg-smoke-light hover:text-alien-green"
-                    }`}
+                    onClick={() => {
+                      clearFilters();
+                      setShowMobileFilters(false);
+                    }}
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-3 text-red-400 hover:text-red-300 border border-red-400/30 rounded-lg transition-colors duration-300"
                   >
-                    All Categories
+                    <X size={16} />
+                    <span>Clear All Filters</span>
                   </button>
-                  {DISCUSSION_CATEGORIES.map((category) => (
-                    <button
-                      key={category.value}
-                      onClick={() => setSelectedCategory(category.value)}
-                      className={`block w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
-                        selectedCategory === category.value
-                          ? "bg-alien-green/20 text-alien-green"
-                          : "text-gray-400 hover:bg-smoke-light hover:text-alien-green"
-                      }`}
-                    >
-                      <span className="mr-2">{category.icon}</span>
-                      {category.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="smoke-card p-6 relative smoke-effect">
-                <h3 className="text-lg font-alien font-bold text-alien-green mb-4 flex items-center">
-                  <TrendingUp className="mr-2" size={20} />
-                  Quick Stats
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Total Discussions</span>
-                    <span className="text-white font-bold">
-                      {totalDiscussions}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Popular Tags</span>
-                    <span className="text-white font-bold">
-                      {popularTags.length}
-                    </span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

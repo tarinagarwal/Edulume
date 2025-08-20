@@ -64,6 +64,7 @@ const DiscussionDetailPage: React.FC = () => {
   const [replyToUsername, setReplyToUsername] = useState<string>("");
 
   // Typing indicator timeout
+  //@ts-ignore
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   useEffect(() => {
     if (id) {

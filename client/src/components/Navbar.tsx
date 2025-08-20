@@ -114,7 +114,7 @@ const Navbar: React.FC = () => {
                   : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
               }`}
             >
-              <FileText size={20} />
+              {/* <FileText size={20} /> */}
               <span>PDFs</span>
             </Link>
 
@@ -126,7 +126,7 @@ const Navbar: React.FC = () => {
                   : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
               }`}
             >
-              <BookOpen size={20} />
+              {/* <BookOpen size={20} /> */}
               <span>E-books</span>
             </Link>
 
@@ -138,7 +138,7 @@ const Navbar: React.FC = () => {
                   : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
               }`}
             >
-              <MessageSquare size={20} />
+              {/* <MessageSquare size={20} /> */}
               <span>Discussions</span>
             </Link>
 
@@ -152,7 +152,7 @@ const Navbar: React.FC = () => {
                       : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
                   }`}
                 >
-                  <Upload size={20} />
+                  {/* <Upload size={20} /> */}
                   <span>Upload</span>
                 </Link>
 
