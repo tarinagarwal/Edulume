@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getUserProfile, logout } from "../utils/api";
 import { User as UserType } from "../types";
+import { clearAuthCookies } from "../utils/auth";
 import NotificationDropdown from "./NotificationDropdown";
 
 interface NavbarProps {
@@ -65,22 +66,22 @@ const Navbar: React.FC<NavbarProps> = ({ authenticated, onAuthChange }) => {
 
   const handleLogout = async () => {
     try {
+      // First clear cookies locally
+      clearAuthCookies();
+
+      // Then try to logout from server (but don't fail if it doesn't work)
       await logout();
-      setUser(null);
-      onAuthChange(); // Notify parent to re-check auth status
-      // Small delay to ensure state updates before redirect
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 100);
     } catch (error) {
       console.error("Logout failed:", error);
-      // Force logout on client side even if server request fails
-      setUser(null);
-      onAuthChange();
-      setTimeout(() => {
-        window.location.href = "/";
-      }, 100);
+      // Continue with logout even if server request fails
     }
+
+    // Always clear local state and redirect
+    setUser(null);
+    onAuthChange();
+
+    // Force page reload to clear any cached state
+    window.location.href = "/";
   };
 
   const isActive = (path: string) => location.pathname === path;

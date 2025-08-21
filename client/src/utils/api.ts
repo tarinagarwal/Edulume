@@ -1,4 +1,5 @@
 import axios from "axios";
+// import { logout as logoutAPI } from "./auth";
 import {
   AuthResponse,
   PDFItem,
@@ -20,6 +21,31 @@ const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",
   withCredentials: true,
 });
+
+// Add response interceptor to handle 401 errors globally
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Clear any stale authentication state
+      // Force logout by clearing cookies and redirecting
+      document.cookie =
+        "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" +
+        window.location.hostname;
+      document.cookie =
+        "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
+      // Only redirect if we're not already on the auth page
+      if (
+        !window.location.pathname.includes("/auth") &&
+        !window.location.pathname.includes("/forgot-password")
+      ) {
+        window.location.href = "/auth";
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 // Auth API
 export const sendOTP = async (
