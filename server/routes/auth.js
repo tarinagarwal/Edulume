@@ -338,8 +338,7 @@ router.post("/logout", (req, res) => {
     res.clearCookie("token", {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      domain: process.env.NODE_ENV === "production" ? ".vercel.app" : undefined,
+      sameSite: "Lax",
     });
 
     res.json({ message: "Logged out successfully" });
