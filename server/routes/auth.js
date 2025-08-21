@@ -162,7 +162,7 @@ router.post("/signup", async (req, res) => {
     // Create user
     const result = await dbRun(
       "INSERT INTO users (username, email, password_hash, is_verified) VALUES (?, ?, ?, ?)",
-      [username, email, passwordHash, isOTPEnabled() ? 1 : 1] // Always verified since OTP was checked above
+      [username, email, passwordHash, 1] // Always verified since OTP was checked above or OTP is disabled
     );
 
     // Generate JWT

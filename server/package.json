@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
+    "@libsql/client": "^0.15.12",
     "@vercel/blob": "^1.1.1",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",

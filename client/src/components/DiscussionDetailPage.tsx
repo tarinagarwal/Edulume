@@ -80,7 +80,7 @@ const DiscussionDetailPage: React.FC = () => {
 
     // Listen for new answers
     socket.on("new_answer", (newAnswer: DiscussionAnswer) => {
-      setAnswers((prev) => [...prev, newAnswer]);
+      setAnswers((prev) => [newAnswer, ...prev]);
     });
 
     // Listen for new replies
@@ -172,7 +172,7 @@ const DiscussionDetailPage: React.FC = () => {
       setLoading(true);
       const response = await getDiscussion(id!);
       setDiscussion(response.discussion);
-      setAnswers(response.answers);
+      setAnswers(response.answers.reverse());
     } catch (err: any) {
       setError("Failed to load discussion");
     } finally {

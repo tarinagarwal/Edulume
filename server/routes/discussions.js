@@ -190,15 +190,15 @@ router.get("/:id", async (req, res) => {
         d.*,
         u.username as author_username,
         COUNT(DISTINCT dv.id) as vote_count,
-        SUM(CASE WHEN dv.vote_type = 'up' THEN 1 ELSE 0 END) as upvotes,
-        SUM(CASE WHEN dv.vote_type = 'down' THEN 1 ELSE 0 END) as downvotes
+        COALESCE(SUM(CASE WHEN dv.vote_type = 'up' THEN 1 ELSE 0 END), 0) as upvotes,
+        COALESCE(SUM(CASE WHEN dv.vote_type = 'down' THEN 1 ELSE 0 END), 0) as downvotes
       FROM discussions d
       LEFT JOIN users u ON d.author_id = u.id
       LEFT JOIN discussion_votes dv ON d.id = dv.discussion_id
       WHERE d.id = ?
       GROUP BY d.id
     `,
-      [id]
+      [parseInt(id)]
     );
 
     if (!discussionDetails) {
@@ -210,10 +210,10 @@ router.get("/:id", async (req, res) => {
       SELECT 
         a.*,
         u.username as author_username,
-        COUNT(DISTINCT r.id) as reply_count,
-        COUNT(DISTINCT av.id) as vote_count,
-        SUM(CASE WHEN av.vote_type = 'up' THEN 1 ELSE 0 END) as upvotes,
-        SUM(CASE WHEN av.vote_type = 'down' THEN 1 ELSE 0 END) as downvotes
+        COALESCE(COUNT(DISTINCT r.id), 0) as reply_count,
+        COALESCE(COUNT(DISTINCT av.id), 0) as vote_count,
+        COALESCE(SUM(CASE WHEN av.vote_type = 'up' THEN 1 ELSE 0 END), 0) as upvotes,
+        COALESCE(SUM(CASE WHEN av.vote_type = 'down' THEN 1 ELSE 0 END), 0) as downvotes
       FROM discussion_answers a
       LEFT JOIN users u ON a.author_id = u.id
       LEFT JOIN discussion_replies r ON a.id = r.answer_id
@@ -222,7 +222,7 @@ router.get("/:id", async (req, res) => {
       GROUP BY a.id
       ORDER BY a.is_best_answer DESC, vote_count DESC, a.created_at ASC
     `,
-      [id]
+      [parseInt(id)]
     );
 
     // Get replies for each answer
@@ -232,9 +232,9 @@ router.get("/:id", async (req, res) => {
         SELECT 
           r.*,
           u.username as author_username,
-          COUNT(DISTINCT rv.id) as vote_count,
-          SUM(CASE WHEN rv.vote_type = 'up' THEN 1 ELSE 0 END) as upvotes,
-          SUM(CASE WHEN rv.vote_type = 'down' THEN 1 ELSE 0 END) as downvotes
+          COALESCE(COUNT(DISTINCT rv.id), 0) as vote_count,
+          COALESCE(SUM(CASE WHEN rv.vote_type = 'up' THEN 1 ELSE 0 END), 0) as upvotes,
+          COALESCE(SUM(CASE WHEN rv.vote_type = 'down' THEN 1 ELSE 0 END), 0) as downvotes
         FROM discussion_replies r
         LEFT JOIN users u ON r.author_id = u.id
         LEFT JOIN reply_votes rv ON r.id = rv.reply_id
@@ -247,7 +247,9 @@ router.get("/:id", async (req, res) => {
       ans.replies = replies;
     }
 
-    await dbRun("UPDATE discussions SET views = views + 1 WHERE id = ?", [id]);
+    await dbRun("UPDATE discussions SET views = views + 1 WHERE id = ?", [
+      parseInt(id),
+    ]);
 
     res.json({ discussion: discussionDetails, answers });
   } catch (error) {
@@ -276,8 +278,8 @@ router.post("/", authenticateToken, async (req, res) => {
         title,
         content,
         category,
-        tags ? JSON.stringify(tags) : null,
-        images ? JSON.stringify(images) : null,
+        tags && tags.length > 0 ? JSON.stringify(tags) : null,
+        images && images.length > 0 ? JSON.stringify(images) : null,
         req.user.id,
       ]
     );
@@ -316,7 +318,12 @@ router.post("/:id/answers", authenticateToken, async (req, res) => {
       INSERT INTO discussion_answers (discussion_id, content, images, author_id)
       VALUES (?, ?, ?, ?)
     `,
-      [id, content, images ? JSON.stringify(images) : null, req.user.id]
+      [
+        parseInt(id),
+        content,
+        images ? JSON.stringify(images) : null,
+        req.user.id,
+      ]
     );
 
     // Get the complete answer data for real-time emission
@@ -333,7 +340,7 @@ router.post("/:id/answers", authenticateToken, async (req, res) => {
       LEFT JOIN users u ON a.author_id = u.id
       WHERE a.id = ?
     `,
-      [result.id]
+      [result.lastInsertRowid || result.insertId]
     );
     newAnswer.replies = [];
 
@@ -405,7 +412,7 @@ router.post("/:id/vote", authenticateToken, async (req, res) => {
     // Check if user already voted
     const existingVote = await dbGet(
       "SELECT id, vote_type FROM discussion_votes WHERE discussion_id = ? AND user_id = ?",
-      [id, req.user.id]
+      [parseInt(id), req.user.id]
     );
 
     if (existingVote) {
@@ -425,14 +432,14 @@ router.post("/:id/vote", authenticateToken, async (req, res) => {
       // Add new vote
       await dbRun(
         "INSERT INTO discussion_votes (discussion_id, user_id, vote_type) VALUES (?, ?, ?)",
-        [id, req.user.id, voteType]
+        [parseInt(id), req.user.id, voteType]
       );
     }
 
     // Get updated vote count
     const voteCount = await dbGet(
       "SELECT COUNT(*) as count FROM discussion_votes WHERE discussion_id = ?",
-      [id]
+      [parseInt(id)]
     );
 
     // Emit real-time vote update
@@ -460,7 +467,7 @@ router.post("/answers/:id/vote", authenticateToken, async (req, res) => {
 
     const existingVote = await dbGet(
       "SELECT id, vote_type FROM answer_votes WHERE answer_id = ? AND user_id = ?",
-      [id, req.user.id]
+      [parseInt(id), req.user.id]
     );
 
     if (existingVote) {
@@ -475,18 +482,18 @@ router.post("/answers/:id/vote", authenticateToken, async (req, res) => {
     } else {
       await dbRun(
         "INSERT INTO answer_votes (answer_id, user_id, vote_type) VALUES (?, ?, ?)",
-        [id, req.user.id, voteType]
+        [parseInt(id), req.user.id, voteType]
       );
     }
 
     // Get discussion ID and vote count
     const answerInfo = await dbGet(
       "SELECT discussion_id FROM discussion_answers WHERE id = ?",
-      [id]
+      [parseInt(id)]
     );
     const voteCount = await dbGet(
       "SELECT COUNT(*) as count FROM answer_votes WHERE answer_id = ?",
-      [id]
+      [parseInt(id)]
     );
 
     // Emit real-time vote update
@@ -521,7 +528,7 @@ router.post("/answers/:id/best", authenticateToken, async (req, res) => {
       JOIN discussions d ON a.discussion_id = d.id
       WHERE a.id = ?
     `,
-      [id]
+      [parseInt(id)]
     );
 
     if (!answer) {
@@ -544,7 +551,7 @@ router.post("/answers/:id/best", authenticateToken, async (req, res) => {
     // Mark this answer as best
     await dbRun(
       "UPDATE discussion_answers SET is_best_answer = 1 WHERE id = ?",
-      [id]
+      [parseInt(id)]
     );
 
     // Emit real-time best answer update
@@ -602,7 +609,12 @@ router.post("/answers/:id/replies", authenticateToken, async (req, res) => {
       INSERT INTO discussion_replies (answer_id, content, images, author_id)
       VALUES (?, ?, ?, ?)
     `,
-      [id, content, images ? JSON.stringify(images) : null, req.user.id]
+      [
+        parseInt(id),
+        content,
+        images ? JSON.stringify(images) : null,
+        req.user.id,
+      ]
     );
 
     // Get the complete reply data for real-time emission
@@ -618,7 +630,7 @@ router.post("/answers/:id/replies", authenticateToken, async (req, res) => {
       LEFT JOIN users u ON r.author_id = u.id
       WHERE r.id = ?
     `,
-      [result.id]
+      [result.lastInsertRowid || result.insertId]
     );
 
     // Emit real-time update
@@ -685,7 +697,7 @@ router.post("/replies/:id/vote", authenticateToken, async (req, res) => {
 
     const existingVote = await dbGet(
       "SELECT id, vote_type FROM reply_votes WHERE reply_id = ? AND user_id = ?",
-      [id, req.user.id]
+      [parseInt(id), req.user.id]
     );
 
     if (existingVote) {
@@ -700,7 +712,7 @@ router.post("/replies/:id/vote", authenticateToken, async (req, res) => {
     } else {
       await dbRun(
         "INSERT INTO reply_votes (reply_id, user_id, vote_type) VALUES (?, ?, ?)",
-        [id, req.user.id, voteType]
+        [parseInt(id), req.user.id, voteType]
       );
     }
 
@@ -710,11 +722,11 @@ router.post("/replies/:id/vote", authenticateToken, async (req, res) => {
        FROM discussion_replies r 
        JOIN discussion_answers a ON r.answer_id = a.id 
        WHERE r.id = ?`,
-      [id]
+      [parseInt(id)]
     );
     const voteCount = await dbGet(
       "SELECT COUNT(*) as count FROM reply_votes WHERE reply_id = ?",
-      [id]
+      [parseInt(id)]
     );
 
     // Emit real-time vote update
@@ -762,7 +774,7 @@ router.put("/notifications/:id/read", authenticateToken, async (req, res) => {
 
     await dbRun(
       "UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?",
-      [id, req.user.id]
+      [parseInt(id), req.user.id]
     );
 
     res.json({ message: "Notification marked as read" });
