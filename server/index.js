@@ -17,9 +17,25 @@ dotenv.config();
 
 const app = express();
 const server = createServer(app);
+
+// Determine allowed origins based on environment
+const getAllowedOrigins = () => {
+  const origins = [];
+
+  // Always allow localhost for development
+  origins.push("http://localhost:5173");
+
+  // Add production client origin if specified
+  if (process.env.CLIENT_ORIGIN) {
+    origins.push(process.env.CLIENT_ORIGIN);
+  }
+
+  return origins;
+};
+
 const io = new Server(server, {
   cors: {
-    origin: ["http://localhost:5173", "https://alienvault.vercel.app"],
+    origin: getAllowedOrigins(),
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -29,7 +45,8 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://alienvault.vercel.app"],
+    origin: getAllowedOrigins(),
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
   })
 );
@@ -57,6 +74,8 @@ app.get("/api/health", (req, res) => {
     status: "OK",
     message: "AlienVault server is running",
     timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    allowedOrigins: getAllowedOrigins(),
   });
 });
 
@@ -76,6 +95,8 @@ server.listen(PORT, () => {
   console.log(`🚀 AlienVault server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🔌 WebSocket server ready`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
+  console.log(`🔗 Allowed origins: ${getAllowedOrigins().join(", ")}`);
   console.log(`🔐 Make sure to set your environment variables in server/.env`);
 });
 
