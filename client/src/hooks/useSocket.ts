@@ -1,20 +1,17 @@
 import { useEffect, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { getToken } from "../utils/auth";
 
 export const useSocket = () => {
   const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) return;
-
     // Initialize socket connection
-    socketRef.current = io("http://localhost:3001", {
-      auth: {
-        token,
-      },
-    });
+    socketRef.current = io(
+      import.meta.env.VITE_SOCKET_URL || "http://localhost:3001",
+      {
+        withCredentials: true,
+      }
+    );
 
     const socket = socketRef.current;
 

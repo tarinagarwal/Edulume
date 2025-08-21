@@ -15,14 +15,12 @@ import {
 } from "lucide-react";
 import { getPDFs } from "../utils/api";
 import { PDFItem } from "../types";
-import { isAuthenticated } from "../utils/auth";
 
 const PDFsPage: React.FC = () => {
   const [pdfs, setPdfs] = useState<PDFItem[]>([]);
   const [filteredPdfs, setFilteredPdfs] = useState<PDFItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const authenticated = isAuthenticated();
 
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("");
@@ -374,11 +372,9 @@ const PDFsPage: React.FC = () => {
                 Clear All Filters
               </button>
             ) : (
-              authenticated && (
-                <Link to="/upload" className="alien-button">
-                  Upload First PDF
-                </Link>
-              )
+              <Link to="/upload" className="alien-button">
+                Upload First PDF
+              </Link>
             )}
           </div>
         ) : (

@@ -30,7 +30,6 @@ import {
 } from "../utils/api";
 import type { Discussion, DiscussionAnswer } from "../types/discussions";
 import { DISCUSSION_CATEGORIES } from "../types/discussions";
-import { isAuthenticated } from "../utils/auth";
 import { getUserProfile } from "../utils/api";
 import MentionInput from "./MentionInput";
 import useSocket from "../hooks/useSocket";
@@ -39,7 +38,6 @@ const DiscussionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const authenticated = isAuthenticated();
   const socket = useSocket();
 
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
@@ -70,10 +68,8 @@ const DiscussionDetailPage: React.FC = () => {
     if (id) {
       fetchDiscussion();
     }
-    if (authenticated) {
-      fetchCurrentUser();
-    }
-  }, [id, authenticated]);
+    fetchCurrentUser();
+  }, [id]);
 
   // Socket event handlers
   useEffect(() => {
@@ -194,7 +190,7 @@ const DiscussionDetailPage: React.FC = () => {
   };
 
   const handleVoteDiscussion = async (voteType: "up" | "down") => {
-    if (!authenticated) {
+    if (!currentUser) {
       navigate("/auth");
       return;
     }
@@ -220,7 +216,7 @@ const DiscussionDetailPage: React.FC = () => {
     answerId: string,
     voteType: "up" | "down"
   ) => {
-    if (!authenticated) {
+    if (!currentUser) {
       navigate("/auth");
       return;
     }
@@ -243,7 +239,7 @@ const DiscussionDetailPage: React.FC = () => {
   };
 
   const handleVoteReply = async (replyId: string, voteType: "up" | "down") => {
-    if (!authenticated) {
+    if (!currentUser) {
       navigate("/auth");
       return;
     }
@@ -266,7 +262,7 @@ const DiscussionDetailPage: React.FC = () => {
   };
 
   const handleMarkBestAnswer = async (answerId: string) => {
-    if (!authenticated || !currentUser || !discussion) {
+    if (!currentUser || !discussion) {
       return;
     }
 
@@ -322,7 +318,7 @@ const DiscussionDetailPage: React.FC = () => {
   };
 
   const handleReplyClick = (answerId: number, username: string) => {
-    if (!authenticated) {
+    if (!currentUser) {
       navigate("/auth");
       return;
     }
@@ -341,7 +337,7 @@ const DiscussionDetailPage: React.FC = () => {
   const handleSubmitReply = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!authenticated || !replyingTo) {
+    if (!currentUser || !replyingTo) {
       return;
     }
 
@@ -372,7 +368,7 @@ const DiscussionDetailPage: React.FC = () => {
   const handleSubmitAnswer = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!authenticated) {
+    if (!currentUser) {
       navigate("/auth");
       return;
     }
@@ -597,7 +593,7 @@ const DiscussionDetailPage: React.FC = () => {
         </div>
 
         {/* Add Answer Form */}
-        {authenticated && (
+        {currentUser && (
           <div className="smoke-card p-6 mt-10 mb-5 smoke-effect">
             <h3 className="text-lg font-alien font-bold text-alien-green mb-4">
               Your Answer
@@ -682,7 +678,7 @@ const DiscussionDetailPage: React.FC = () => {
           </div>
         )}
 
-        {!authenticated && (
+        {!currentUser && (
           <div className="smoke-card p-6 text-center smoke-effect">
             <p className="text-gray-400 mb-4">
               Please sign in to post an answer or reply to this discussion.
@@ -724,7 +720,6 @@ const DiscussionDetailPage: React.FC = () => {
           {answers.map((answer) => {
             const answerImages = parseImages(answer.images);
             const canMarkBest =
-              authenticated &&
               currentUser &&
               currentUser.id === discussion.author_id &&
               !answer.is_best_answer &&
@@ -790,7 +785,7 @@ const DiscussionDetailPage: React.FC = () => {
                               <span>Mark as Best</span>
                             </button>
                           )}
-                          {authenticated && (
+                          {currentUser && (
                             <button
                               onClick={() =>
                                 handleReplyClick(
@@ -876,7 +871,7 @@ const DiscussionDetailPage: React.FC = () => {
                                     )}
 
                                     {/* Reply Actions */}
-                                    {authenticated && (
+                                    {currentUser && (
                                       <div className="flex justify-end">
                                         <button
                                           onClick={() =>

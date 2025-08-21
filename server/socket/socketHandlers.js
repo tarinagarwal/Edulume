@@ -4,7 +4,11 @@ import { dbGet } from "../db.js";
 // Socket authentication middleware
 const authenticateSocket = async (socket, next) => {
   try {
-    const token = socket.handshake.auth.token;
+    const token = socket.handshake.headers.cookie
+      ?.split(';')
+      ?.find(c => c.trim().startsWith('token='))
+      ?.split('=')[1];
+      
     if (!token) {
       return next(new Error("Authentication error"));
     }

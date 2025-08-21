@@ -12,22 +12,27 @@ import {
   Lock,
   MessageSquare,
 } from "lucide-react";
-import { isAuthenticated, removeToken } from "../utils/auth";
-import { getUserProfile } from "../utils/api";
+import { getUserProfile, logout } from "../utils/api";
 import { User as UserType } from "../types";
 import NotificationDropdown from "./NotificationDropdown";
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  authenticated: boolean | null;
+  onAuthChange: () => void;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ authenticated, onAuthChange }) => {
   const location = useLocation();
-  const authenticated = isAuthenticated();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [user, setUser] = useState<UserType | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (authenticated) {
+    if (authenticated === true) {
       fetchUserProfile();
+    } else if (authenticated === false) {
+      setUser(null);
     }
   }, [authenticated]);
 
@@ -53,16 +58,49 @@ const Navbar: React.FC = () => {
       setUser(response.user);
     } catch (error) {
       console.error("Failed to fetch user profile:", error);
+      // If fetching profile fails, it might mean the token is invalid
+      onAuthChange();
     }
   };
 
-  const handleLogout = () => {
-    removeToken();
-    setUser(null);
-    window.location.href = "/";
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setUser(null);
+      onAuthChange(); // Notify parent to re-check auth status
+      // Small delay to ensure state updates before redirect
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Force logout on client side even if server request fails
+      setUser(null);
+      onAuthChange();
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
+    }
   };
 
   const isActive = (path: string) => location.pathname === path;
+
+  // Show loading state while checking authentication
+  if (authenticated === null) {
+    return (
+      <nav className="bg-smoke-gray/95 border-b border-smoke-light sticky top-0 z-50 backdrop-blur-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link to="/" className="flex items-center space-x-2">
+              <img src="/logo.png" alt="AlienVault Logo" className="w-8 h-8 " />
+              <span className="glow-text text-xl font-bold">AlienVault</span>
+            </Link>
+            <div className="w-6 h-6 border-2 border-alien-green border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className="bg-smoke-gray/95 border-b border-smoke-light sticky top-0 z-50 backdrop-blur-sm">

@@ -2,9 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, UserPlus, LogIn, Mail, Shield } from "lucide-react";
 import { login, signup, sendOTP, verifyOTP } from "../utils/api";
-import { setToken } from "../utils/auth";
 
-const AuthForm: React.FC = () => {
+interface AuthFormProps {
+  onAuthChange: () => void;
+}
+
+const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -52,8 +55,13 @@ const AuthForm: React.FC = () => {
         ? await login(usernameOrEmail, password)
         : await signup(username, email, password, otp);
 
-      setToken(response.token);
-      navigate("/");
+      // Notify parent component to re-check auth status
+      onAuthChange();
+
+      // Small delay to ensure state updates before redirect
+      setTimeout(() => {
+        navigate("/");
+      }, 100);
     } catch (err: any) {
       setError(err.response?.data?.error || "An error occurred");
     } finally {

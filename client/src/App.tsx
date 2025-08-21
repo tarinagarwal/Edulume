@@ -1,4 +1,5 @@
 import React from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -16,30 +17,72 @@ import NotFoundPage from "./components/NotFoundPage";
 import DiscussionsPage from "./components/DiscussionsPage";
 import CreateDiscussionPage from "./components/CreateDiscussionPage";
 import DiscussionDetailPage from "./components/DiscussionDetailPage";
+import Footer from "./components/Footer";
+import ScrollToTop from "./components/ScrollToTop";
+import ScrollToTopOnRouteChange from "./components/ScrollToTopOnRouteChange";
 import { isAuthenticated } from "./utils/auth";
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
-  return isAuthenticated() ? <>{children}</> : <Navigate to="/auth" />;
+interface AppProps {}
+
+const ProtectedRoute: React.FC<{
+  children: React.ReactNode;
+  authenticated: boolean | null;
+}> = ({ children, authenticated }) => {
+  if (authenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-alien-green border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  return authenticated ? <>{children}</> : <Navigate to="/auth" />;
 };
 
-const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return !isAuthenticated() ? <>{children}</> : <Navigate to="/" />;
+const AuthRoute: React.FC<{
+  children: React.ReactNode;
+  authenticated: boolean | null;
+}> = ({ children, authenticated }) => {
+  if (authenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-alien-green border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  return !authenticated ? <>{children}</> : <Navigate to="/" />;
 };
 
-function App() {
+const App: React.FC<AppProps> = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+
+  const checkAuthStatus = useCallback(async () => {
+    try {
+      const isAuth = await isAuthenticated();
+      setIsLoggedIn(isAuth);
+    } catch (error) {
+      console.error("Auth check failed:", error);
+      setIsLoggedIn(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkAuthStatus();
+  }, [checkAuthStatus]);
+
   return (
     <Router>
       <div className="min-h-screen bg-royal-black">
-        <Navbar />
+        <ScrollToTopOnRouteChange />
+        <Navbar authenticated={isLoggedIn} onAuthChange={checkAuthStatus} />
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route
             path="/auth"
             element={
-              <AuthRoute>
-                <AuthForm />
+              <AuthRoute authenticated={isLoggedIn}>
+                <AuthForm onAuthChange={checkAuthStatus} />
               </AuthRoute>
             }
           />
@@ -51,7 +94,7 @@ function App() {
           <Route
             path="/discussions/new"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute authenticated={isLoggedIn}>
                 <CreateDiscussionPage />
               </ProtectedRoute>
             }
@@ -59,16 +102,18 @@ function App() {
           <Route
             path="/upload"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute authenticated={isLoggedIn}>
                 <UploadForm />
               </ProtectedRoute>
             }
           />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        <Footer />
+        <ScrollToTop />
       </div>
     </Router>
   );
-}
+};
 
 export default App;

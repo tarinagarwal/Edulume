@@ -1,6 +1,4 @@
 import axios from "axios";
-import { getAuthHeaders } from "./auth";
-import { getToken } from "./auth";
 import {
   AuthResponse,
   PDFItem,
@@ -19,7 +17,8 @@ import {
 } from "../types/discussions";
 
 const api = axios.create({
-  baseURL: "/api",
+  baseURL: import.meta.env.VITE_API_URL || "/api",
+  withCredentials: true,
 });
 
 // Auth API
@@ -63,6 +62,11 @@ export const login = async (
   return response.data;
 };
 
+export const logout = async (): Promise<{ message: string }> => {
+  const response = await api.post("/auth/logout");
+  return response.data;
+};
+
 export const forgotPassword = async (
   email: string
 ): Promise<{ message: string }> => {
@@ -84,9 +88,7 @@ export const resetPassword = async (
 };
 
 export const getUserProfile = async (): Promise<{ user: User }> => {
-  const response = await api.get("/auth/profile", {
-    headers: getAuthHeaders(),
-  });
+  const response = await api.get("/auth/profile");
   return response.data;
 };
 
@@ -100,11 +102,10 @@ export const generatePDFUploadUrl = async (
   filename: string,
   contentType: string
 ): Promise<UploadUrlResponse> => {
-  const response = await api.post(
-    "/pdfs/generate-upload-url",
-    { filename, contentType },
-    { headers: getAuthHeaders() }
-  );
+  const response = await api.post("/pdfs/generate-upload-url", {
+    filename,
+    contentType,
+  });
   return response.data;
 };
 
@@ -117,9 +118,7 @@ export const storePDFMetadata = async (metadata: {
   year_of_study?: string;
   blob_url: string;
 }): Promise<void> => {
-  await api.post("/pdfs/store-metadata", metadata, {
-    headers: getAuthHeaders(),
-  });
+  await api.post("/pdfs/store-metadata", metadata);
 };
 
 // E-books API
@@ -132,11 +131,10 @@ export const generateEbookUploadUrl = async (
   filename: string,
   contentType: string
 ): Promise<UploadUrlResponse> => {
-  const response = await api.post(
-    "/ebooks/generate-upload-url",
-    { filename, contentType },
-    { headers: getAuthHeaders() }
-  );
+  const response = await api.post("/ebooks/generate-upload-url", {
+    filename,
+    contentType,
+  });
   return response.data;
 };
 
@@ -149,9 +147,7 @@ export const storeEbookMetadata = async (metadata: {
   year_of_study?: string;
   blob_url: string;
 }): Promise<void> => {
-  await api.post("/ebooks/store-metadata", metadata, {
-    headers: getAuthHeaders(),
-  });
+  await api.post("/ebooks/store-metadata", metadata);
 };
 
 // File upload to Vercel Blob
@@ -159,19 +155,14 @@ export const uploadToVercelBlob = async (
   filename: string,
   file: File
 ): Promise<string> => {
-  const token = getToken();
-  if (!token) {
-    throw new Error("Authentication required");
-  }
-
   const response = await fetch("/api/upload", {
     method: "POST",
     body: file,
     headers: {
       "Content-Type": file.type,
       "x-filename": filename,
-      Authorization: `Bearer ${token}`,
     },
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -206,9 +197,7 @@ export const getDiscussion = async (
 export const createDiscussion = async (
   data: CreateDiscussionData
 ): Promise<{ id: number; message: string }> => {
-  const response = await api.post("/discussions", data, {
-    headers: getAuthHeaders(),
-  });
+  const response = await api.post("/discussions", data);
   return response.data;
 };
 
@@ -217,11 +206,10 @@ export const addAnswer = async (
   content: string,
   images?: string[]
 ): Promise<{ id: number; message: string }> => {
-  const response = await api.post(
-    `/discussions/${discussionId}/answers`,
-    { content, images },
-    { headers: getAuthHeaders() }
-  );
+  const response = await api.post(`/discussions/${discussionId}/answers`, {
+    content,
+    images,
+  });
   return response.data;
 };
 
@@ -229,11 +217,9 @@ export const voteDiscussion = async (
   discussionId: string,
   voteType: "up" | "down"
 ): Promise<{ message: string }> => {
-  const response = await api.post(
-    `/discussions/${discussionId}/vote`,
-    { voteType },
-    { headers: getAuthHeaders() }
-  );
+  const response = await api.post(`/discussions/${discussionId}/vote`, {
+    voteType,
+  });
   return response.data;
 };
 
@@ -241,22 +227,16 @@ export const voteAnswer = async (
   answerId: string,
   voteType: "up" | "down"
 ): Promise<{ message: string }> => {
-  const response = await api.post(
-    `/discussions/answers/${answerId}/vote`,
-    { voteType },
-    { headers: getAuthHeaders() }
-  );
+  const response = await api.post(`/discussions/answers/${answerId}/vote`, {
+    voteType,
+  });
   return response.data;
 };
 
 export const markBestAnswer = async (
   answerId: string
 ): Promise<{ message: string }> => {
-  const response = await api.post(
-    `/discussions/answers/${answerId}/best`,
-    {},
-    { headers: getAuthHeaders() }
-  );
+  const response = await api.post(`/discussions/answers/${answerId}/best`, {});
   return response.data;
 };
 
@@ -272,11 +252,10 @@ export const addReply = async (
   content: string,
   images?: string[]
 ): Promise<{ id: number; message: string }> => {
-  const response = await api.post(
-    `/discussions/answers/${answerId}/replies`,
-    { content, images },
-    { headers: getAuthHeaders() }
-  );
+  const response = await api.post(`/discussions/answers/${answerId}/replies`, {
+    content,
+    images,
+  });
   return response.data;
 };
 
@@ -284,11 +263,9 @@ export const voteReply = async (
   replyId: string,
   voteType: "up" | "down"
 ): Promise<{ message: string }> => {
-  const response = await api.post(
-    `/discussions/replies/${replyId}/vote`,
-    { voteType },
-    { headers: getAuthHeaders() }
-  );
+  const response = await api.post(`/discussions/replies/${replyId}/vote`, {
+    voteType,
+  });
   return response.data;
 };
 
@@ -296,9 +273,7 @@ export const getNotifications = async (): Promise<{
   notifications: Notification[];
   unreadCount: number;
 }> => {
-  const response = await api.get("/discussions/notifications", {
-    headers: getAuthHeaders(),
-  });
+  const response = await api.get("/discussions/notifications");
   return response.data;
 };
 
@@ -307,8 +282,7 @@ export const markNotificationAsRead = async (
 ): Promise<{ message: string }> => {
   const response = await api.put(
     `/discussions/notifications/${notificationId}/read`,
-    {},
-    { headers: getAuthHeaders() }
+    {}
   );
   return response.data;
 };
@@ -316,18 +290,13 @@ export const markNotificationAsRead = async (
 export const markAllNotificationsAsRead = async (): Promise<{
   message: string;
 }> => {
-  const response = await api.put(
-    "/discussions/notifications/read-all",
-    {},
-    { headers: getAuthHeaders() }
-  );
+  const response = await api.put("/discussions/notifications/read-all", {});
   return response.data;
 };
 
 export const searchUsers = async (query: string): Promise<string[]> => {
   const response = await api.get("/discussions/users/search", {
     params: { q: query },
-    headers: getAuthHeaders(),
   });
   return response.data;
 };
@@ -341,11 +310,10 @@ export const uploadImage = async (
     reader.onload = async () => {
       try {
         const base64 = reader.result as string;
-        const response = await api.post(
-          "/images/upload",
-          { image: base64, name },
-          { headers: getAuthHeaders() }
-        );
+        const response = await api.post("/images/upload", {
+          image: base64,
+          name,
+        });
         resolve(response.data);
       } catch (error) {
         reject(error);

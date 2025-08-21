@@ -9,11 +9,8 @@ import {
   Database,
   MessageSquare,
 } from "lucide-react";
-import { isAuthenticated } from "../utils/auth";
 
 const LandingPage: React.FC = () => {
-  const authenticated = isAuthenticated();
-
   return (
     <>
       <div className="min-h-screen">
@@ -132,12 +129,10 @@ const LandingPage: React.FC = () => {
               help the community grow.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              {!authenticated && (
-                <Link to="/auth" className="alien-button text-lg px-8 py-4">
-                  <Zap className="inline mr-2" size={20} />
-                  Sign Up Now
-                </Link>
-              )}
+              <Link to="/auth" className="alien-button text-lg px-8 py-4">
+                <Zap className="inline mr-2" size={20} />
+                Sign Up Now
+              </Link>
               <Link
                 to="/discussions"
                 className="bg-transparent border-2 border-alien-green text-alien-green hover:bg-alien-green hover:text-royal-black font-bold py-4 px-8 rounded-lg transition-all duration-300 shadow-alien-glow hover:shadow-alien-glow-strong"

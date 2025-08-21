@@ -20,7 +20,6 @@ import {
 import { getDiscussions, getPopularTags } from "../utils/api";
 import type { Discussion } from "../types/discussions";
 import { DISCUSSION_CATEGORIES } from "../types/discussions";
-import { isAuthenticated } from "../utils/auth";
 
 const DiscussionsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -30,7 +29,6 @@ const DiscussionsPage: React.FC = () => {
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const authenticated = isAuthenticated();
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState(
@@ -167,15 +165,13 @@ const DiscussionsPage: React.FC = () => {
               Ask questions, share knowledge, and help your peers
             </p>
           </div>
-          {authenticated && (
-            <Link
-              to="/discussions/new"
-              className="alien-button flex items-center space-x-2 px-6 py-3"
-            >
-              <Plus size={20} />
-              <span>Ask Question</span>
-            </Link>
-          )}
+          <Link
+            to="/discussions/new"
+            className="alien-button flex items-center space-x-2 px-6 py-3"
+          >
+            <Plus size={20} />
+            <span>Ask Question</span>
+          </Link>
         </div>
 
         {error && (
@@ -433,11 +429,9 @@ const DiscussionsPage: React.FC = () => {
                     Clear All Filters
                   </button>
                 ) : (
-                  authenticated && (
-                    <Link to="/discussions/new" className="alien-button">
-                      Ask First Question
-                    </Link>
-                  )
+                  <Link to="/discussions/new" className="alien-button">
+                    Ask First Question
+                  </Link>
                 )}
               </div>
             ) : (

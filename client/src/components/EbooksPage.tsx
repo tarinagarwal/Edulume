@@ -15,14 +15,12 @@ import {
 } from "lucide-react";
 import { getEbooks } from "../utils/api";
 import { EbookItem } from "../types";
-import { isAuthenticated } from "../utils/auth";
 
 const EbooksPage: React.FC = () => {
   const [ebooks, setEbooks] = useState<EbookItem[]>([]);
   const [filteredEbooks, setFilteredEbooks] = useState<EbookItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const authenticated = isAuthenticated();
 
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("");
@@ -380,11 +378,9 @@ const EbooksPage: React.FC = () => {
                 Clear All Filters
               </button>
             ) : (
-              authenticated && (
-                <Link to="/upload" className="alien-button">
-                  Upload First E-book
-                </Link>
-              )
+              <Link to="/upload" className="alien-button">
+                Upload First E-book
+              </Link>
             )}
           </div>
         ) : (

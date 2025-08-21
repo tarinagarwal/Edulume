@@ -172,8 +172,15 @@ router.post("/signup", async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    // Set JWT as HttpOnly cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     res.status(201).json({
-      token,
       user: { id: result.id, username, email },
     });
   } catch (error) {
@@ -220,8 +227,15 @@ router.post("/login", async (req, res) => {
       { expiresIn: "7d" }
     );
 
+    // Set JWT as HttpOnly cookie
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     res.json({
-      token,
       user: { id: user.id, username: user.username, email: user.email },
     });
   } catch (error) {
@@ -315,11 +329,27 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
+// Logout
+router.post("/logout", (req, res) => {
+  try {
+    // Clear the JWT cookie
+    res.clearCookie("token", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+    });
+
+    res.json({ message: "Logged out successfully" });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 // Get user profile
 router.get("/profile", async (req, res) => {
   try {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
+    const token = req.cookies.token;
 
     if (!token) {
       return res.status(401).json({ error: "Access token required" });

@@ -77,6 +77,11 @@
     scroll-behavior: smooth;
   }
 
+  /* Ensure smooth scrolling for all elements */
+  * {
+    scroll-behavior: smooth;
+  }
+
   /* Custom scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
