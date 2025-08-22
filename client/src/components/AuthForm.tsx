@@ -51,9 +51,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
     setSuccess("");
 
     try {
-      const response = isLogin
+      const authResponse = isLogin
         ? await login(usernameOrEmail, password)
         : await signup(username, email, password, otp);
+
+      console.log("✅ Authentication successful:", authResponse.user?.username);
 
       // Notify parent component to re-check auth status
       onAuthChange();
@@ -63,6 +65,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
         navigate("/");
       }, 100);
     } catch (err: any) {
+      console.error("❌ Authentication failed:", err);
       setError(err.response?.data?.error || "An error occurred");
     } finally {
       setLoading(false);

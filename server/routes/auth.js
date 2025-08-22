@@ -6,6 +6,19 @@ import { generateOTP, sendOTPEmail, isOTPEnabled } from "../utils/email.js";
 
 const router = express.Router();
 
+// Generate JWT token
+const generateToken = (user) => {
+  return jwt.sign(
+    {
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+};
+
 // Send OTP for signup
 router.post("/send-otp", async (req, res) => {
   try {
@@ -107,6 +120,8 @@ router.post("/signup", async (req, res) => {
   try {
     const { username, email, password, otp } = req.body;
 
+    console.log("🔐 Signup attempt:", { username, email });
+
     if (!username || !email || !password) {
       return res
         .status(400)
@@ -162,30 +177,21 @@ router.post("/signup", async (req, res) => {
     // Create user
     const result = await dbRun(
       "INSERT INTO users (username, email, password_hash, is_verified) VALUES (?, ?, ?, ?)",
-      [username, email, passwordHash, 1] // Always verified since OTP was checked above or OTP is disabled
+      [username, email, passwordHash, 1]
     );
 
-    // Generate JWT
-    const token = jwt.sign(
-      { userId: result.id, username, email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const user = { id: result.lastInsertRowid, username, email };
+    const token = generateToken(user);
 
-    // Set JWT as HttpOnly cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      domain: process.env.NODE_ENV === "production" ? ".vercel.app" : undefined,
-    });
+    console.log("✅ User created successfully:", { userId: user.id, username });
 
     res.status(201).json({
-      user: { id: result.id, username, email },
+      success: true,
+      token,
+      user: { id: user.id, username, email },
     });
   } catch (error) {
-    console.error("Signup error:", error);
+    console.error("❌ Signup error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -194,6 +200,8 @@ router.post("/signup", async (req, res) => {
 router.post("/login", async (req, res) => {
   try {
     const { usernameOrEmail, password } = req.body;
+
+    console.log("🔐 Login attempt:", { usernameOrEmail });
 
     if (!usernameOrEmail || !password) {
       return res
@@ -206,7 +214,9 @@ router.post("/login", async (req, res) => {
       "SELECT id, username, email, password_hash, is_verified FROM users WHERE username = ? OR email = ?",
       [usernameOrEmail, usernameOrEmail]
     );
+
     if (!user) {
+      console.log("❌ User not found:", { usernameOrEmail });
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
@@ -218,30 +228,24 @@ router.post("/login", async (req, res) => {
     // Verify password
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
     if (!isValidPassword) {
+      console.log("❌ Invalid password for user:", { userId: user.id });
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Generate JWT
-    const token = jwt.sign(
-      { userId: user.id, username: user.username, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
+    const token = generateToken(user);
 
-    // Set JWT as HttpOnly cookie
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      domain: process.env.NODE_ENV === "production" ? ".vercel.app" : undefined,
+    console.log("✅ Login successful:", {
+      userId: user.id,
+      username: user.username,
     });
 
     res.json({
+      success: true,
+      token,
       user: { id: user.id, username: user.username, email: user.email },
     });
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("❌ Login error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -331,17 +335,11 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
-// Logout
+// Logout (now just a client-side operation)
 router.post("/logout", (req, res) => {
   try {
-    // Clear the JWT cookie
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Lax",
-    });
-
-    res.json({ message: "Logged out successfully" });
+    console.log("🚪 Logout request received");
+    res.json({ success: true, message: "Logged out successfully" });
   } catch (error) {
     console.error("Logout error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -351,26 +349,65 @@ router.post("/logout", (req, res) => {
 // Get user profile
 router.get("/profile", async (req, res) => {
   try {
-    const token = req.cookies.token;
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
+    console.log(
+      "🔍 Profile request - Auth header:",
+      authHeader ? "Present" : "Missing"
+    );
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.log("❌ No valid authorization header");
       return res.status(401).json({ error: "Access token required" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    console.log("🔍 Extracted token:", token ? "Present" : "Missing");
+
+    if (!token) {
+      console.log("❌ No token found");
+      return res.status(401).json({ error: "Access token required" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("✅ Token verified successfully:", {
+        userId: decoded.userId,
+      });
+    } catch (jwtError) {
+      console.log("❌ JWT verification failed:", jwtError.message);
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
     const user = await dbGet(
       "SELECT id, username, email, created_at FROM users WHERE id = ?",
       [decoded.userId]
     );
 
     if (!user) {
-      return res.status(401).json({ error: "Invalid token" });
+      console.log("❌ User not found in database:", { userId: decoded.userId });
+      return res.status(401).json({ error: "User not found" });
     }
 
-    res.json({ user });
+    console.log("✅ Profile retrieved successfully:", {
+      userId: user.id,
+      username: user.username,
+    });
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        created_at: user.created_at,
+      },
+    });
   } catch (error) {
-    console.error("Profile error:", error);
-    res.status(403).json({ error: "Invalid or expired token" });
+    console.error("❌ Profile error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

@@ -1,5 +1,5 @@
 import axios from "axios";
-// import { logout as logoutAPI } from "./auth";
+import { getAuthToken, removeAuthToken } from "./auth";
 import {
   AuthResponse,
   PDFItem,
@@ -17,29 +17,85 @@ import {
   DiscussionDetailResponse,
 } from "../types/discussions";
 
+// Debug logging for production
+const isDev = import.meta.env.DEV;
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+
+if (!isDev) {
+  console.log("🔧 Production API Config:", {
+    baseURL: API_BASE_URL,
+    isDev,
+    env: import.meta.env.MODE,
+  });
+}
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
-  withCredentials: true,
+  baseURL: API_BASE_URL,
+  timeout: 30000, // 30 second timeout
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
+
+// Request interceptor for debugging
+api.interceptors.request.use(
+  (config) => {
+    // Add auth token to requests
+    const token = getAuthToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    if (!isDev) {
+      console.log("🚀 API Request:", {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        baseURL: config.baseURL,
+        fullURL: `${config.baseURL}${config.url}`,
+        hasAuth: !!config.headers.Authorization,
+      });
+    }
+    return config;
+  },
+  (error) => {
+    console.error("❌ Request Error:", error);
+    return Promise.reject(error);
+  }
+);
 
 // Add response interceptor to handle 401 errors globally
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (!isDev) {
+      console.log("✅ API Response:", {
+        status: response.status,
+        url: response.config.url,
+        method: response.config.method?.toUpperCase(),
+      });
+    }
+    return response;
+  },
   (error) => {
+    if (!isDev) {
+      console.error("❌ API Error:", {
+        status: error.response?.status,
+        url: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
+        message: error.message,
+        baseURL: error.config?.baseURL,
+      });
+    }
+
     if (error.response?.status === 401) {
-      // Clear any stale authentication state
-      // Force logout by clearing cookies and redirecting
-      document.cookie =
-        "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" +
-        window.location.hostname;
-      document.cookie =
-        "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      console.log("🔐 401 Unauthorized - Clearing auth state");
+      removeAuthToken();
 
       // Only redirect if we're not already on the auth page
       if (
         !window.location.pathname.includes("/auth") &&
         !window.location.pathname.includes("/forgot-password")
       ) {
+        console.log("🔄 Redirecting to auth page");
         window.location.href = "/auth";
       }
     }
@@ -77,7 +133,17 @@ export const signup = async (
     password,
     otp,
   });
-  return response.data;
+
+  // Store the token
+  if (response.data.token) {
+    const { setAuthToken } = await import("./auth");
+    setAuthToken(response.data.token);
+  }
+
+  return {
+    token: response.data.token,
+    user: response.data.user,
+  };
 };
 
 export const login = async (
@@ -85,12 +151,33 @@ export const login = async (
   password: string
 ): Promise<AuthResponse> => {
   const response = await api.post("/auth/login", { usernameOrEmail, password });
-  return response.data;
+
+  // Store the token
+  if (response.data.token) {
+    const { setAuthToken } = await import("./auth");
+    setAuthToken(response.data.token);
+  }
+
+  return {
+    token: response.data.token,
+    user: response.data.user,
+  };
 };
 
 export const logout = async (): Promise<{ message: string }> => {
-  const response = await api.post("/auth/logout");
-  return response.data;
+  try {
+    await api.post("/auth/logout");
+  } catch (error) {
+    console.log(
+      "⚠️ Server logout failed, but continuing with local logout:",
+      error
+    );
+  }
+
+  // Always clear local token
+  removeAuthToken();
+
+  return { message: "Logged out successfully" };
 };
 
 export const forgotPassword = async (

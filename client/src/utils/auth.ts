@@ -1,40 +1,86 @@
-// Clear authentication cookies
-export const clearAuthCookies = () => {
-  // Clear cookie for current domain
-  document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-  // Clear cookie for subdomain (if any)
-  document.cookie =
-    "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=" +
-    window.location.hostname;
-  // Clear cookie for parent domain (if any)
-  const parts = window.location.hostname.split(".");
-  if (parts.length > 2) {
+// Token management
+const TOKEN_KEY = "auth_token";
+
+export const setAuthToken = (token: string) => {
+  console.log("💾 Setting auth token");
+  localStorage.setItem(TOKEN_KEY, token);
+};
+
+export const getAuthToken = (): string | null => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  console.log("🔍 Getting auth token:", token ? "Present" : "Missing");
+  return token;
+};
+
+export const removeAuthToken = () => {
+  console.log("🗑️ Removing auth token");
+  localStorage.removeItem(TOKEN_KEY);
+
+  // Also clear any other auth-related data
+  localStorage.removeItem("user");
+  sessionStorage.clear();
+
+  // Clear any cookies that might exist
+  document.cookie.split(";").forEach((c) => {
+    const eqPos = c.indexOf("=");
+    const name = eqPos > -1 ? c.substr(0, eqPos) : c;
+    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
     document.cookie =
-      "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=." +
-      parts.slice(-2).join(".");
-  }
+      name +
+      "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" +
+      window.location.hostname;
+    document.cookie =
+      name +
+      "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=." +
+      window.location.hostname;
+  });
 };
 
 export const isAuthenticated = async (): Promise<boolean> => {
   try {
-    const response = await fetch("/api/auth/profile", {
-      credentials: "include",
-    });
+    const token = getAuthToken();
 
-    if (!response.ok) {
-      // Clear stale cookies if authentication fails
-      clearAuthCookies();
+    if (!token) {
+      console.log("❌ No token found - user not authenticated");
       return false;
     }
 
+    const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+    const profileUrl = `${API_BASE_URL}/auth/profile`;
+
+    console.log("🔍 Checking authentication:", profileUrl);
+
+    const response = await fetch(profileUrl, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("🔍 Auth check response:", {
+      status: response.status,
+      ok: response.ok,
+      url: response.url,
+    });
+
+    if (!response.ok) {
+      console.log("❌ Authentication failed, removing token");
+      removeAuthToken();
+      return false;
+    }
+
+    const data = await response.json();
+    console.log("✅ Authentication successful:", data.user?.username);
     return true;
-  } catch {
-    // Clear stale cookies on network errors
-    clearAuthCookies();
+  } catch (error) {
+    console.log("❌ Network error during auth check, removing token:", error);
+    removeAuthToken();
     return false;
   }
 };
 
 export const getAuthHeaders = () => {
-  return {};
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
