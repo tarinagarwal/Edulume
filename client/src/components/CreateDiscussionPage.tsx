@@ -104,8 +104,10 @@ const CreateDiscussionPage: React.FC = () => {
 
       setSuccess("Discussion created successfully!");
 
-      // Navigate immediately to avoid timing issues
-      navigate(`/discussions/${result.id}`);
+      // Add a small delay to ensure the discussion is fully created
+      setTimeout(() => {
+        navigate(`/discussions/${result.id}`);
+      }, 500);
     } catch (err: any) {
       setError(err.response?.data?.error || "Failed to create discussion");
     } finally {

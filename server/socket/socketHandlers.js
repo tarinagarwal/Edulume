@@ -4,12 +4,27 @@ import { dbGet } from "../db.js";
 // Socket authentication middleware
 const authenticateSocket = async (socket, next) => {
   try {
-    const token = socket.handshake.headers.cookie
-      ?.split(';')
-      ?.find(c => c.trim().startsWith('token='))
-      ?.split('=')[1];
-      
+    // Try to get token from auth header first (for token-based auth)
+    let token = socket.handshake.auth?.token;
+
+    // Fallback to cookie-based auth if no token in auth
     if (!token) {
+      token = socket.handshake.headers.cookie
+        ?.split(";")
+        ?.find((c) => c.trim().startsWith("token="))
+        ?.split("=")[1];
+    }
+
+    // Try Authorization header as well
+    if (!token) {
+      const authHeader = socket.handshake.headers.authorization;
+      if (authHeader && authHeader.startsWith("Bearer ")) {
+        token = authHeader.substring(7);
+      }
+    }
+
+    if (!token) {
+      console.log("❌ Socket auth: No token found in any location");
       return next(new Error("Authentication error"));
     }
 
@@ -20,9 +35,11 @@ const authenticateSocket = async (socket, next) => {
     );
 
     if (!user) {
+      console.log("❌ Socket auth: User not found for token");
       return next(new Error("User not found"));
     }
 
+    console.log("✅ Socket authenticated:", user.username);
     socket.user = user;
     next();
   } catch (error) {

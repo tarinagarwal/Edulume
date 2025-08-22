@@ -40,6 +40,14 @@ const DiscussionDetailPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const socket = useSocket();
 
+  useEffect(() => {
+    if (!id || id === "undefined") {
+      console.error("❌ Invalid discussion ID:", id);
+      navigate("/discussions");
+      return;
+    }
+  }, [id, navigate]);
+
   const [discussion, setDiscussion] = useState<Discussion | null>(null);
   const [answers, setAnswers] = useState<DiscussionAnswer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,22 +72,15 @@ const DiscussionDetailPage: React.FC = () => {
   // Typing indicator timeout
   //@ts-ignore
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
-    if (id) {
-      fetchDiscussion();
-    }
+    if (!id || id === "undefined") return;
+
+    fetchDiscussion();
     fetchCurrentUser();
   }, [id]);
 
-  // Refetch discussion when navigating to it (handles new discussions)
-  useEffect(() => {
-    if (id && !loading) {
-      const timer = setTimeout(() => {
-        fetchDiscussion();
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [id]);
+ 
 
   // Socket event handlers
   useEffect(() => {
@@ -90,7 +91,7 @@ const DiscussionDetailPage: React.FC = () => {
 
     // Listen for new answers
     socket.on("new_answer", (newAnswer: DiscussionAnswer) => {
-      setAnswers((prev) => [...prev, newAnswer]);
+      setAnswers((prev) => [newAnswer, ...prev]);
     });
 
     // Listen for new replies
@@ -182,7 +183,7 @@ const DiscussionDetailPage: React.FC = () => {
       setLoading(true);
       const response = await getDiscussion(id!);
       setDiscussion(response.discussion);
-      setAnswers(response.answers);
+      setAnswers(response.answers.reverse());
     } catch (err: any) {
       setError("Failed to load discussion");
     } finally {
