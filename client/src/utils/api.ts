@@ -21,13 +21,13 @@ import {
 const isDev = import.meta.env.DEV;
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 
-if (!isDev) {
-  console.log("🔧 Production API Config:", {
-    baseURL: API_BASE_URL,
-    isDev,
-    env: import.meta.env.MODE,
-  });
-}
+// if (!isDev) {
+//   console.log("🔧 Production API Config:", {
+//     baseURL: API_BASE_URL,
+//     isDev,
+//     env: import.meta.env.MODE,
+//   });
+// }
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -46,15 +46,15 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    if (!isDev) {
-      console.log("🚀 API Request:", {
-        method: config.method?.toUpperCase(),
-        url: config.url,
-        baseURL: config.baseURL,
-        fullURL: `${config.baseURL}${config.url}`,
-        hasAuth: !!config.headers.Authorization,
-      });
-    }
+    // if (!isDev) {
+    //   console.log("🚀 API Request:", {
+    //     method: config.method?.toUpperCase(),
+    //     url: config.url,
+    //     baseURL: config.baseURL,
+    //     fullURL: `${config.baseURL}${config.url}`,
+    //     hasAuth: !!config.headers.Authorization,
+    //   });
+    // }
     return config;
   },
   (error) => {
@@ -66,13 +66,13 @@ api.interceptors.request.use(
 // Add response interceptor to handle 401 errors globally
 api.interceptors.response.use(
   (response) => {
-    if (!isDev) {
-      console.log("✅ API Response:", {
-        status: response.status,
-        url: response.config.url,
-        method: response.config.method?.toUpperCase(),
-      });
-    }
+    // if (!isDev) {
+    //   console.log("✅ API Response:", {
+    //     status: response.status,
+    //     url: response.config.url,
+    //     method: response.config.method?.toUpperCase(),
+    //   });
+    // }
     return response;
   },
   (error) => {

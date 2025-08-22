@@ -48,7 +48,7 @@ export const isAuthenticated = async (): Promise<boolean> => {
     const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
     const profileUrl = `${API_BASE_URL}/auth/profile`;
 
-    console.log("🔍 Checking authentication:", profileUrl);
+    // console.log("🔍 Checking authentication:", profileUrl);
 
     const response = await fetch(profileUrl, {
       method: "GET",
@@ -58,11 +58,11 @@ export const isAuthenticated = async (): Promise<boolean> => {
       },
     });
 
-    console.log("🔍 Auth check response:", {
-      status: response.status,
-      ok: response.ok,
-      url: response.url,
-    });
+    // console.log("🔍 Auth check response:", {
+    //   status: response.status,
+    //   ok: response.ok,
+    //   url: response.url,
+    // });
 
     if (!response.ok) {
       console.log("❌ Authentication failed, removing token");
