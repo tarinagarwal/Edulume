@@ -7,7 +7,9 @@ export const authenticateToken = async (req, res, next) => {
 
     console.log(
       "🔍 Auth middleware - Header:",
-      authHeader ? "Present" : "Missing"
+      authHeader ? "Present" : "Missing",
+      "Path:",
+      req.path
     );
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {

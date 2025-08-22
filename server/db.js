@@ -226,6 +226,8 @@ export const dbRun = async (sql, params = []) => {
   });
 
   const result = await db.execute({ sql, args: cleanParams });
+
+  // Return the result as-is, Turso uses lastInsertRowid
   return result;
 };
 

@@ -91,8 +91,14 @@ router.post("/store-metadata", authenticateToken, async (req, res) => {
       ]
     );
 
+    const pdfId = result.lastInsertRowid;
+    if (!pdfId) {
+      console.error("❌ Failed to get PDF ID after insert:", result);
+      return res.status(500).json({ error: "Failed to store PDF metadata" });
+    }
+
     res.status(201).json({
-      id: result.id,
+      id: pdfId,
       message: "PDF metadata stored successfully",
     });
   } catch (error) {

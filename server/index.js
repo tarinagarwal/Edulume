@@ -12,6 +12,10 @@ import discussionRoutes from "./routes/discussions.js";
 import imageRoutes from "./routes/images.js";
 import { setupSocketHandlers } from "./socket/socketHandlers.js";
 
+BigInt.prototype.toJSON = function () {
+  return this.toString();
+};
+
 // Load environment variables
 dotenv.config();
 

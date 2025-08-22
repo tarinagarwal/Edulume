@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAuthToken, removeAuthToken } from "./auth";
+import { getAuthHeaders, getAuthToken, removeAuthToken } from "./auth";
 import {
   AuthResponse,
   PDFItem,
@@ -268,14 +268,15 @@ export const uploadToVercelBlob = async (
   filename: string,
   file: File
 ): Promise<string> => {
-  const response = await fetch("/api/upload", {
+  const response = await fetch(`${API_BASE_URL}/upload`, {
     method: "POST",
     body: file,
+    //@ts-ignore
     headers: {
       "Content-Type": file.type,
       "x-filename": filename,
+      ...getAuthHeaders(),
     },
-    credentials: "include",
   });
 
   if (!response.ok) {

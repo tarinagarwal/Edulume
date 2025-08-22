@@ -57,16 +57,24 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
 
       console.log("✅ Authentication successful:", authResponse.user?.username);
 
+      // Set success message for signup
+      if (!isLogin) {
+        setSuccess("Account created successfully! Welcome to AlienVault!");
+      }
+
       // Notify parent component to re-check auth status
       onAuthChange();
 
-      // Small delay to ensure state updates before redirect
-      setTimeout(() => {
-        navigate("/");
-      }, 100);
+      // Redirect after successful authentication
+      setTimeout(
+        () => {
+          navigate("/");
+        },
+        isLogin ? 100 : 1000
+      ); // Shorter delay for signup
     } catch (err: any) {
       console.error("❌ Authentication failed:", err);
-      setError(err.response?.data?.error || "An error occurred");
+      setError(err.response?.data?.error || err.message || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -268,3 +276,4 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
 };
 
 export default AuthForm;
+  

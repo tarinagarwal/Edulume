@@ -180,13 +180,19 @@ router.post("/signup", async (req, res) => {
       [username, email, passwordHash, 1]
     );
 
-    const user = { id: result.lastInsertRowid, username, email };
+    // Get the inserted user ID - Turso returns lastInsertRowid
+    const userId = result.lastInsertRowid;
+    if (!userId) {
+      console.error("❌ Failed to get user ID after insert:", result);
+      return res.status(500).json({ error: "Failed to create user account" });
+    }
+
+    const user = { id: userId, username, email };
     const token = generateToken(user);
 
     console.log("✅ User created successfully:", { userId: user.id, username });
 
     res.status(201).json({
-      success: true,
       token,
       user: { id: user.id, username, email },
     });
@@ -240,7 +246,6 @@ router.post("/login", async (req, res) => {
     });
 
     res.json({
-      success: true,
       token,
       user: { id: user.id, username: user.username, email: user.email },
     });
@@ -339,7 +344,7 @@ router.post("/reset-password", async (req, res) => {
 router.post("/logout", (req, res) => {
   try {
     console.log("🚪 Logout request received");
-    res.json({ success: true, message: "Logged out successfully" });
+    res.json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Logout error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -397,7 +402,6 @@ router.get("/profile", async (req, res) => {
     });
 
     res.json({
-      success: true,
       user: {
         id: user.id,
         username: user.username,

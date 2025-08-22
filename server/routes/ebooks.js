@@ -91,8 +91,14 @@ router.post("/store-metadata", authenticateToken, async (req, res) => {
       ]
     );
 
+    const ebookId = result.lastInsertRowid;
+    if (!ebookId) {
+      console.error("❌ Failed to get E-book ID after insert:", result);
+      return res.status(500).json({ error: "Failed to store E-book metadata" });
+    }
+
     res.status(201).json({
-      id: result.id,
+      id: ebookId,
       message: "E-book metadata stored successfully",
     });
   } catch (error) {

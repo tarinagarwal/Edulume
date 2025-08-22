@@ -71,6 +71,16 @@ const DiscussionDetailPage: React.FC = () => {
     fetchCurrentUser();
   }, [id]);
 
+  // Refetch discussion when navigating to it (handles new discussions)
+  useEffect(() => {
+    if (id && !loading) {
+      const timer = setTimeout(() => {
+        fetchDiscussion();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [id]);
+
   // Socket event handlers
   useEffect(() => {
     if (!socket || !id) return;
@@ -80,7 +90,7 @@ const DiscussionDetailPage: React.FC = () => {
 
     // Listen for new answers
     socket.on("new_answer", (newAnswer: DiscussionAnswer) => {
-      setAnswers((prev) => [newAnswer, ...prev]);
+      setAnswers((prev) => [...prev, newAnswer]);
     });
 
     // Listen for new replies
@@ -172,7 +182,7 @@ const DiscussionDetailPage: React.FC = () => {
       setLoading(true);
       const response = await getDiscussion(id!);
       setDiscussion(response.discussion);
-      setAnswers(response.answers.reverse());
+      setAnswers(response.answers);
     } catch (err: any) {
       setError("Failed to load discussion");
     } finally {
