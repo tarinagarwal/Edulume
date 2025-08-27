@@ -6,6 +6,10 @@ import {
   EbookItem,
   UploadUrlResponse,
   User,
+  Course,
+  CourseChapter,
+  CourseOutline,
+  CoursesResponse,
 } from "../types/index";
 import {
   Discussion,
@@ -447,4 +451,84 @@ export const uploadImage = async (
     reader.onerror = reject;
     reader.readAsDataURL(imageFile);
   });
+};
+
+// Courses API
+export const getCourses = async (params?: {
+  search?: string;
+  filter?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}): Promise<CoursesResponse> => {
+  const response = await api.get("/courses", { params });
+  return response.data;
+};
+
+export const getCourse = async (id: string): Promise<{ course: Course }> => {
+  const response = await api.get(`/courses/${id}`);
+  return response.data;
+};
+
+export const generateCourseOutline = async (
+  topic: string
+): Promise<CourseOutline> => {
+  const response = await api.post("/courses/generate-outline", { topic });
+  return response.data;
+};
+
+export const createCourse = async (courseData: {
+  title: string;
+  description: string;
+  topic: string;
+  chapters: {
+    title: string;
+    description: string;
+    order_index: number;
+  }[];
+  isPublic?: boolean;
+}): Promise<{ id: string; message: string; course: Course }> => {
+  const response = await api.post("/courses", courseData);
+  return response.data;
+};
+
+export const generateChapterContent = async (
+  courseId: string,
+  chapterId: string
+): Promise<{ message: string; content: string; chapter: CourseChapter }> => {
+  console.log("🚀 Generating chapter content:", { courseId, chapterId });
+  const response = await api.post(
+    `/courses/${courseId}/chapters/${chapterId}/generate-content`
+  );
+  console.log("✅ Chapter content response:", response.data);
+  return response.data;
+};
+
+export const toggleCourseBookmark = async (
+  courseId: string
+): Promise<{ message: string; bookmarked: boolean }> => {
+  console.log("🌐 API: Toggling bookmark for course:", courseId);
+  const response = await api.post(`/courses/${courseId}/bookmark`);
+  console.log("🌐 API: Bookmark response:", response.data);
+  return response.data;
+};
+
+export const updateCourse = async (
+  courseId: string,
+  updates: {
+    title?: string;
+    description?: string;
+    topic?: string;
+    isPublic?: boolean;
+  }
+): Promise<{ message: string; course: Course }> => {
+  const response = await api.put(`/courses/${courseId}`, updates);
+  return response.data;
+};
+
+export const deleteCourse = async (
+  courseId: string
+): Promise<{ message: string }> => {
+  const response = await api.delete(`/courses/${courseId}`);
+  return response.data;
 };

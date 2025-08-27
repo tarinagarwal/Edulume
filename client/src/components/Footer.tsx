@@ -206,44 +206,6 @@ const Footer: React.FC = () => {
             </ul>
           </div>
         </div>
-
-        {/* Stats Section */}
-        <div className="mt-12 pt-8 border-t border-smoke-light">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="smoke-card p-4 relative smoke-effect">
-              <div className="text-2xl font-alien font-bold text-alien-green mb-1">
-                {stats.loading ? "..." : `${stats.totalResources}`}
-              </div>
-              <div className="text-xs text-gray-400 font-cyber">
-                RESOURCES SHARED
-              </div>
-            </div>
-            <div className="smoke-card p-4 relative smoke-effect">
-              <div className="text-2xl font-alien font-bold text-alien-green mb-1">
-                {stats.loading ? "..." : `${stats.totalDiscussions}`}
-              </div>
-              <div className="text-xs text-gray-400 font-cyber">
-                DISCUSSIONS
-              </div>
-            </div>
-            <div className="smoke-card p-4 relative smoke-effect">
-              <div className="text-2xl font-alien font-bold text-alien-green mb-1">
-                24/7
-              </div>
-              <div className="text-xs text-gray-400 font-cyber">
-                VAULT ACCESS
-              </div>
-            </div>
-            <div className="smoke-card p-4 relative smoke-effect">
-              <div className="text-2xl font-alien font-bold text-alien-green mb-1">
-                100%
-              </div>
-              <div className="text-xs text-gray-400 font-cyber">
-                FREE FOREVER
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Bottom Bar */}

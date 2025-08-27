@@ -17,6 +17,9 @@ import NotFoundPage from "./components/NotFoundPage";
 import DiscussionsPage from "./components/DiscussionsPage";
 import CreateDiscussionPage from "./components/CreateDiscussionPage";
 import DiscussionDetailPage from "./components/DiscussionDetailPage";
+import CoursesPage from "./components/CoursesPage";
+import CreateCoursePage from "./components/CreateCoursePage";
+import CourseDetailPage from "./components/CourseDetailPage";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
 import ScrollToTopOnRouteChange from "./components/ScrollToTopOnRouteChange";
@@ -91,11 +94,21 @@ const App: React.FC<AppProps> = () => {
           <Route path="/forgot-password" element={<ForgotPasswordForm />} />
           <Route path="/discussions" element={<DiscussionsPage />} />
           <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/courses/:id" element={<CourseDetailPage />} />
           <Route
             path="/discussions/new"
             element={
               <ProtectedRoute authenticated={isLoggedIn}>
                 <CreateDiscussionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses/create"
+            element={
+              <ProtectedRoute authenticated={isLoggedIn}>
+                <CreateCoursePage />
               </ProtectedRoute>
             }
           />

@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Lock,
   MessageSquare,
+  GraduationCap,
 } from "lucide-react";
 import { getUserProfile, logout } from "../utils/api";
 import { User as UserType } from "../types";
@@ -182,6 +183,18 @@ const Navbar: React.FC<NavbarProps> = ({ authenticated, onAuthChange }) => {
               <span>Discussions</span>
             </Link>
 
+            <Link
+              to="/courses"
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                isActive("/courses")
+                  ? "text-alien-green shadow-alien-glow"
+                  : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
+              }`}
+            >
+              {/* <GraduationCap size={20} /> */}
+              <span>Courses</span>
+            </Link>
+
             {authenticated ? (
               <>
                 <Link
@@ -311,6 +324,19 @@ const Navbar: React.FC<NavbarProps> = ({ authenticated, onAuthChange }) => {
             >
               <MessageSquare size={20} />
               <span>Discussions</span>
+            </Link>
+
+            <Link
+              to="/courses"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                isActive("/courses")
+                  ? "text-alien-green shadow-alien-glow bg-alien-green/10"
+                  : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
+              }`}
+            >
+              <GraduationCap size={20} />
+              <span>Courses</span>
             </Link>
 
             {authenticated ? (

@@ -32,6 +32,8 @@ model User {
   replyVotes        ReplyVote[]
   notifications     Notification[] @relation("UserNotifications")
   sentNotifications Notification[] @relation("NotificationSender")
+  courses           Course[]
+  bookmarkedCourses CourseBookmark[]
 
   @@map("users")
 }
@@ -203,4 +205,53 @@ model Notification {
   fromUser User? @relation("NotificationSender", fields: [fromUserId], references: [id])
 
   @@map("notifications")
+}
+
+model Course {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  topic       String
+  authorId    String   @map("author_id") @db.ObjectId
+  isPublic    Boolean  @default(true) @map("is_public")
+  views       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  author    User             @relation(fields: [authorId], references: [id])
+  chapters  CourseChapter[]
+  bookmarks CourseBookmark[]
+
+  @@map("courses")
+}
+
+model CourseChapter {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  courseId    String   @map("course_id") @db.ObjectId
+  title       String
+  description String
+  content     String?
+  orderIndex  Int      @map("order_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("course_chapters")
+}
+
+model CourseBookmark {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  courseId  String   @map("course_id") @db.ObjectId
+  userId    String   @map("user_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([courseId, userId])
+  @@map("course_bookmarks")
 }
