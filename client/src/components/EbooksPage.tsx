@@ -12,15 +12,18 @@ import {
   SortAsc,
   SortDesc,
   X,
+  Plus,
 } from "lucide-react";
 import { getEbooks } from "../utils/api";
 import { EbookItem } from "../types";
+import { isAuthenticated } from "../utils/auth";
 
 const EbooksPage: React.FC = () => {
   const [ebooks, setEbooks] = useState<EbookItem[]>([]);
   const [filteredEbooks, setFilteredEbooks] = useState<EbookItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isAuth, setIsAuth] = useState<boolean | null>(null);
 
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,6 +40,14 @@ const EbooksPage: React.FC = () => {
   const [availableDepartments, setAvailableDepartments] = useState<string[]>(
     []
   );
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const authenticated = await isAuthenticated();
+      setIsAuth(authenticated);
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     const fetchEbooks = async () => {
@@ -178,7 +189,7 @@ const EbooksPage: React.FC = () => {
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
             <h1 className="text-4xl font-alien font-bold glow-text mb-2">
               E-book Library
@@ -187,6 +198,16 @@ const EbooksPage: React.FC = () => {
               Explore digital books and references
             </p>
           </div>
+          {isAuth && (
+            <Link
+              to="/upload?type=ebook"
+              className="bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 flex items-center space-x-2 shadow-alien-glow whitespace-nowrap"
+            >
+              <Plus size={20} />
+              <span className="hidden sm:inline">Upload E-book</span>
+              <span className="sm:hidden">Upload</span>
+            </Link>
+          )}
         </div>
 
         {error && (
@@ -377,9 +398,13 @@ const EbooksPage: React.FC = () => {
               <button onClick={clearFilters} className="alien-button">
                 Clear All Filters
               </button>
-            ) : (
-              <Link to="/upload" className="alien-button">
+            ) : isAuth ? (
+              <Link to="/upload?type=ebook" className="alien-button">
                 Upload First E-book
+              </Link>
+            ) : (
+              <Link to="/auth" className="alien-button">
+                Login to Upload E-books
               </Link>
             )}
           </div>

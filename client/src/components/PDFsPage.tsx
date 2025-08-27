@@ -12,15 +12,18 @@ import {
   SortAsc,
   SortDesc,
   X,
+  Plus,
 } from "lucide-react";
 import { getPDFs } from "../utils/api";
 import { PDFItem } from "../types";
+import { isAuthenticated } from "../utils/auth";
 
 const PDFsPage: React.FC = () => {
   const [pdfs, setPdfs] = useState<PDFItem[]>([]);
   const [filteredPdfs, setFilteredPdfs] = useState<PDFItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [isAuth, setIsAuth] = useState<boolean | null>(null);
 
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,6 +40,14 @@ const PDFsPage: React.FC = () => {
   const [availableDepartments, setAvailableDepartments] = useState<string[]>(
     []
   );
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const authenticated = await isAuthenticated();
+      setIsAuth(authenticated);
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     const fetchPDFs = async () => {
@@ -172,7 +183,7 @@ const PDFsPage: React.FC = () => {
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
             <h1 className="text-4xl font-alien font-bold glow-text mb-2">
               PDF Collection
@@ -181,6 +192,16 @@ const PDFsPage: React.FC = () => {
               Discover and download academic resources
             </p>
           </div>
+          {isAuth && (
+            <Link
+              to="/upload?type=pdf"
+              className="bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 flex items-center space-x-2 shadow-alien-glow whitespace-nowrap"
+            >
+              <Plus size={20} />
+              <span className="hidden sm:inline">Upload PDF</span>
+              <span className="sm:hidden">Upload</span>
+            </Link>
+          )}
         </div>
 
         {error && (
@@ -371,9 +392,13 @@ const PDFsPage: React.FC = () => {
               <button onClick={clearFilters} className="alien-button">
                 Clear All Filters
               </button>
-            ) : (
-              <Link to="/upload" className="alien-button">
+            ) : isAuth ? (
+              <Link to="/upload?type=pdf" className="alien-button">
                 Upload First PDF
+              </Link>
+            ) : (
+              <Link to="/auth" className="alien-button">
+                Login to Upload PDFs
               </Link>
             )}
           </div>

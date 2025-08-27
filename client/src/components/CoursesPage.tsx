@@ -22,7 +22,7 @@ const CoursesPage: React.FC = () => {
   const [sort, setSort] = useState("recent");
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 12,
+    limit: 50,
     total: 0,
     pages: 0,
   });

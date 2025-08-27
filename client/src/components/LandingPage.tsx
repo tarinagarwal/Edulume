@@ -107,6 +107,18 @@ const LandingPage: React.FC = () => {
                   <Users className="text-royal-black" size={32} />
                 </div>
                 <h3 className="text-xl font-alien font-bold mb-4 text-alien-green">
+                  Course Management
+                </h3>
+                <p className="text-gray-300">
+                  Create and manage structured courses with chapter-based
+                  content and progress tracking.
+                </p>
+              </div>
+              <div className="smoke-card p-8 text-center relative smoke-effect">
+                <div className="w-16 h-16 bg-alien-green rounded-full flex items-center justify-center mx-auto mb-6 shadow-alien-glow">
+                  <Users className="text-royal-black" size={32} />
+                </div>
+                <h3 className="text-xl font-alien font-bold mb-4 text-alien-green">
                   Community Driven
                 </h3>
                 <p className="text-gray-300">
@@ -114,31 +126,6 @@ const LandingPage: React.FC = () => {
                   questions, and help your fellow classmates succeed together.
                 </p>
               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section className="py-20 px-4 text-center">
-          <div className="max-w-4xl mx-auto smoke-card p-12 relative smoke-effect">
-            <h2 className="text-3xl font-alien font-bold mb-6 glow-text">
-              Ready to Join the Vault?
-            </h2>
-            <p className="text-lg text-gray-300 mb-8">
-              Start exploring our collection or contribute your own resources to
-              help the community grow.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/auth" className="alien-button text-lg px-8 py-4">
-                <Zap className="inline mr-2" size={20} />
-                Sign Up Now
-              </Link>
-              <Link
-                to="/discussions"
-                className="bg-transparent border-2 border-alien-green text-alien-green hover:bg-alien-green hover:text-royal-black font-bold py-4 px-8 rounded-lg transition-all duration-300 shadow-alien-glow hover:shadow-alien-glow-strong"
-              >
-                Join Discussions
-              </Link>
             </div>
           </div>
         </section>

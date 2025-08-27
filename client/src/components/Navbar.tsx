@@ -6,7 +6,6 @@ import {
   BookOpen,
   LogIn,
   LogOut,
-  Upload,
   User,
   ChevronDown,
   Lock,
@@ -197,18 +196,6 @@ const Navbar: React.FC<NavbarProps> = ({ authenticated, onAuthChange }) => {
 
             {authenticated ? (
               <>
-                <Link
-                  to="/upload"
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
-                    isActive("/upload")
-                      ? "text-alien-green shadow-alien-glow"
-                      : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
-                  }`}
-                >
-                  {/* <Upload size={20} /> */}
-                  <span>Upload</span>
-                </Link>
-
                 {/* Notifications */}
                 {/* <NotificationDropdown /> */}
 
@@ -220,8 +207,16 @@ const Navbar: React.FC<NavbarProps> = ({ authenticated, onAuthChange }) => {
                     }
                     className="flex items-center space-x-2 text-gray-300 hover:text-alien-green px-3 py-2 rounded-lg transition-all duration-300"
                   >
-                    <div className="w-8 h-8 bg-alien-green rounded-full flex items-center justify-center shadow-alien-glow">
-                      <User className="text-royal-black" size={16} />
+                    <div className="w-8 h-8 border border-neutral-700 rounded-full flex items-center justify-center shadow-alien-glow">
+                      <img
+                        className="text-royal-black"
+                        src={`https://robohash.org/${user?.username}.png`}
+                        alt={
+                          user?.username
+                            ? user.username.charAt(0).toUpperCase()
+                            : "U"
+                        }
+                      />
                     </div>
                     <span className="hidden sm:block">
                       {user?.username || "User"}
@@ -341,25 +336,20 @@ const Navbar: React.FC<NavbarProps> = ({ authenticated, onAuthChange }) => {
 
             {authenticated ? (
               <>
-                <Link
-                  to="/upload"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
-                    isActive("/upload")
-                      ? "text-alien-green shadow-alien-glow bg-alien-green/10"
-                      : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
-                  }`}
-                >
-                  <Upload size={20} />
-                  <span>Upload</span>
-                </Link>
-
                 {/* Mobile Profile Section */}
                 <div className="border-t border-smoke-light pt-2 mt-2">
                   <div className="px-3 py-2">
                     <div className="flex items-center space-x-3 mb-3">
-                      <div className="w-8 h-8 bg-alien-green rounded-full flex items-center justify-center shadow-alien-glow">
-                        <User className="text-royal-black" size={16} />
+                      <div className="w-8 h-8 border border-neutral-700 rounded-full flex items-center justify-center shadow-alien-glow">
+                        <img
+                          className="text-royal-black"
+                          src={`https://robohash.org/${user?.username}.png`}
+                          alt={
+                            user?.username
+                              ? user.username.charAt(0).toUpperCase()
+                              : "U"
+                          }
+                        />
                       </div>
                       <div>
                         <p className="text-sm font-medium text-white">
