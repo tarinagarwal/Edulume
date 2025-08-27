@@ -142,6 +142,12 @@ Aim for substantial content that provides real value and learning.
 // Get all courses with filters and search (with optional auth)
 router.get("/", optionalAuth, async (req, res) => {
   try {
+    console.log("🔍 Starting courses request...");
+    console.log("Environment check:", {
+      DATABASE_URL: process.env.DATABASE_URL ? "SET" : "NOT SET",
+      NODE_ENV: process.env.NODE_ENV,
+    });
+
     const {
       search,
       filter = "all", // all, my-courses, bookmarked
@@ -156,6 +162,11 @@ router.get("/", optionalAuth, async (req, res) => {
       filter,
       search: search || "none",
     });
+
+    // Test database connection
+    console.log("🔌 Testing database connection...");
+    await prisma.$connect();
+    console.log("✅ Database connected successfully");
     let where = {};
 
     // Apply filters

@@ -86,14 +86,34 @@ app.use("/api/courses", courseRoutes);
 setupSocketHandlers(io);
 
 // Health check endpoint
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "OK",
-    message: "AlienVault server is running",
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
-    allowedOrigins: getAllowedOrigins(),
-  });
+app.get("/api/health", async (req, res) => {
+  try {
+    // Test database connection
+    const { default: prisma } = await import("./db.js");
+    await prisma.$connect();
+
+    res.json({
+      status: "OK",
+      message: "AlienVault server is running",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development",
+      allowedOrigins: getAllowedOrigins(),
+      database: "Connected",
+      envVars: {
+        DATABASE_URL: process.env.DATABASE_URL ? "SET" : "NOT SET",
+        JWT_SECRET: process.env.JWT_SECRET ? "SET" : "NOT SET",
+        GROQ_API_KEY: process.env.GROQ_API_KEY ? "SET" : "NOT SET",
+      },
+    });
+  } catch (error) {
+    console.error("Health check failed:", error);
+    res.status(500).json({
+      status: "ERROR",
+      message: "Server health check failed",
+      error: error.message,
+      database: "Disconnected",
+    });
+  }
 });
 
 // Error handling middleware
