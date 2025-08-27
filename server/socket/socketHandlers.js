@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { dbGet } from "../db.js";
+import prisma from "../db.js";
 
 // Socket authentication middleware
 const authenticateSocket = async (socket, next) => {
@@ -29,10 +29,14 @@ const authenticateSocket = async (socket, next) => {
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await dbGet(
-      "SELECT id, username, email FROM users WHERE id = ?",
-      [decoded.userId]
-    );
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+      },
+    });
 
     if (!user) {
       console.log("❌ Socket auth: User not found for token");
@@ -53,17 +57,34 @@ export const setupSocketHandlers = (io) => {
   io.use(authenticateSocket);
 
   io.on("connection", (socket) => {
-    console.log(`User ${socket.user.username} connected`);
+    console.log(
+      `✅ User ${socket.user.username} connected with socket ID: ${socket.id}`
+    );
 
     // Join user to their personal room for notifications
     socket.join(`user_${socket.user.id}`);
 
     // Join discussion room
     socket.on("join_discussion", (discussionId) => {
-      socket.join(`discussion_${discussionId}`);
+      const roomName = `discussion_${discussionId}`;
+      socket.join(roomName);
       console.log(
-        `User ${socket.user.username} joined discussion ${discussionId}`
+        `✅ User ${socket.user.username} joined discussion room: ${roomName}`
       );
+
+      // Check room membership immediately after joining
+      setTimeout(() => {
+        const room = io.sockets.adapter.rooms.get(roomName);
+        const clientCount = room ? room.size : 0;
+        console.log(`👥 Clients in room ${roomName} after join:`, clientCount);
+
+        // List all rooms this socket is in
+        const socketRooms = Array.from(socket.rooms);
+        console.log(
+          `🏠 Socket ${socket.user.username} is in rooms:`,
+          socketRooms
+        );
+      }, 100);
     });
 
     // Leave discussion room
@@ -102,20 +123,54 @@ export const setupSocketHandlers = (io) => {
       }
     );
 
+    // Test event handler
+    socket.on("test_event", (data) => {
+      console.log(`🧪 Test event from ${socket.user.username}:`, data);
+      socket.emit("test_event", {
+        message: `Hello back from server, ${socket.user.username}!`,
+        timestamp: new Date().toISOString(),
+      });
+    });
+
     // Handle disconnect
-    socket.on("disconnect", () => {
-      console.log(`User ${socket.user.username} disconnected`);
+    socket.on("disconnect", (reason) => {
+      console.log(
+        `❌ User ${socket.user.username} disconnected. Reason: ${reason}`
+      );
+      console.log(
+        `🏠 Socket ${socket.id} was in rooms:`,
+        Array.from(socket.rooms)
+      );
     });
   });
 };
 
 // Helper functions to emit events from routes
 export const emitNewAnswer = (io, discussionId, answer) => {
-  io.to(`discussion_${discussionId}`).emit("new_answer", answer);
+  const roomName = `discussion_${discussionId}`;
+  console.log("📡 Emitting new_answer to room:", roomName);
+
+  // Check how many clients are in the room
+  const room = io.sockets.adapter.rooms.get(roomName);
+  const clientCount = room ? room.size : 0;
+  console.log(`👥 Clients in room ${roomName}:`, clientCount);
+
+  io.to(roomName).emit("new_answer", answer);
 };
 
 export const emitNewReply = (io, discussionId, answerId, reply) => {
-  io.to(`discussion_${discussionId}`).emit("new_reply", {
+  const roomName = `discussion_${discussionId}`;
+  console.log("📡 Emitting new_reply to room:", roomName, {
+    answerId,
+    reply,
+  });
+
+  // Check how many clients are in the room
+  const room = io.sockets.adapter.rooms.get(roomName);
+  const clientCount = room ? room.size : 0;
+  console.log(`👥 Clients in room ${roomName}:`, clientCount);
+
+  io.to(roomName).emit("new_reply", {
     answerId,
     reply,
   });

@@ -1,5 +1,5 @@
 import express from "express";
-import { dbAll, dbRun } from "../db.js";
+import prisma from "../db.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -7,13 +7,30 @@ const router = express.Router();
 // Get all PDFs (public)
 router.get("/", async (req, res) => {
   try {
-    const pdfs = await dbAll(`
-      SELECT p.*, u.username as uploader_username 
-      FROM pdfs p 
-      LEFT JOIN users u ON p.uploaded_by_user_id = u.id 
-      ORDER BY p.upload_date DESC
-    `);
-    res.json(pdfs);
+    const pdfs = await prisma.pdf.findMany({
+      include: {
+        uploadedBy: {
+          select: {
+            username: true,
+          },
+        },
+      },
+      orderBy: {
+        uploadDate: "desc",
+      },
+    });
+
+    // Transform the response to match the expected format
+    const transformedPdfs = pdfs.map((pdf) => ({
+      ...pdf,
+      uploader_username: pdf.uploadedBy.username,
+      uploaded_by_user_id: pdf.uploadedByUserId,
+      upload_date: pdf.uploadDate,
+      year_of_study: pdf.yearOfStudy,
+      blob_url: pdf.blobUrl,
+    }));
+
+    res.json(transformedPdfs);
   } catch (error) {
     console.error("Error fetching PDFs:", error);
     res.status(500).json({ error: "Failed to fetch PDFs" });
@@ -72,33 +89,26 @@ router.post("/store-metadata", authenticateToken, async (req, res) => {
       });
     }
 
-    const result = await dbRun(
-      `
-      INSERT INTO pdfs (
-        title, description, semester, course, department, 
-        year_of_study, blob_url, uploaded_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-      [
+    const pdf = await prisma.pdf.create({
+      data: {
         title,
         description,
         semester,
-        course || null,
-        department || null,
-        year_of_study || null,
-        blob_url,
-        req.user.id,
-      ]
-    );
+        course: course || null,
+        department: department || null,
+        yearOfStudy: year_of_study || null,
+        blobUrl: blob_url,
+        uploadedByUserId: req.user.id,
+      },
+    });
 
-    const pdfId = result.lastInsertRowid;
-    if (!pdfId) {
-      console.error("❌ Failed to get PDF ID after insert:", result);
+    if (!pdf) {
+      console.error("❌ Failed to create PDF");
       return res.status(500).json({ error: "Failed to store PDF metadata" });
     }
 
     res.status(201).json({
-      id: pdfId,
+      id: pdf.id,
       message: "PDF metadata stored successfully",
     });
   } catch (error) {

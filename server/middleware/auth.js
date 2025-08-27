@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { dbGet } from "../db.js";
+import prisma from "../db.js";
 
 export const authenticateToken = async (req, res, next) => {
   try {
@@ -39,10 +39,14 @@ export const authenticateToken = async (req, res, next) => {
     }
 
     // Verify user still exists
-    const user = await dbGet(
-      "SELECT id, username, email FROM users WHERE id = ?",
-      [decoded.userId]
-    );
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+      },
+    });
 
     if (!user) {
       console.log("❌ User not found in middleware:", {

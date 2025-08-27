@@ -6,11 +6,14 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js"
+    "dev": "node --watch index.js",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
-    "@libsql/client": "^0.15.12",
+    "@prisma/client": "^5.22.0",
     "@vercel/blob": "^1.1.1",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
@@ -20,8 +23,10 @@
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2",
     "nodemailer": "^7.0.5",
-    "socket.io": "^4.8.1",
-    "sqlite3": "^5.1.7"
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
   },
   "keywords": [
     "college",

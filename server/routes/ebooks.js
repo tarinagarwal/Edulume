@@ -1,5 +1,5 @@
 import express from "express";
-import { dbAll, dbRun } from "../db.js";
+import prisma from "../db.js";
 import { authenticateToken } from "../middleware/auth.js";
 
 const router = express.Router();
@@ -7,13 +7,30 @@ const router = express.Router();
 // Get all E-books (public)
 router.get("/", async (req, res) => {
   try {
-    const ebooks = await dbAll(`
-      SELECT e.*, u.username as uploader_username 
-      FROM ebooks e 
-      LEFT JOIN users u ON e.uploaded_by_user_id = u.id 
-      ORDER BY e.upload_date DESC
-    `);
-    res.json(ebooks);
+    const ebooks = await prisma.ebook.findMany({
+      include: {
+        uploadedBy: {
+          select: {
+            username: true,
+          },
+        },
+      },
+      orderBy: {
+        uploadDate: "desc",
+      },
+    });
+
+    // Transform the response to match the expected format
+    const transformedEbooks = ebooks.map((ebook) => ({
+      ...ebook,
+      uploader_username: ebook.uploadedBy.username,
+      uploaded_by_user_id: ebook.uploadedByUserId,
+      upload_date: ebook.uploadDate,
+      year_of_study: ebook.yearOfStudy,
+      blob_url: ebook.blobUrl,
+    }));
+
+    res.json(transformedEbooks);
   } catch (error) {
     console.error("Error fetching E-books:", error);
     res.status(500).json({ error: "Failed to fetch E-books" });
@@ -72,33 +89,26 @@ router.post("/store-metadata", authenticateToken, async (req, res) => {
       });
     }
 
-    const result = await dbRun(
-      `
-      INSERT INTO ebooks (
-        title, description, semester, course, department, 
-        year_of_study, blob_url, uploaded_by_user_id
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-      [
+    const ebook = await prisma.ebook.create({
+      data: {
         title,
         description,
         semester,
-        course || null,
-        department || null,
-        year_of_study || null,
-        blob_url,
-        req.user.id,
-      ]
-    );
+        course: course || null,
+        department: department || null,
+        yearOfStudy: year_of_study || null,
+        blobUrl: blob_url,
+        uploadedByUserId: req.user.id,
+      },
+    });
 
-    const ebookId = result.lastInsertRowid;
-    if (!ebookId) {
-      console.error("❌ Failed to get E-book ID after insert:", result);
+    if (!ebook) {
+      console.error("❌ Failed to create E-book");
       return res.status(500).json({ error: "Failed to store E-book metadata" });
     }
 
     res.status(201).json({
-      id: ebookId,
+      id: ebook.id,
       message: "E-book metadata stored successfully",
     });
   } catch (error) {

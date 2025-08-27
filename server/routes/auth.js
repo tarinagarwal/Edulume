@@ -1,7 +1,7 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { dbGet, dbRun } from "../db.js";
+import prisma from "../db.js";
 import { generateOTP, sendOTPEmail, isOTPEnabled } from "../utils/email.js";
 
 const router = express.Router();
@@ -37,9 +37,9 @@ router.post("/send-otp", async (req, res) => {
 
     // For signup, check if email already exists
     if (type === "signup") {
-      const existingUser = await dbGet("SELECT id FROM users WHERE email = ?", [
-        email,
-      ]);
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
       if (existingUser) {
         return res.status(400).json({ error: "Email already registered" });
       }
@@ -47,9 +47,9 @@ router.post("/send-otp", async (req, res) => {
 
     // For password reset, check if email exists
     if (type === "reset") {
-      const existingUser = await dbGet("SELECT id FROM users WHERE email = ?", [
-        email,
-      ]);
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
       if (!existingUser) {
         return res.status(400).json({ error: "Email not found" });
       }
@@ -60,10 +60,14 @@ router.post("/send-otp", async (req, res) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Store OTP in database
-    await dbRun(
-      "INSERT INTO otps (email, otp_code, otp_type, expires_at) VALUES (?, ?, ?, ?)",
-      [email, otp, type, expiresAt.toISOString()]
-    );
+    await prisma.otp.create({
+      data: {
+        email,
+        otpCode: otp,
+        otpType: type,
+        expiresAt,
+      },
+    });
 
     // Send OTP email
     const emailSent = await sendOTPEmail(email, otp, type);
@@ -96,17 +100,30 @@ router.post("/verify-otp", async (req, res) => {
     }
 
     // Find valid OTP
-    const otpRecord = await dbGet(
-      'SELECT * FROM otps WHERE email = ? AND otp_code = ? AND otp_type = ? AND used = 0 AND expires_at > datetime("now") ORDER BY created_at DESC LIMIT 1',
-      [email, otp, type]
-    );
+    const otpRecord = await prisma.otp.findFirst({
+      where: {
+        email,
+        otpCode: otp,
+        otpType: type,
+        used: false,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     if (!otpRecord) {
       return res.status(400).json({ error: "Invalid or expired OTP" });
     }
 
     // Mark OTP as used
-    await dbRun("UPDATE otps SET used = 1 WHERE id = ?", [otpRecord.id]);
+    await prisma.otp.update({
+      where: { id: otpRecord.id },
+      data: { used: true },
+    });
 
     res.json({ verified: true, message: "OTP verified successfully" });
   } catch (error) {
@@ -140,32 +157,44 @@ router.post("/signup", async (req, res) => {
         return res.status(400).json({ error: "OTP is required" });
       }
 
-      const otpRecord = await dbGet(
-        'SELECT * FROM otps WHERE email = ? AND otp_code = ? AND otp_type = "signup" AND used = 0 AND expires_at > datetime("now") ORDER BY created_at DESC LIMIT 1',
-        [email, otp]
-      );
+      const otpRecord = await prisma.otp.findFirst({
+        where: {
+          email,
+          otpCode: otp,
+          otpType: "signup",
+          used: false,
+          expiresAt: {
+            gt: new Date(),
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
 
       if (!otpRecord) {
         return res.status(400).json({ error: "Invalid or expired OTP" });
       }
 
       // Mark OTP as used
-      await dbRun("UPDATE otps SET used = 1 WHERE id = ?", [otpRecord.id]);
+      await prisma.otp.update({
+        where: { id: otpRecord.id },
+        data: { used: true },
+      });
     }
 
     // Check if user already exists
-    const existingUser = await dbGet(
-      "SELECT id FROM users WHERE username = ?",
-      [username]
-    );
+    const existingUser = await prisma.user.findUnique({
+      where: { username },
+    });
     if (existingUser) {
       return res.status(400).json({ error: "Username already exists" });
     }
 
     // Check if email already exists
-    const existingEmail = await dbGet("SELECT id FROM users WHERE email = ?", [
-      email,
-    ]);
+    const existingEmail = await prisma.user.findUnique({
+      where: { email },
+    });
     if (existingEmail) {
       return res.status(400).json({ error: "Email already registered" });
     }
@@ -175,19 +204,19 @@ router.post("/signup", async (req, res) => {
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
     // Create user
-    const result = await dbRun(
-      "INSERT INTO users (username, email, password_hash, is_verified) VALUES (?, ?, ?, ?)",
-      [username, email, passwordHash, 1]
-    );
+    const user = await prisma.user.create({
+      data: {
+        username,
+        email,
+        passwordHash,
+        isVerified: true,
+      },
+    });
 
-    // Get the inserted user ID - Turso returns lastInsertRowid
-    const userId = result.lastInsertRowid;
-    if (!userId) {
-      console.error("❌ Failed to get user ID after insert:", result);
+    if (!user) {
+      console.error("❌ Failed to create user");
       return res.status(500).json({ error: "Failed to create user account" });
     }
-
-    const user = { id: userId, username, email };
     const token = generateToken(user);
 
     console.log("✅ User created successfully:", { userId: user.id, username });
@@ -216,10 +245,11 @@ router.post("/login", async (req, res) => {
     }
 
     // Find user
-    const user = await dbGet(
-      "SELECT id, username, email, password_hash, is_verified FROM users WHERE username = ? OR email = ?",
-      [usernameOrEmail, usernameOrEmail]
-    );
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
+      },
+    });
 
     if (!user) {
       console.log("❌ User not found:", { usernameOrEmail });
@@ -227,12 +257,12 @@ router.post("/login", async (req, res) => {
     }
 
     // Check if user is verified (only if OTP is enabled)
-    if (isOTPEnabled() && !user.is_verified) {
+    if (isOTPEnabled() && !user.isVerified) {
       return res.status(401).json({ error: "Please verify your email first" });
     }
 
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    const isValidPassword = await bcrypt.compare(password, user.passwordHash);
     if (!isValidPassword) {
       console.log("❌ Invalid password for user:", { userId: user.id });
       return res.status(401).json({ error: "Invalid credentials" });
@@ -265,7 +295,9 @@ router.post("/forgot-password", async (req, res) => {
     }
 
     // Check if user exists
-    const user = await dbGet("SELECT id FROM users WHERE email = ?", [email]);
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
     if (!user) {
       return res.status(400).json({ error: "Email not found" });
     }
@@ -275,10 +307,14 @@ router.post("/forgot-password", async (req, res) => {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
     // Store OTP in database
-    await dbRun(
-      "INSERT INTO otps (email, otp_code, otp_type, expires_at) VALUES (?, ?, ?, ?)",
-      [email, otp, "reset", expiresAt.toISOString()]
-    );
+    await prisma.otp.create({
+      data: {
+        email,
+        otpCode: otp,
+        otpType: "reset",
+        expiresAt,
+      },
+    });
 
     // Send OTP email
     const emailSent = await sendOTPEmail(email, otp, "reset");
@@ -311,10 +347,20 @@ router.post("/reset-password", async (req, res) => {
     }
 
     // Verify OTP
-    const otpRecord = await dbGet(
-      'SELECT * FROM otps WHERE email = ? AND otp_code = ? AND otp_type = "reset" AND used = 0 AND expires_at > datetime("now") ORDER BY created_at DESC LIMIT 1',
-      [email, otp]
-    );
+    const otpRecord = await prisma.otp.findFirst({
+      where: {
+        email,
+        otpCode: otp,
+        otpType: "reset",
+        used: false,
+        expiresAt: {
+          gt: new Date(),
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     if (!otpRecord) {
       return res.status(400).json({ error: "Invalid or expired OTP" });
@@ -325,13 +371,16 @@ router.post("/reset-password", async (req, res) => {
     const passwordHash = await bcrypt.hash(newPassword, saltRounds);
 
     // Update user password
-    await dbRun("UPDATE users SET password_hash = ? WHERE email = ?", [
-      passwordHash,
-      email,
-    ]);
+    await prisma.user.update({
+      where: { email },
+      data: { passwordHash },
+    });
 
     // Mark OTP as used
-    await dbRun("UPDATE otps SET used = 1 WHERE id = ?", [otpRecord.id]);
+    await prisma.otp.update({
+      where: { id: otpRecord.id },
+      data: { used: true },
+    });
 
     res.json({ message: "Password reset successfully" });
   } catch (error) {
@@ -386,10 +435,15 @@ router.get("/profile", async (req, res) => {
       return res.status(401).json({ error: "Invalid or expired token" });
     }
 
-    const user = await dbGet(
-      "SELECT id, username, email, created_at FROM users WHERE id = ?",
-      [decoded.userId]
-    );
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        createdAt: true,
+      },
+    });
 
     if (!user) {
       console.log("❌ User not found in database:", { userId: decoded.userId });
@@ -406,7 +460,7 @@ router.get("/profile", async (req, res) => {
         id: user.id,
         username: user.username,
         email: user.email,
-        created_at: user.created_at,
+        created_at: user.createdAt,
       },
     });
   } catch (error) {

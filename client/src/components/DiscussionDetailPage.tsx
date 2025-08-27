@@ -80,29 +80,63 @@ const DiscussionDetailPage: React.FC = () => {
     fetchCurrentUser();
   }, [id]);
 
- 
-
   // Socket event handlers
   useEffect(() => {
     if (!socket || !id) return;
 
     // Join discussion room
+    console.log("🏠 Joining discussion room:", id);
     socket.emit("join_discussion", id);
+
+    // Add a timeout to check if we're receiving events
+    setTimeout(() => {
+      console.log(
+        "🔍 Checking if socket is still connected:",
+        socket.connected
+      );
+      console.log("🔍 Socket ID:", socket.id);
+    }, 1000);
+
+    // Test event to verify socket is working
+    socket.on("test_event", (data) => {
+      console.log("🧪 Test event received:", data);
+    });
 
     // Listen for new answers
     socket.on("new_answer", (newAnswer: DiscussionAnswer) => {
-      setAnswers((prev) => [newAnswer, ...prev]);
+      console.log("📨 Received new_answer event:", newAnswer);
+      console.log("🔍 Current answers count before adding:", answers.length);
+
+      setAnswers((prev) => {
+        console.log("🔍 Adding new answer to", prev.length, "existing answers");
+        const updated = [newAnswer, ...prev];
+        console.log("🔍 New answers count:", updated.length);
+        return updated;
+      });
     });
 
     // Listen for new replies
     socket.on("new_reply", ({ answerId, reply }) => {
-      setAnswers((prev) =>
-        prev.map((answer) =>
-          answer.id === parseInt(answerId)
+      console.log("📨 Received new_reply event:", { answerId, reply });
+      console.log("🔍 Current answers before update:", answers.length);
+      console.log("🔍 Looking for answer ID:", answerId);
+
+      setAnswers((prev) => {
+        console.log(
+          "🔍 Previous answers:",
+          prev.map((a) => ({ id: a.id, replyCount: a.replies?.length || 0 }))
+        );
+        const updated = prev.map((answer) =>
+          answer.id === answerId
             ? { ...answer, replies: [...(answer.replies || []), reply] }
             : answer
-        )
-      );
+        );
+        console.log(
+          "🔍 Updated answers:",
+          updated.map((a) => ({ id: a.id, replyCount: a.replies?.length || 0 }))
+        );
+        return updated;
+      });
     });
 
     // Listen for best answer updates
@@ -110,7 +144,7 @@ const DiscussionDetailPage: React.FC = () => {
       setAnswers((prev) =>
         prev.map((answer) => ({
           ...answer,
-          is_best_answer: answer.id === parseInt(answerId) ? 1 : 0,
+          is_best_answer: answer.id === answerId ? 1 : 0,
         }))
       );
 
@@ -123,17 +157,14 @@ const DiscussionDetailPage: React.FC = () => {
 
     // Listen for vote updates
     socket.on("vote_count_updated", ({ targetId, targetType, voteCount }) => {
-      if (
-        targetType === "discussion" &&
-        discussion?.id === parseInt(targetId)
-      ) {
+      if (targetType === "discussion" && discussion?.id === targetId) {
         setDiscussion((prev) =>
           prev ? { ...prev, vote_count: voteCount } : null
         );
       } else if (targetType === "answer") {
         setAnswers((prev) =>
           prev.map((answer) =>
-            answer.id === parseInt(targetId)
+            answer.id === targetId
               ? { ...answer, vote_count: voteCount }
               : answer
           )
@@ -144,7 +175,7 @@ const DiscussionDetailPage: React.FC = () => {
             ...answer,
             replies:
               answer.replies?.map((reply) =>
-                reply.id === parseInt(targetId)
+                reply.id === targetId
                   ? { ...reply, vote_count: voteCount }
                   : reply
               ) || [],
@@ -177,7 +208,7 @@ const DiscussionDetailPage: React.FC = () => {
       socket.off("user_typing");
       socket.off("user_stop_typing");
     };
-  }, [socket, id, discussion, currentUser]);
+  }, [socket, id]);
   const fetchDiscussion = async () => {
     try {
       setLoading(true);
@@ -361,15 +392,22 @@ const DiscussionDetailPage: React.FC = () => {
     setError("");
 
     try {
+      console.log(
+        "📤 Submitting reply:",
+        replyingTo.toString(),
+        replyContent.trim()
+      );
       await addReply(
         replyingTo.toString(),
         replyContent.trim(),
         replyImages.length > 0 ? replyImages : undefined
       );
 
+      console.log("✅ Reply submitted successfully");
       // Reset form
       handleCancelReply();
     } catch (err: any) {
+      console.error("❌ Reply submission failed:", err);
       setError(err.response?.data?.error || "Failed to submit reply");
     } finally {
       setSubmittingReply(false);
@@ -393,16 +431,19 @@ const DiscussionDetailPage: React.FC = () => {
     setError("");
 
     try {
+      console.log("📤 Submitting answer:", id, answerContent.trim());
       await addAnswer(
         id!,
         answerContent.trim(),
         answerImages.length > 0 ? answerImages : undefined
       );
 
+      console.log("✅ Answer submitted successfully");
       // Reset form
       setAnswerContent("");
       setAnswerImages([]);
     } catch (err: any) {
+      console.error("❌ Answer submission failed:", err);
       setError(err.response?.data?.error || "Failed to submit answer");
     } finally {
       setSubmittingAnswer(false);
@@ -526,6 +567,24 @@ const DiscussionDetailPage: React.FC = () => {
           <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg mb-6 flex items-center">
             <AlertCircle className="mr-2 flex-shrink-0" size={20} />
             {error}
+          </div>
+        )}
+
+        {/* Debug: Test Socket Connection */}
+        {socket && (
+          <div className="bg-blue-900/50 border border-blue-500 text-blue-200 px-4 py-3 rounded-lg mb-6">
+            <button
+              onClick={() => {
+                console.log("🧪 Testing socket connection...");
+                socket.emit("test_event", { message: "Hello from client!" });
+              }}
+              className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-sm"
+            >
+              Test Socket Connection
+            </button>
+            <span className="ml-3 text-sm">
+              Socket: {socket.connected ? "✅ Connected" : "❌ Disconnected"}
+            </span>
           </div>
         )}
 

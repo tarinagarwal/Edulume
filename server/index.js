@@ -10,6 +10,7 @@ import ebookRoutes from "./routes/ebooks.js";
 import uploadRoutes from "./routes/upload.js";
 import discussionRoutes from "./routes/discussions.js";
 import imageRoutes from "./routes/images.js";
+import notificationRoutes from "./routes/notifications.js";
 import { setupSocketHandlers } from "./socket/socketHandlers.js";
 
 BigInt.prototype.toJSON = function () {
@@ -58,8 +59,17 @@ app.use(cookieParser());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`🔍 ${req.method} ${req.path}`);
+  next();
+});
+
 // Make io available to routes
-app.set("io", io);
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -68,6 +78,7 @@ app.use("/api/ebooks", ebookRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/discussions", discussionRoutes);
 app.use("/api/images", imageRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Setup Socket.IO handlers
 setupSocketHandlers(io);

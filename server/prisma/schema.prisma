@@ -1,0 +1,206 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  username          String   @unique
+  email             String   @unique
+  passwordHash      String   @map("password_hash")
+  isVerified        Boolean  @default(false) @map("is_verified")
+  verificationToken String?  @map("verification_token")
+  resetToken        String?  @map("reset_token")
+  resetTokenExpires DateTime? @map("reset_token_expires")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  // Relations
+  pdfs              Pdf[]
+  ebooks            Ebook[]
+  discussions       Discussion[]
+  discussionAnswers DiscussionAnswer[]
+  discussionReplies DiscussionReply[]
+  discussionVotes   DiscussionVote[]
+  answerVotes       AnswerVote[]
+  replyVotes        ReplyVote[]
+  notifications     Notification[] @relation("UserNotifications")
+  sentNotifications Notification[] @relation("NotificationSender")
+
+  @@map("users")
+}
+
+model Otp {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String
+  otpCode   String   @map("otp_code")
+  otpType   String   @map("otp_type") // 'signup' or 'reset'
+  expiresAt DateTime @map("expires_at")
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("otps")
+}
+
+model Pdf {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  description      String
+  semester         String
+  course           String?
+  department       String?
+  yearOfStudy      String?  @map("year_of_study")
+  blobUrl          String   @map("blob_url")
+  uploadedByUserId String   @map("uploaded_by_user_id") @db.ObjectId
+  uploadDate       DateTime @default(now()) @map("upload_date")
+
+  // Relations
+  uploadedBy User @relation(fields: [uploadedByUserId], references: [id])
+
+  @@map("pdfs")
+}
+
+model Discussion {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  content   String
+  category  String
+  tags      String?
+  images    String?
+  authorId  String   @map("author_id") @db.ObjectId
+  views     Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  author  User               @relation(fields: [authorId], references: [id])
+  answers DiscussionAnswer[]
+  votes   DiscussionVote[]
+
+  @@map("discussions")
+}
+
+model DiscussionAnswer {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  discussionId String   @map("discussion_id") @db.ObjectId
+  content      String
+  images       String?
+  authorId     String   @map("author_id") @db.ObjectId
+  isBestAnswer Boolean  @default(false) @map("is_best_answer")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  discussion Discussion        @relation(fields: [discussionId], references: [id])
+  author     User              @relation(fields: [authorId], references: [id])
+  replies    DiscussionReply[]
+  votes      AnswerVote[]
+
+  @@map("discussion_answers")
+}
+
+model DiscussionReply {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  answerId  String   @map("answer_id") @db.ObjectId
+  content   String
+  images    String?
+  authorId  String   @map("author_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  answer DiscussionAnswer @relation(fields: [answerId], references: [id])
+  author User             @relation(fields: [authorId], references: [id])
+  votes  ReplyVote[]
+
+  @@map("discussion_replies")
+}
+
+model DiscussionVote {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  discussionId String   @map("discussion_id") @db.ObjectId
+  userId       String   @map("user_id") @db.ObjectId
+  voteType     String   @map("vote_type") // 'up' or 'down'
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  discussion Discussion @relation(fields: [discussionId], references: [id])
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@unique([discussionId, userId])
+  @@map("discussion_votes")
+}
+
+model AnswerVote {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  answerId  String   @map("answer_id") @db.ObjectId
+  userId    String   @map("user_id") @db.ObjectId
+  voteType  String   @map("vote_type") // 'up' or 'down'
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  answer DiscussionAnswer @relation(fields: [answerId], references: [id])
+  user   User             @relation(fields: [userId], references: [id])
+
+  @@unique([answerId, userId])
+  @@map("answer_votes")
+}
+
+model ReplyVote {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  replyId   String   @map("reply_id") @db.ObjectId
+  userId    String   @map("user_id") @db.ObjectId
+  voteType  String   @map("vote_type") // 'up' or 'down'
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  reply DiscussionReply @relation(fields: [replyId], references: [id])
+  user  User            @relation(fields: [userId], references: [id])
+
+  @@unique([replyId, userId])
+  @@map("reply_votes")
+}
+
+model Ebook {
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  description      String
+  semester         String
+  course           String?
+  department       String?
+  yearOfStudy      String?  @map("year_of_study")
+  blobUrl          String   @map("blob_url")
+  uploadedByUserId String   @map("uploaded_by_user_id") @db.ObjectId
+  uploadDate       DateTime @default(now()) @map("upload_date")
+
+  // Relations
+  uploadedBy User @relation(fields: [uploadedByUserId], references: [id])
+
+  @@map("ebooks")
+}
+
+model Notification {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @map("user_id") @db.ObjectId
+  type         String
+  title        String
+  message      String
+  relatedId    String?  @map("related_id")
+  relatedType  String?  @map("related_type")
+  fromUserId   String?  @map("from_user_id") @db.ObjectId
+  fromUsername String?  @map("from_username")
+  isRead       Boolean  @default(false) @map("is_read")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user     User  @relation("UserNotifications", fields: [userId], references: [id])
+  fromUser User? @relation("NotificationSender", fields: [fromUserId], references: [id])
+
+  @@map("notifications")
+}

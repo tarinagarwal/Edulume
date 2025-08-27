@@ -1,5 +1,5 @@
 import express from "express";
-import { dbAll, dbRun, dbGet } from "../db.js";
+import prisma from "../db.js";
 import { authenticateToken } from "../middleware/auth.js";
 import {
   emitNewAnswer,
@@ -33,10 +33,8 @@ const createNotification = async (
   io = null
 ) => {
   try {
-    const result = await dbRun(
-      `INSERT INTO notifications (user_id, type, title, message, related_id, related_type, from_user_id, from_username)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
+    const notification = await prisma.notification.create({
+      data: {
         userId,
         type,
         title,
@@ -45,13 +43,13 @@ const createNotification = async (
         relatedType,
         fromUserId,
         fromUsername,
-      ]
-    );
+      },
+    });
 
     // Emit real-time notification if io is available
     if (io) {
-      const notification = {
-        id: result.id,
+      const notificationData = {
+        id: notification.id,
         user_id: userId,
         type,
         title,
@@ -60,10 +58,10 @@ const createNotification = async (
         related_type: relatedType,
         from_user_id: fromUserId,
         from_username: fromUsername,
-        is_read: 0,
-        created_at: new Date().toISOString(),
+        is_read: false,
+        created_at: notification.createdAt.toISOString(),
       };
-      emitNotification(io, userId, notification);
+      emitNotification(io, userId, notificationData);
     }
   } catch (error) {
     console.error("Error creating notification:", error);
@@ -71,6 +69,11 @@ const createNotification = async (
 };
 
 const router = express.Router();
+
+// Test route to verify router is working
+router.get("/test", (req, res) => {
+  res.json({ message: "Discussions router is working!" });
+});
 
 // ---------------- Get all discussions with filters ----------------
 router.get("/", async (req, res) => {
@@ -84,93 +87,85 @@ router.get("/", async (req, res) => {
       limit = 10,
     } = req.query;
 
-    let query = `
-      SELECT 
-        d.*,
-        u.username as author_username,
-        COUNT(DISTINCT a.id) as answer_count,
-        COUNT(DISTINCT dv.id) as vote_count,
-        MAX(CASE WHEN a.is_best_answer = 1 THEN 1 ELSE 0 END) as has_best_answer
-      FROM discussions d
-      LEFT JOIN users u ON d.author_id = u.id
-      LEFT JOIN discussion_answers a ON d.id = a.discussion_id
-      LEFT JOIN discussion_votes dv ON d.id = dv.discussion_id
-      WHERE 1=1
-    `;
-
-    const params = [];
+    const where = {};
 
     if (category && category !== "all") {
-      query += " AND d.category = ?";
-      params.push(category);
+      where.category = category;
     }
 
     if (tag) {
-      query += " AND d.tags LIKE ?";
-      params.push(`%${tag}%`);
+      where.tags = {
+        contains: tag,
+      };
     }
 
     if (search) {
-      query += " AND (d.title LIKE ? OR d.content LIKE ?)";
-      params.push(`%${search}%`, `%${search}%`);
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { content: { contains: search, mode: "insensitive" } },
+      ];
     }
 
-    query += " GROUP BY d.id";
-
-    // Add sorting
+    let orderBy = {};
     switch (sort) {
       case "popular":
-        query += " ORDER BY vote_count DESC, d.created_at DESC";
+        orderBy = [{ votes: { _count: "desc" } }, { createdAt: "desc" }];
         break;
       case "answered":
-        query += " ORDER BY answer_count DESC, d.created_at DESC";
+        orderBy = [{ answers: { _count: "desc" } }, { createdAt: "desc" }];
         break;
       case "unanswered":
-        query += " ORDER BY answer_count ASC, d.created_at DESC";
+        orderBy = [{ answers: { _count: "asc" } }, { createdAt: "desc" }];
         break;
       default:
-        query += " ORDER BY d.created_at DESC";
+        orderBy = { createdAt: "desc" };
     }
 
-    // Pagination
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    query += " LIMIT ? OFFSET ?";
-    params.push(parseInt(limit), offset);
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
 
-    const discussions = await dbAll(query, params);
+    const [discussions, total] = await Promise.all([
+      prisma.discussion.findMany({
+        where,
+        include: {
+          author: {
+            select: { username: true },
+          },
+          answers: {
+            select: { id: true, isBestAnswer: true },
+          },
+          votes: {
+            select: { id: true },
+          },
+        },
+        orderBy,
+        skip,
+        take,
+      }),
+      prisma.discussion.count({ where }),
+    ]);
 
-    // Count for pagination
-    let countQuery = `
-      SELECT COUNT(DISTINCT d.id) as total
-      FROM discussions d
-      WHERE 1=1
-    `;
-    const countParams = [];
-
-    if (category && category !== "all") {
-      countQuery += " AND d.category = ?";
-      countParams.push(category);
-    }
-
-    if (tag) {
-      countQuery += " AND d.tags LIKE ?";
-      countParams.push(`%${tag}%`);
-    }
-
-    if (search) {
-      countQuery += " AND (d.title LIKE ? OR d.content LIKE ?)";
-      countParams.push(`%${search}%`, `%${search}%`);
-    }
-
-    const countResult = await dbGet(countQuery, countParams);
+    // Transform the response to match expected format
+    const transformedDiscussions = discussions.map((discussion) => ({
+      ...discussion,
+      author_username: discussion.author.username,
+      author_id: discussion.authorId,
+      created_at: discussion.createdAt,
+      updated_at: discussion.updatedAt,
+      answer_count: discussion.answers.length,
+      vote_count: discussion.votes.length,
+      has_best_answer: discussion.answers.some((answer) => answer.isBestAnswer)
+        ? 1
+        : 0,
+    }));
 
     res.json({
-      discussions,
+      discussions: transformedDiscussions,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
-        total: countResult.total,
-        pages: Math.ceil(countResult.total / parseInt(limit)),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
       },
     });
   } catch (error) {
@@ -184,72 +179,81 @@ router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    const discussionDetails = await dbGet(
-      `
-      SELECT 
-        d.*,
-        u.username as author_username,
-        COUNT(DISTINCT dv.id) as vote_count,
-        COALESCE(SUM(CASE WHEN dv.vote_type = 'up' THEN 1 ELSE 0 END), 0) as upvotes,
-        COALESCE(SUM(CASE WHEN dv.vote_type = 'down' THEN 1 ELSE 0 END), 0) as downvotes
-      FROM discussions d
-      LEFT JOIN users u ON d.author_id = u.id
-      LEFT JOIN discussion_votes dv ON d.id = dv.discussion_id
-      WHERE d.id = ?
-      GROUP BY d.id
-    `,
-      [parseInt(id)]
-    );
+    const discussion = await prisma.discussion.findUnique({
+      where: { id },
+      include: {
+        author: {
+          select: { username: true },
+        },
+        votes: true,
+        answers: {
+          include: {
+            author: {
+              select: { username: true },
+            },
+            votes: true,
+            replies: {
+              include: {
+                author: {
+                  select: { username: true },
+                },
+                votes: true,
+              },
+              orderBy: { createdAt: "asc" },
+            },
+          },
+          orderBy: [{ isBestAnswer: "desc" }, { createdAt: "asc" }],
+        },
+      },
+    });
 
-    if (!discussionDetails) {
+    if (!discussion) {
       return res.status(404).json({ error: "Discussion not found" });
     }
 
-    const answers = await dbAll(
-      `
-      SELECT 
-        a.*,
-        u.username as author_username,
-        COALESCE(COUNT(DISTINCT r.id), 0) as reply_count,
-        COALESCE(COUNT(DISTINCT av.id), 0) as vote_count,
-        COALESCE(SUM(CASE WHEN av.vote_type = 'up' THEN 1 ELSE 0 END), 0) as upvotes,
-        COALESCE(SUM(CASE WHEN av.vote_type = 'down' THEN 1 ELSE 0 END), 0) as downvotes
-      FROM discussion_answers a
-      LEFT JOIN users u ON a.author_id = u.id
-      LEFT JOIN discussion_replies r ON a.id = r.answer_id
-      LEFT JOIN answer_votes av ON a.id = av.answer_id
-      WHERE a.discussion_id = ?
-      GROUP BY a.id
-      ORDER BY a.is_best_answer DESC, vote_count DESC, a.created_at ASC
-    `,
-      [parseInt(id)]
-    );
+    // Update view count
+    await prisma.discussion.update({
+      where: { id },
+      data: { views: { increment: 1 } },
+    });
 
-    // Get replies for each answer
-    for (let ans of answers) {
-      const replies = await dbAll(
-        `
-        SELECT 
-          r.*,
-          u.username as author_username,
-          COALESCE(COUNT(DISTINCT rv.id), 0) as vote_count,
-          COALESCE(SUM(CASE WHEN rv.vote_type = 'up' THEN 1 ELSE 0 END), 0) as upvotes,
-          COALESCE(SUM(CASE WHEN rv.vote_type = 'down' THEN 1 ELSE 0 END), 0) as downvotes
-        FROM discussion_replies r
-        LEFT JOIN users u ON r.author_id = u.id
-        LEFT JOIN reply_votes rv ON r.id = rv.reply_id
-        WHERE r.answer_id = ?
-        GROUP BY r.id
-        ORDER BY r.created_at ASC
-      `,
-        [ans.id]
-      );
-      ans.replies = replies;
-    }
+    // Transform discussion data
+    const discussionDetails = {
+      ...discussion,
+      author_username: discussion.author.username,
+      author_id: discussion.authorId,
+      created_at: discussion.createdAt,
+      updated_at: discussion.updatedAt,
+      vote_count: discussion.votes.length,
+      upvotes: discussion.votes.filter((v) => v.voteType === "up").length,
+      downvotes: discussion.votes.filter((v) => v.voteType === "down").length,
+    };
 
-    await dbRun("UPDATE discussions SET views = views + 1 WHERE id = ?", [
-      parseInt(id),
-    ]);
+    // Transform answers data
+    const answers = discussion.answers.map((answer) => ({
+      ...answer,
+      author_username: answer.author.username,
+      author_id: answer.authorId,
+      discussion_id: answer.discussionId,
+      is_best_answer: answer.isBestAnswer,
+      created_at: answer.createdAt,
+      updated_at: answer.updatedAt,
+      reply_count: answer.replies.length,
+      vote_count: answer.votes.length,
+      upvotes: answer.votes.filter((v) => v.voteType === "up").length,
+      downvotes: answer.votes.filter((v) => v.voteType === "down").length,
+      replies: answer.replies.map((reply) => ({
+        ...reply,
+        author_username: reply.author.username,
+        author_id: reply.authorId,
+        answer_id: reply.answerId,
+        created_at: reply.createdAt,
+        updated_at: reply.updatedAt,
+        vote_count: reply.votes.length,
+        upvotes: reply.votes.filter((v) => v.voteType === "up").length,
+        downvotes: reply.votes.filter((v) => v.voteType === "down").length,
+      })),
+    }));
 
     res.json({ discussion: discussionDetails, answers });
   } catch (error) {
@@ -269,23 +273,19 @@ router.post("/", authenticateToken, async (req, res) => {
       });
     }
 
-    const result = await dbRun(
-      `
-      INSERT INTO discussions (title, content, category, tags, images, author_id)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `,
-      [
+    const discussion = await prisma.discussion.create({
+      data: {
         title,
         content,
         category,
-        tags && tags.length > 0 ? JSON.stringify(tags) : null,
-        images && images.length > 0 ? JSON.stringify(images) : null,
-        req.user.id,
-      ]
-    );
+        tags: tags && tags.length > 0 ? JSON.stringify(tags) : null,
+        images: images && images.length > 0 ? JSON.stringify(images) : null,
+        authorId: req.user.id,
+      },
+    });
 
     res.status(201).json({
-      id: result.id,
+      id: discussion.id,
       message: "Discussion created successfully",
     });
   } catch (error) {
@@ -299,97 +299,87 @@ router.post("/:id/answers", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { content, images } = req.body;
-    const io = req.app.get("io");
 
     if (!content) {
       return res.status(400).json({ error: "Content is required" });
     }
 
-    const discussionExists = await dbGet(
-      "SELECT id FROM discussions WHERE id = ?",
-      [id]
-    );
-    if (!discussionExists) {
+    const discussion = await prisma.discussion.findUnique({
+      where: { id },
+      include: { author: true },
+    });
+
+    if (!discussion) {
       return res.status(404).json({ error: "Discussion not found" });
     }
 
-    const result = await dbRun(
-      `
-      INSERT INTO discussion_answers (discussion_id, content, images, author_id)
-      VALUES (?, ?, ?, ?)
-    `,
-      [
-        parseInt(id),
+    const answer = await prisma.discussionAnswer.create({
+      data: {
         content,
-        images ? JSON.stringify(images) : null,
-        req.user.id,
-      ]
-    );
+        images: images && images.length > 0 ? JSON.stringify(images) : null,
+        discussionId: id,
+        authorId: req.user.id,
+      },
+    });
 
-    // Get the complete answer data for real-time emission
-    const newAnswer = await dbGet(
-      `
-      SELECT 
-        a.*,
-        u.username as author_username,
-        0 as reply_count,
-        0 as vote_count,
-        0 as upvotes,
-        0 as downvotes
-      FROM discussion_answers a
-      LEFT JOIN users u ON a.author_id = u.id
-      WHERE a.id = ?
-    `,
-      [result.lastInsertRowid || result.insertId]
-    );
-    newAnswer.replies = [];
-
-    // Emit real-time update
-    if (io) {
-      emitNewAnswer(io, id, newAnswer);
-    }
-    const discussionDetails = await dbGet(
-      "SELECT author_id, title FROM discussions WHERE id = ?",
-      [id]
-    );
-    if (discussionDetails && discussionDetails.author_id !== req.user.id) {
+    // Create notification for discussion author (if not self)
+    if (discussion.authorId !== req.user.id) {
       await createNotification(
-        discussionDetails.author_id,
-        "new_answer",
+        discussion.authorId,
+        "answer",
         "New Answer",
-        `${req.user.username} answered your question: "${discussionDetails.title}"`,
-        parseInt(id),
-        "discussion",
+        `${req.user.username} answered your discussion "${discussion.title}"`,
+        answer.id,
+        "answer",
         req.user.id,
         req.user.username,
-        io
+        req.io
       );
     }
 
-    // Mentions
+    // Handle mentions
     const mentions = extractMentions(content);
-    for (const username of mentions) {
-      const mentionedUser = await dbGet(
-        "SELECT id FROM users WHERE username = ?",
-        [username]
-      );
+    for (const mentionedUsername of mentions) {
+      const mentionedUser = await prisma.user.findUnique({
+        where: { username: mentionedUsername },
+      });
+
       if (mentionedUser && mentionedUser.id !== req.user.id) {
         await createNotification(
           mentionedUser.id,
           "mention",
           "You were mentioned",
-          `${req.user.username} mentioned you in an answer: "${discussionDetails.title}"`,
-          parseInt(id),
-          "discussion",
+          `${req.user.username} mentioned you in an answer`,
+          answer.id,
+          "answer",
           req.user.id,
           req.user.username,
-          io
+          req.io
         );
       }
     }
 
+    // Emit real-time event
+    if (req.io) {
+      console.log("🚀 Emitting new answer event:", id);
+      emitNewAnswer(req.io, id, {
+        ...answer,
+        author_username: req.user.username,
+        author_id: req.user.id,
+        discussion_id: id,
+        is_best_answer: false,
+        created_at: answer.createdAt,
+        updated_at: answer.updatedAt,
+        reply_count: 0,
+        vote_count: 0,
+        upvotes: 0,
+        downvotes: 0,
+        replies: [],
+      });
+    }
+
     res.status(201).json({
-      id: result.id,
+      id: answer.id,
       message: "Answer added successfully",
     });
   } catch (error) {
@@ -398,368 +388,437 @@ router.post("/:id/answers", authenticateToken, async (req, res) => {
   }
 });
 
-// Vote on discussion
+// ---------------- Add reply to answer ----------------
+router.post(
+  "/answers/:answerId/replies",
+  authenticateToken,
+  async (req, res) => {
+    console.log("🔥 Reply route hit! AnswerId:", req.params.answerId);
+    try {
+      const { answerId } = req.params;
+      const { content, images } = req.body;
+
+      if (!content) {
+        return res.status(400).json({ error: "Content is required" });
+      }
+
+      const answer = await prisma.discussionAnswer.findUnique({
+        where: { id: answerId },
+        include: {
+          author: true,
+          discussion: { include: { author: true } },
+        },
+      });
+
+      if (!answer) {
+        return res.status(404).json({ error: "Answer not found" });
+      }
+
+      const reply = await prisma.discussionReply.create({
+        data: {
+          content,
+          images: images && images.length > 0 ? JSON.stringify(images) : null,
+          answerId,
+          authorId: req.user.id,
+        },
+      });
+
+      // Create notification for answer author (if not self)
+      if (answer.authorId !== req.user.id) {
+        await createNotification(
+          answer.authorId,
+          "reply",
+          "New Reply",
+          `${req.user.username} replied to your answer`,
+          reply.id,
+          "reply",
+          req.user.id,
+          req.user.username,
+          req.io
+        );
+      }
+
+      // Handle mentions
+      const mentions = extractMentions(content);
+      for (const mentionedUsername of mentions) {
+        const mentionedUser = await prisma.user.findUnique({
+          where: { username: mentionedUsername },
+        });
+
+        if (mentionedUser && mentionedUser.id !== req.user.id) {
+          await createNotification(
+            mentionedUser.id,
+            "mention",
+            "You were mentioned",
+            `${req.user.username} mentioned you in a reply`,
+            reply.id,
+            "reply",
+            req.user.id,
+            req.user.username,
+            req.io
+          );
+        }
+      }
+
+      // Emit real-time event
+      if (req.io) {
+        console.log(
+          "🚀 Emitting new reply event:",
+          answer.discussionId,
+          answerId
+        );
+        emitNewReply(req.io, answer.discussionId, answerId, {
+          ...reply,
+          author_username: req.user.username,
+          author_id: req.user.id,
+          answer_id: answerId,
+          created_at: reply.createdAt,
+          updated_at: reply.updatedAt,
+          vote_count: 0,
+          upvotes: 0,
+          downvotes: 0,
+        });
+      }
+
+      res.status(201).json({
+        id: reply.id,
+        message: "Reply added successfully",
+      });
+    } catch (error) {
+      console.error("Error adding reply:", error);
+      res.status(500).json({ error: "Failed to add reply" });
+    }
+  }
+);
+
+// ---------------- Vote on discussion ----------------
 router.post("/:id/vote", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
     const { voteType } = req.body; // 'up' or 'down'
-    const io = req.app.get("io");
 
-    if (!["up", "down"].includes(voteType)) {
-      return res.status(400).json({ error: "Invalid vote type" });
+    if (!voteType || !["up", "down"].includes(voteType)) {
+      return res.status(400).json({ error: "Valid vote type is required" });
+    }
+
+    const discussion = await prisma.discussion.findUnique({
+      where: { id },
+    });
+
+    if (!discussion) {
+      return res.status(404).json({ error: "Discussion not found" });
     }
 
     // Check if user already voted
-    const existingVote = await dbGet(
-      "SELECT id, vote_type FROM discussion_votes WHERE discussion_id = ? AND user_id = ?",
-      [parseInt(id), req.user.id]
-    );
+    const existingVote = await prisma.discussionVote.findUnique({
+      where: {
+        discussionId_userId: {
+          discussionId: id,
+          userId: req.user.id,
+        },
+      },
+    });
 
     if (existingVote) {
-      if (existingVote.vote_type === voteType) {
+      if (existingVote.voteType === voteType) {
         // Remove vote if same type
-        await dbRun("DELETE FROM discussion_votes WHERE id = ?", [
-          existingVote.id,
-        ]);
+        await prisma.discussionVote.delete({
+          where: { id: existingVote.id },
+        });
       } else {
         // Update vote type
-        await dbRun("UPDATE discussion_votes SET vote_type = ? WHERE id = ?", [
-          voteType,
-          existingVote.id,
-        ]);
+        await prisma.discussionVote.update({
+          where: { id: existingVote.id },
+          data: { voteType },
+        });
       }
     } else {
-      // Add new vote
-      await dbRun(
-        "INSERT INTO discussion_votes (discussion_id, user_id, vote_type) VALUES (?, ?, ?)",
-        [parseInt(id), req.user.id, voteType]
-      );
+      // Create new vote
+      await prisma.discussionVote.create({
+        data: {
+          discussionId: id,
+          userId: req.user.id,
+          voteType,
+        },
+      });
     }
 
-    // Get updated vote count
-    const voteCount = await dbGet(
-      "SELECT COUNT(*) as count FROM discussion_votes WHERE discussion_id = ?",
-      [parseInt(id)]
-    );
+    // Get updated vote counts
+    const votes = await prisma.discussionVote.findMany({
+      where: { discussionId: id },
+    });
 
-    // Emit real-time vote update
-    if (io) {
-      emitVoteUpdate(io, id, id, "discussion", voteCount.count);
+    const voteCount = votes.length;
+    const upvotes = votes.filter((v) => v.voteType === "up").length;
+    const downvotes = votes.filter((v) => v.voteType === "down").length;
+
+    // Emit real-time update
+    if (req.io) {
+      emitVoteUpdate(req.io, id, id, "discussion", {
+        voteCount,
+        upvotes,
+        downvotes,
+      });
     }
 
-    res.json({ message: "Vote processed successfully" });
+    res.json({ voteCount, upvotes, downvotes });
   } catch (error) {
     console.error("Error voting on discussion:", error);
     res.status(500).json({ error: "Failed to vote" });
   }
 });
 
-// Vote on answer
-router.post("/answers/:id/vote", authenticateToken, async (req, res) => {
+// ---------------- Vote on answer ----------------
+router.post("/answers/:answerId/vote", authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
+    const { answerId } = req.params;
     const { voteType } = req.body;
-    const io = req.app.get("io");
 
-    if (!["up", "down"].includes(voteType)) {
-      return res.status(400).json({ error: "Invalid vote type" });
+    if (!voteType || !["up", "down"].includes(voteType)) {
+      return res.status(400).json({ error: "Valid vote type is required" });
     }
 
-    const existingVote = await dbGet(
-      "SELECT id, vote_type FROM answer_votes WHERE answer_id = ? AND user_id = ?",
-      [parseInt(id), req.user.id]
-    );
+    const answer = await prisma.discussionAnswer.findUnique({
+      where: { id: answerId },
+    });
+
+    if (!answer) {
+      return res.status(404).json({ error: "Answer not found" });
+    }
+
+    // Check if user already voted
+    const existingVote = await prisma.answerVote.findUnique({
+      where: {
+        answerId_userId: {
+          answerId,
+          userId: req.user.id,
+        },
+      },
+    });
 
     if (existingVote) {
-      if (existingVote.vote_type === voteType) {
-        await dbRun("DELETE FROM answer_votes WHERE id = ?", [existingVote.id]);
+      if (existingVote.voteType === voteType) {
+        await prisma.answerVote.delete({
+          where: { id: existingVote.id },
+        });
       } else {
-        await dbRun("UPDATE answer_votes SET vote_type = ? WHERE id = ?", [
-          voteType,
-          existingVote.id,
-        ]);
+        await prisma.answerVote.update({
+          where: { id: existingVote.id },
+          data: { voteType },
+        });
       }
     } else {
-      await dbRun(
-        "INSERT INTO answer_votes (answer_id, user_id, vote_type) VALUES (?, ?, ?)",
-        [parseInt(id), req.user.id, voteType]
-      );
+      await prisma.answerVote.create({
+        data: {
+          answerId,
+          userId: req.user.id,
+          voteType,
+        },
+      });
     }
 
-    // Get discussion ID and vote count
-    const answerInfo = await dbGet(
-      "SELECT discussion_id FROM discussion_answers WHERE id = ?",
-      [parseInt(id)]
-    );
-    const voteCount = await dbGet(
-      "SELECT COUNT(*) as count FROM answer_votes WHERE answer_id = ?",
-      [parseInt(id)]
-    );
+    // Get updated vote counts
+    const votes = await prisma.answerVote.findMany({
+      where: { answerId },
+    });
 
-    // Emit real-time vote update
-    if (io && answerInfo) {
-      emitVoteUpdate(
-        io,
-        answerInfo.discussion_id,
-        id,
-        "answer",
-        voteCount.count
-      );
+    const voteCount = votes.length;
+    const upvotes = votes.filter((v) => v.voteType === "up").length;
+    const downvotes = votes.filter((v) => v.voteType === "down").length;
+
+    // Emit real-time update
+    if (req.io) {
+      emitVoteUpdate(req.io, answer.discussionId, answerId, "answer", {
+        voteCount,
+        upvotes,
+        downvotes,
+      });
     }
 
-    res.json({ message: "Vote processed successfully" });
+    res.json({ voteCount, upvotes, downvotes });
   } catch (error) {
     console.error("Error voting on answer:", error);
     res.status(500).json({ error: "Failed to vote" });
   }
 });
 
-// Mark answer as best answer
-router.post("/answers/:id/best", authenticateToken, async (req, res) => {
+// ---------------- Vote on reply ----------------
+router.post("/replies/:replyId/vote", authenticateToken, async (req, res) => {
   try {
-    const { id } = req.params;
-    const io = req.app.get("io");
+    const { replyId } = req.params;
+    const { voteType } = req.body;
 
-    // Get answer and discussion details
-    const answer = await dbGet(
-      `
-      SELECT a.*, d.author_id as discussion_author_id
-      FROM discussion_answers a
-      JOIN discussions d ON a.discussion_id = d.id
-      WHERE a.id = ?
-    `,
-      [parseInt(id)]
-    );
-
-    if (!answer) {
-      return res.status(404).json({ error: "Answer not found" });
+    if (!voteType || !["up", "down"].includes(voteType)) {
+      return res.status(400).json({ error: "Valid vote type is required" });
     }
 
-    // Check if user is the discussion author
-    if (answer.discussion_author_id !== req.user.id) {
-      return res.status(403).json({
-        error: "Only the discussion author can mark best answer",
+    const reply = await prisma.discussionReply.findUnique({
+      where: { id: replyId },
+      include: { answer: true },
+    });
+
+    if (!reply) {
+      return res.status(404).json({ error: "Reply not found" });
+    }
+
+    // Check if user already voted
+    const existingVote = await prisma.replyVote.findUnique({
+      where: {
+        replyId_userId: {
+          replyId,
+          userId: req.user.id,
+        },
+      },
+    });
+
+    if (existingVote) {
+      if (existingVote.voteType === voteType) {
+        await prisma.replyVote.delete({
+          where: { id: existingVote.id },
+        });
+      } else {
+        await prisma.replyVote.update({
+          where: { id: existingVote.id },
+          data: { voteType },
+        });
+      }
+    } else {
+      await prisma.replyVote.create({
+        data: {
+          replyId,
+          userId: req.user.id,
+          voteType,
+        },
       });
     }
 
-    // Remove existing best answer
-    await dbRun(
-      "UPDATE discussion_answers SET is_best_answer = 0 WHERE discussion_id = ?",
-      [answer.discussion_id]
-    );
+    // Get updated vote counts
+    const votes = await prisma.replyVote.findMany({
+      where: { replyId },
+    });
 
-    // Mark this answer as best
-    await dbRun(
-      "UPDATE discussion_answers SET is_best_answer = 1 WHERE id = ?",
-      [parseInt(id)]
-    );
-
-    // Emit real-time best answer update
-    if (io) {
-      emitBestAnswerMarked(io, answer.discussion_id, id);
-    }
-    // Create notification for answer author
-    if (answer.author_id !== req.user.id) {
-      const discussion = await dbGet(
-        "SELECT title FROM discussions WHERE id = ?",
-        [answer.discussion_id]
-      );
-      await createNotification(
-        answer.author_id,
-        "best_answer",
-        "Best Answer Selected",
-        `Your answer was marked as the best answer for: "${discussion.title}"`,
-        answer.discussion_id,
-        "discussion",
-        req.user.id,
-        req.user.username,
-        io
-      );
-    }
-
-    res.json({ message: "Answer marked as best answer" });
-  } catch (error) {
-    console.error("Error marking best answer:", error);
-    res.status(500).json({ error: "Failed to mark best answer" });
-  }
-});
-
-// Add reply to answer
-router.post("/answers/:id/replies", authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { content, images } = req.body;
-    const io = req.app.get("io");
-
-    if (!content) {
-      return res.status(400).json({ error: "Content is required" });
-    }
-
-    // Check if answer exists
-    const answer = await dbGet(
-      "SELECT a.*, d.title as discussion_title FROM discussion_answers a JOIN discussions d ON a.discussion_id = d.id WHERE a.id = ?",
-      [id]
-    );
-    if (!answer) {
-      return res.status(404).json({ error: "Answer not found" });
-    }
-
-    const result = await dbRun(
-      `
-      INSERT INTO discussion_replies (answer_id, content, images, author_id)
-      VALUES (?, ?, ?, ?)
-    `,
-      [
-        parseInt(id),
-        content,
-        images ? JSON.stringify(images) : null,
-        req.user.id,
-      ]
-    );
-
-    // Get the complete reply data for real-time emission
-    const newReply = await dbGet(
-      `
-      SELECT 
-        r.*,
-        u.username as author_username,
-        0 as vote_count,
-        0 as upvotes,
-        0 as downvotes
-      FROM discussion_replies r
-      LEFT JOIN users u ON r.author_id = u.id
-      WHERE r.id = ?
-    `,
-      [result.lastInsertRowid || result.insertId]
-    );
+    const voteCount = votes.length;
+    const upvotes = votes.filter((v) => v.voteType === "up").length;
+    const downvotes = votes.filter((v) => v.voteType === "down").length;
 
     // Emit real-time update
-    if (io) {
-      emitNewReply(io, answer.discussion_id, id, newReply);
-    }
-    // Create notification for answer author
-    if (answer.author_id !== req.user.id) {
-      await createNotification(
-        answer.author_id,
-        "reply",
-        "New Reply",
-        `${req.user.username} replied to your answer in: "${answer.discussion_title}"`,
-        answer.discussion_id,
-        "discussion",
-        req.user.id,
-        req.user.username,
-        io
-      );
+    if (req.io) {
+      emitVoteUpdate(req.io, reply.answer.discussionId, replyId, "reply", {
+        voteCount,
+        upvotes,
+        downvotes,
+      });
     }
 
-    // Handle mentions in content
-    const mentions = extractMentions(content);
-    for (const username of mentions) {
-      const mentionedUser = await dbGet(
-        "SELECT id FROM users WHERE username = ?",
-        [username]
-      );
-      if (mentionedUser && mentionedUser.id !== req.user.id) {
-        await createNotification(
-          mentionedUser.id,
-          "mention",
-          "You were mentioned",
-          `${req.user.username} mentioned you in a reply: "${answer.discussion_title}"`,
-          answer.discussion_id,
-          "discussion",
-          req.user.id,
-          req.user.username,
-          io
-        );
-      }
-    }
-
-    res.status(201).json({
-      id: result.id,
-      message: "Reply added successfully",
-    });
-  } catch (error) {
-    console.error("Error adding reply:", error);
-    res.status(500).json({ error: "Failed to add reply" });
-  }
-});
-
-// Vote on reply
-router.post("/replies/:id/vote", authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { voteType } = req.body;
-    const io = req.app.get("io");
-
-    if (!["up", "down"].includes(voteType)) {
-      return res.status(400).json({ error: "Invalid vote type" });
-    }
-
-    const existingVote = await dbGet(
-      "SELECT id, vote_type FROM reply_votes WHERE reply_id = ? AND user_id = ?",
-      [parseInt(id), req.user.id]
-    );
-
-    if (existingVote) {
-      if (existingVote.vote_type === voteType) {
-        await dbRun("DELETE FROM reply_votes WHERE id = ?", [existingVote.id]);
-      } else {
-        await dbRun("UPDATE reply_votes SET vote_type = ? WHERE id = ?", [
-          voteType,
-          existingVote.id,
-        ]);
-      }
-    } else {
-      await dbRun(
-        "INSERT INTO reply_votes (reply_id, user_id, vote_type) VALUES (?, ?, ?)",
-        [parseInt(id), req.user.id, voteType]
-      );
-    }
-
-    // Get discussion ID and vote count
-    const replyInfo = await dbGet(
-      `SELECT a.discussion_id 
-       FROM discussion_replies r 
-       JOIN discussion_answers a ON r.answer_id = a.id 
-       WHERE r.id = ?`,
-      [parseInt(id)]
-    );
-    const voteCount = await dbGet(
-      "SELECT COUNT(*) as count FROM reply_votes WHERE reply_id = ?",
-      [parseInt(id)]
-    );
-
-    // Emit real-time vote update
-    if (io && replyInfo) {
-      emitVoteUpdate(io, replyInfo.discussion_id, id, "reply", voteCount.count);
-    }
-
-    res.json({ message: "Vote processed successfully" });
+    res.json({ voteCount, upvotes, downvotes });
   } catch (error) {
     console.error("Error voting on reply:", error);
     res.status(500).json({ error: "Failed to vote" });
   }
 });
 
-// Get user notifications
+// ---------------- Mark best answer ----------------
+router.post("/answers/:answerId/best", authenticateToken, async (req, res) => {
+  try {
+    const { answerId } = req.params;
+
+    const answer = await prisma.discussionAnswer.findUnique({
+      where: { id: answerId },
+      include: {
+        discussion: true,
+        author: true,
+      },
+    });
+
+    if (!answer) {
+      return res.status(404).json({ error: "Answer not found" });
+    }
+
+    // Only discussion author can mark best answer
+    if (answer.discussion.authorId !== req.user.id) {
+      return res
+        .status(403)
+        .json({ error: "Only discussion author can mark best answer" });
+    }
+
+    // Remove best answer from other answers in this discussion
+    await prisma.discussionAnswer.updateMany({
+      where: { discussionId: answer.discussionId },
+      data: { isBestAnswer: false },
+    });
+
+    // Mark this answer as best
+    await prisma.discussionAnswer.update({
+      where: { id: answerId },
+      data: { isBestAnswer: true },
+    });
+
+    // Create notification for answer author (if not self)
+    if (answer.authorId !== req.user.id) {
+      await createNotification(
+        answer.authorId,
+        "best_answer",
+        "Best Answer",
+        `Your answer was marked as the best answer by ${req.user.username}`,
+        answerId,
+        "answer",
+        req.user.id,
+        req.user.username,
+        req.io
+      );
+    }
+
+    // Emit real-time event
+    if (req.io) {
+      emitBestAnswerMarked(req.io, answer.discussionId, answerId);
+    }
+
+    res.json({ message: "Answer marked as best" });
+  } catch (error) {
+    console.error("Error marking best answer:", error);
+    res.status(500).json({ error: "Failed to mark best answer" });
+  }
+});
+
+// ---------------- Get user notifications ----------------
 router.get("/notifications", authenticateToken, async (req, res) => {
   try {
-    const notifications = await dbAll(
-      `SELECT * FROM notifications 
-       WHERE user_id = ? 
-       ORDER BY created_at DESC 
-       LIMIT 50`,
-      [req.user.id]
-    );
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
 
-    const unreadCount = await dbGet(
-      "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0",
-      [req.user.id]
-    );
+    const [notifications, total] = await Promise.all([
+      prisma.notification.findMany({
+        where: { userId: req.user.id },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+      }),
+      prisma.notification.count({
+        where: { userId: req.user.id },
+      }),
+    ]);
+
+    // Transform to match expected format
+    const transformedNotifications = notifications.map((notification) => ({
+      ...notification,
+      user_id: notification.userId,
+      related_id: notification.relatedId,
+      related_type: notification.relatedType,
+      from_user_id: notification.fromUserId,
+      from_username: notification.fromUsername,
+      is_read: notification.isRead,
+      created_at: notification.createdAt,
+    }));
 
     res.json({
-      notifications,
-      unreadCount: unreadCount.count,
+      notifications: transformedNotifications,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
     });
   } catch (error) {
     console.error("Error fetching notifications:", error);
@@ -767,80 +826,32 @@ router.get("/notifications", authenticateToken, async (req, res) => {
   }
 });
 
-// Mark notification as read
+// ---------------- Mark notification as read ----------------
 router.put("/notifications/:id/read", authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
 
-    await dbRun(
-      "UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?",
-      [parseInt(id), req.user.id]
-    );
+    const notification = await prisma.notification.findUnique({
+      where: { id },
+    });
+
+    if (!notification) {
+      return res.status(404).json({ error: "Notification not found" });
+    }
+
+    if (notification.userId !== req.user.id) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    await prisma.notification.update({
+      where: { id },
+      data: { isRead: true },
+    });
 
     res.json({ message: "Notification marked as read" });
   } catch (error) {
     console.error("Error marking notification as read:", error);
     res.status(500).json({ error: "Failed to mark notification as read" });
-  }
-});
-
-// Mark all notifications as read
-router.put("/notifications/read-all", authenticateToken, async (req, res) => {
-  try {
-    await dbRun("UPDATE notifications SET is_read = 1 WHERE user_id = ?", [
-      req.user.id,
-    ]);
-
-    res.json({ message: "All notifications marked as read" });
-  } catch (error) {
-    console.error("Error marking all notifications as read:", error);
-    res.status(500).json({ error: "Failed to mark all notifications as read" });
-  }
-});
-
-// Search users for mentions
-router.get("/users/search", authenticateToken, async (req, res) => {
-  try {
-    const { q } = req.query;
-
-    if (!q || q.length < 2) {
-      return res.json([]);
-    }
-
-    const users = await dbAll(
-      "SELECT username FROM users WHERE username LIKE ? LIMIT 10",
-      [`%${q}%`]
-    );
-
-    res.json(users.map((user) => user.username));
-  } catch (error) {
-    console.error("Error searching users:", error);
-    res.status(500).json({ error: "Failed to search users" });
-  }
-});
-
-// Get popular tags
-router.get("/tags/popular", async (req, res) => {
-  try {
-    const tags = await dbAll(`
-      SELECT 
-        tag,
-        COUNT(*) as count
-      FROM (
-        SELECT 
-          TRIM(json_each.value, '"') as tag
-        FROM discussions, json_each(discussions.tags)
-        WHERE discussions.tags IS NOT NULL
-      ) tag_list
-      GROUP BY tag
-      ORDER BY count DESC
-      LIMIT 20
-    `);
-
-    res.json(tags);
-  } catch (error) {
-    console.error("Error fetching popular tags:", error);
-    res.status(500).json({ error: "Failed to fetch tags" });
   }
 });
 

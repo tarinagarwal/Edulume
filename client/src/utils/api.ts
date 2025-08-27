@@ -320,10 +320,15 @@ export const addAnswer = async (
   content: string,
   images?: string[]
 ): Promise<{ id: number; message: string }> => {
+  console.log("🌐 API: Adding answer to discussion:", discussionId, {
+    content,
+    images,
+  });
   const response = await api.post(`/discussions/${discussionId}/answers`, {
     content,
     images,
   });
+  console.log("🌐 API: Answer response:", response.data);
   return response.data;
 };
 
@@ -366,10 +371,12 @@ export const addReply = async (
   content: string,
   images?: string[]
 ): Promise<{ id: number; message: string }> => {
+  console.log("🌐 API: Adding reply to answer:", answerId, { content, images });
   const response = await api.post(`/discussions/answers/${answerId}/replies`, {
     content,
     images,
   });
+  console.log("🌐 API: Reply response:", response.data);
   return response.data;
 };
 
@@ -387,24 +394,28 @@ export const getNotifications = async (): Promise<{
   notifications: Notification[];
   unreadCount: number;
 }> => {
-  const response = await api.get("/discussions/notifications");
+  const response = await api.get("/notifications");
   return response.data;
 };
 
 export const markNotificationAsRead = async (
   notificationId: string
 ): Promise<{ message: string }> => {
-  const response = await api.put(
-    `/discussions/notifications/${notificationId}/read`,
-    {}
-  );
+  const response = await api.put(`/notifications/${notificationId}/read`, {});
   return response.data;
 };
 
 export const markAllNotificationsAsRead = async (): Promise<{
   message: string;
 }> => {
-  const response = await api.put("/discussions/notifications/read-all", {});
+  const response = await api.put("/notifications/read-all", {});
+  return response.data;
+};
+
+export const getUnreadNotificationCount = async (): Promise<{
+  count: number;
+}> => {
+  const response = await api.get("/notifications/unread-count");
   return response.data;
 };
 
