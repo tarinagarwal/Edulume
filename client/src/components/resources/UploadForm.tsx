@@ -7,7 +7,7 @@ import {
   storePDFMetadata,
   storeEbookMetadata,
   uploadToVercelBlob,
-} from "../utils/api";
+} from "../../utils/api";
 
 const UploadForm: React.FC = () => {
   const [uploadType, setUploadType] = useState<"pdf" | "ebook">("pdf");

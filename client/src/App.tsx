@@ -6,26 +6,26 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import LandingPage from "./components/LandingPage";
-import AuthForm from "./components/AuthForm";
-import PDFsPage from "./components/PDFsPage";
-import EbooksPage from "./components/EbooksPage";
-import UploadForm from "./components/UploadForm";
-import ForgotPasswordForm from "./components/ForgotPasswordForm";
-import NotFoundPage from "./components/NotFoundPage";
-import DiscussionsPage from "./components/DiscussionsPage";
-import CreateDiscussionPage from "./components/CreateDiscussionPage";
-import DiscussionDetailPage from "./components/DiscussionDetailPage";
-import CoursesPage from "./components/CoursesPage";
-import CreateCoursePage from "./components/CreateCoursePage";
-import CourseDetailPage from "./components/CourseDetailPage";
-import RoadmapsPage from "./components/RoadmapPage";
-import CreateRoadmapPage from "./components/CreateRoadmapPage";
-import RoadmapDetailPage from "./components/RoadmapDetailPage";
-import Footer from "./components/Footer";
-import ScrollToTop from "./components/ScrollToTop";
-import ScrollToTopOnRouteChange from "./components/ScrollToTopOnRouteChange";
+import Navbar from "./components/layout/Navbar";
+import LandingPage from "./components/layout/LandingPage";
+import AuthForm from "./components/auth/AuthForm";
+import PDFsPage from "./components/resources/PDFsPage";
+import EbooksPage from "./components/resources/EbooksPage";
+import UploadForm from "./components/resources/UploadForm";
+import ForgotPasswordForm from "./components/auth/ForgotPasswordForm";
+import NotFoundPage from "./components/layout/NotFoundPage";
+import DiscussionsPage from "./components/discussions/DiscussionsPage";
+import CreateDiscussionPage from "./components/discussions/CreateDiscussionPage";
+import DiscussionDetailPage from "./components/discussions/DiscussionDetailPage";
+import CoursesPage from "./components/courses/CoursesPage";
+import CreateCoursePage from "./components/courses/CreateCoursePage";
+import CourseDetailPage from "./components/courses/CourseDetailPage";
+import RoadmapsPage from "./components/roadmaps/RoadmapPage";
+import CreateRoadmapPage from "./components/roadmaps/CreateRoadmapPage";
+import RoadmapDetailPage from "./components/roadmaps/RoadmapDetailPage";
+import Footer from "./components/layout/Footer";
+import ScrollToTop from "./components/ui/ScrollToTop";
+import ScrollToTopOnRouteChange from "./components/ui/ScrollToTopOnRouteChange";
 import { isAuthenticated } from "./utils/auth";
 
 interface AppProps {}

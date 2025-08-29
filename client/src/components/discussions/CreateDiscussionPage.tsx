@@ -9,8 +9,8 @@ import {
   Tag,
   Plus,
 } from "lucide-react";
-import { createDiscussion, uploadImage } from "../utils/api";
-import { DISCUSSION_CATEGORIES } from "../types/discussions";
+import { createDiscussion, uploadImage } from "../../utils/api";
+import { DISCUSSION_CATEGORIES } from "../../types/discussions";
 
 const CreateDiscussionPage: React.FC = () => {
   const navigate = useNavigate();

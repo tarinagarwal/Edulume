@@ -15,7 +15,7 @@ import {
   ExternalLink,
   Map,
 } from "lucide-react";
-import { getPDFs, getEbooks, getDiscussions } from "../utils/api";
+import { getPDFs, getEbooks, getDiscussions } from "../../utils/api";
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();

@@ -10,8 +10,8 @@ import {
   EyeOff,
   Loader2,
 } from "lucide-react";
-import { generateCourseOutline, createCourse } from "../utils/api";
-import { CourseOutline } from "../types";
+import { generateCourseOutline, createCourse } from "../../utils/api";
+import { CourseOutline } from "../../types";
 
 const CreateCoursePage: React.FC = () => {
   const navigate = useNavigate();

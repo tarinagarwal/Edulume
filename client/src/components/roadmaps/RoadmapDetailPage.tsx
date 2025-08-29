@@ -25,9 +25,9 @@ import {
   getRoadmap,
   toggleRoadmapBookmark,
   getUserProfile,
-} from "../utils/api";
-import type { Roadmap, RoadmapContent } from "../types";
-import { isAuthenticated } from "../utils/auth";
+} from "../../utils/api";
+import type { Roadmap, RoadmapContent } from "../../types";
+import { isAuthenticated } from "../../utils/auth";
 
 const RoadmapDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -395,7 +395,9 @@ const RoadmapDetailPage: React.FC = () => {
                                 <BookOpen className="mr-2" size={20} />
                                 Learning Resources
                               </h4>
-                              <p className="text-red-400">⚠️ Some links might not work</p>
+                              <p className="text-red-400">
+                                ⚠️ Some links might not work
+                              </p>
                             </div>
 
                             <div className="space-y-3">

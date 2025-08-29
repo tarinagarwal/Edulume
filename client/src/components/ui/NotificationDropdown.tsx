@@ -14,9 +14,9 @@ import {
   getNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-} from "../utils/api";
-import { Notification } from "../types/discussions";
-import useSocket from "../hooks/useSocket";
+} from "../../utils/api";
+import { Notification } from "../../types/discussions";
+import useSocket from "../../hooks/useSocket";
 
 const NotificationDropdown: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);

@@ -11,9 +11,9 @@ import {
   Eye,
   User,
 } from "lucide-react";
-import { getRoadmaps, toggleRoadmapBookmark } from "../utils/api";
-import { Roadmap, RoadmapsResponse } from "../types";
-import { isAuthenticated } from "../utils/auth";
+import { getRoadmaps, toggleRoadmapBookmark } from "../../utils/api";
+import { Roadmap, RoadmapsResponse } from "../../types";
+import { isAuthenticated } from "../../utils/auth";
 
 const RoadmapsPage: React.FC = () => {
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);

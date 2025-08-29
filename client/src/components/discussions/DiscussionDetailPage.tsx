@@ -27,12 +27,12 @@ import {
   voteReply,
   markBestAnswer,
   uploadImage,
-} from "../utils/api";
-import type { Discussion, DiscussionAnswer } from "../types/discussions";
-import { DISCUSSION_CATEGORIES } from "../types/discussions";
-import { getUserProfile } from "../utils/api";
+} from "../../utils/api";
+import type { Discussion, DiscussionAnswer } from "../../types/discussions";
+import { DISCUSSION_CATEGORIES } from "../../types/discussions";
+import { getUserProfile } from "../../utils/api";
 import MentionInput from "./MentionInput";
-import useSocket from "../hooks/useSocket";
+import useSocket from "../../hooks/useSocket";
 
 const DiscussionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();

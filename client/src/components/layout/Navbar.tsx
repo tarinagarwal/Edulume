@@ -13,9 +13,9 @@ import {
   GraduationCap,
   Map,
 } from "lucide-react";
-import { getUserProfile, logout } from "../utils/api";
-import type { User as UserType } from "../types";
-import { removeAuthToken } from "../utils/auth";
+import { getUserProfile, logout } from "../../utils/api";
+import type { User as UserType } from "../../types";
+import { removeAuthToken } from "../../utils/auth";
 
 interface NavbarProps {
   authenticated: boolean | null;

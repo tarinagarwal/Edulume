@@ -11,6 +11,7 @@ import {
   Map,
   Frown,
   Bug,
+  Lightbulb,
 } from "lucide-react";
 
 const LandingPage: React.FC = () => {
@@ -21,12 +22,20 @@ const LandingPage: React.FC = () => {
         <section className="relative py-20 px-4 text-center">
           <div className="max-w-4xl mx-auto">
             <div className="mb-8 sm:mb-12">
-              <Link to="/">
-                <div className="inline-flex items-center theme-badge-primary mb-6 sm:mb-6 px-3 sm:px-4 py-2 text-sm sm:text-base bg-gray-900 border rounded-3xl border-gray-700 text-red-400">
-                  <Bug className="w-3 sm:w-4 h-3 sm:h-4 mr-2" />
-                  Report Bugs!
-                </div>
-              </Link>
+              <div className="grid gird-cols">
+                <Link to="/">
+                  <div className="inline-flex items-center theme-badge-primary mb-2 sm:mb-2 px-3 sm:px-4 py-2 text-sm sm:text-base bg-gray-900 border rounded-3xl border-gray-700 text-cyan-400">
+                    <Lightbulb className="w-3 sm:w-4 h-3 sm:h-4 mr-2" />
+                    Suggest a Feature!
+                  </div>
+                </Link>
+                <Link to="/">
+                  <div className="inline-flex items-center theme-badge-primary mb-6 sm:mb-5 px-3 sm:px-4 py-2 text-sm sm:text-base bg-gray-900 border rounded-3xl border-gray-700 text-red-400">
+                    <Bug className="w-3 sm:w-4 h-3 sm:h-4 mr-2" />
+                    Report Bugs!
+                  </div>
+                </Link>
+              </div>
               <h1 className="text-5xl md:text-8xl font-alien font-black mb-6 glow-text ">
                 AlienVault
               </h1>

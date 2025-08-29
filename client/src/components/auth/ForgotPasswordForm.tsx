@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Shield, Lock, ArrowLeft } from "lucide-react";
-import { forgotPassword, resetPassword } from "../utils/api";
+import { forgotPassword, resetPassword } from "../../utils/api";
 
 const ForgotPasswordForm: React.FC = () => {
   const [step, setStep] = useState<"email" | "otp" | "password">("email");

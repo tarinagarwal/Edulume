@@ -11,8 +11,8 @@ import {
   Target,
   Zap,
 } from "lucide-react";
-import { generateRoadmap, createRoadmap } from "../utils/api";
-import { RoadmapContent } from "../types";
+import { generateRoadmap, createRoadmap } from "../../utils/api";
+import { RoadmapContent } from "../../types";
 
 const CreateRoadmapPage: React.FC = () => {
   const navigate = useNavigate();
@@ -39,9 +39,7 @@ const CreateRoadmapPage: React.FC = () => {
       setStep(2);
     } catch (error) {
       console.error("Error generating roadmap:", error);
-      setError(
-        "Failed to generate roadmap. Please try again!"
-      );
+      setError("Failed to generate roadmap. Please try again!");
     } finally {
       setIsGenerating(false);
     }

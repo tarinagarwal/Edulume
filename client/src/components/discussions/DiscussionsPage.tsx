@@ -17,9 +17,9 @@ import {
   CheckCircle,
   X,
 } from "lucide-react";
-import { getDiscussions, getPopularTags } from "../utils/api";
-import type { Discussion } from "../types/discussions";
-import { DISCUSSION_CATEGORIES } from "../types/discussions";
+import { getDiscussions, getPopularTags } from "../../utils/api";
+import type { Discussion } from "../../types/discussions";
+import { DISCUSSION_CATEGORIES } from "../../types/discussions";
 
 const DiscussionsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();

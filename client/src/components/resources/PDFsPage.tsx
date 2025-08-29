@@ -14,9 +14,9 @@ import {
   X,
   Plus,
 } from "lucide-react";
-import { getPDFs } from "../utils/api";
-import { PDFItem } from "../types";
-import { isAuthenticated } from "../utils/auth";
+import { getPDFs } from "../../utils/api";
+import { PDFItem } from "../../types";
+import { isAuthenticated } from "../../utils/auth";
 
 const PDFsPage: React.FC = () => {
   const [pdfs, setPdfs] = useState<PDFItem[]>([]);

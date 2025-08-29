@@ -10,9 +10,9 @@ import {
   BookmarkCheck,
   ChevronDown,
 } from "lucide-react";
-import { getCourses, toggleCourseBookmark } from "../utils/api";
-import { Course, CoursesResponse } from "../types";
-import { isAuthenticated } from "../utils/auth";
+import { getCourses, toggleCourseBookmark } from "../../utils/api";
+import { Course, CoursesResponse } from "../../types";
+import { isAuthenticated } from "../../utils/auth";
 
 const CoursesPage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
