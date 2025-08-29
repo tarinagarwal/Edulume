@@ -3,7 +3,7 @@
 
 @theme {
   --color-royal-black: #0a0a0a;
-  --color-alien-green: #00ff41;
+  --color-alien-green: #00cc33;
   --color-alien-green-dark: #00cc33;
   --color-smoke-gray: #1a1a1a;
   --color-smoke-light: #2a2a2a;
@@ -110,7 +110,7 @@
 
 .prose code {
   background-color: #1a1a1a;
-  color: #00ff41;
+  color: #00cc33;
   padding: 0.2em 0.4em;
   border-radius: 0.25em;
   font-size: 0.875em;
@@ -133,7 +133,7 @@
 }
 
 .prose blockquote {
-  border-left: 4px solid #00ff41;
+  border-left: 4px solid #00cc33;
   padding-left: 1em;
   margin: 1em 0;
   font-style: italic;
@@ -150,7 +150,7 @@
 }
 
 .prose a {
-  color: #00ff41;
+  color: #00cc33;
   text-decoration: underline;
 }
 
