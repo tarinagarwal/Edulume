@@ -11,12 +11,12 @@
   --font-family-alien: "Fredoka", system-ui, sans-serif;
   --font-family-cyber: "Fredoka", system-ui, sans-serif;
 
-  --shadow-alien-glow: 0 0 20px rgba(0, 255, 65, 0.3);
-  --shadow-alien-glow-strong: 0 0 30px rgba(0, 255, 65, 0.5);
-  --shadow-smoke: 0 8px 32px rgba(0, 0, 0, 0.8);
+  /* --shadow-alien-glow: 0 0 20px rgba(0, 255, 65, 0.3); */
+  /* --shadow-alien-glow-strong: 0 0 30px rgba(0, 255, 65, 0.5); */
+  /* --shadow-smoke: 0 8px 32px rgba(0, 0, 0, 0.8); */
 
-  --animate-pulse-alien: pulse-alien 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  --animate-glow: glow 2s ease-in-out infinite alternate;
+  /* --animate-pulse-alien: pulse-alien 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; */
+  /* --animate-glow: glow 2s ease-in-out infinite alternate; */
 }
 
 @keyframes pulse-alien {

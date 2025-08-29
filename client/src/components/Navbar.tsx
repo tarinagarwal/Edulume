@@ -264,7 +264,7 @@ const Navbar: React.FC<NavbarProps> = ({ authenticated, onAuthChange }) => {
             ) : (
               <Link
                 to="/auth"
-                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                className={`flex items-center border border-neutral-700 space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
                   isActive("/auth")
                     ? "text-alien-green shadow-alien-glow"
                     : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
