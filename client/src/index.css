@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -7,8 +8,8 @@
   --color-smoke-gray: #1a1a1a;
   --color-smoke-light: #2a2a2a;
 
-  --font-family-alien: Orbitron, monospace;
-  --font-family-cyber: "Share Tech Mono", monospace;
+  --font-family-alien: "Fredoka", system-ui, sans-serif;
+  --font-family-cyber: "Fredoka", system-ui, sans-serif;
 
   --shadow-alien-glow: 0 0 20px rgba(0, 255, 65, 0.3);
   --shadow-alien-glow-strong: 0 0 30px rgba(0, 255, 65, 0.5);
