@@ -13,6 +13,7 @@ import {
   Shield,
   Users,
   ExternalLink,
+  Map,
 } from "lucide-react";
 import { getPDFs, getEbooks, getDiscussions } from "../utils/api";
 
@@ -107,6 +108,15 @@ const Footer: React.FC = () => {
                 >
                   <MessageSquare className="mr-2" size={14} />
                   Discussions
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/roadmaps"
+                  className="flex items-center text-gray-400 hover:text-alien-green transition-colors duration-300 text-sm"
+                >
+                  <Map className="mr-2" size={14} />
+                  Learning Roadmaps
                 </Link>
               </li>
               <li>

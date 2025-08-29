@@ -20,6 +20,9 @@ import DiscussionDetailPage from "./components/DiscussionDetailPage";
 import CoursesPage from "./components/CoursesPage";
 import CreateCoursePage from "./components/CreateCoursePage";
 import CourseDetailPage from "./components/CourseDetailPage";
+import RoadmapsPage from "./components/RoadmapPage";
+import CreateRoadmapPage from "./components/CreateRoadmapPage";
+import RoadmapDetailPage from "./components/RoadmapDetailPage";
 import Footer from "./components/Footer";
 import ScrollToTop from "./components/ScrollToTop";
 import ScrollToTopOnRouteChange from "./components/ScrollToTopOnRouteChange";
@@ -96,6 +99,8 @@ const App: React.FC<AppProps> = () => {
           <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/courses/:id" element={<CourseDetailPage />} />
+          <Route path="/roadmaps" element={<RoadmapsPage />} />
+          <Route path="/roadmaps/:id" element={<RoadmapDetailPage />} />
           <Route
             path="/discussions/new"
             element={
@@ -109,6 +114,14 @@ const App: React.FC<AppProps> = () => {
             element={
               <ProtectedRoute authenticated={isLoggedIn}>
                 <CreateCoursePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/roadmaps/create"
+            element={
+              <ProtectedRoute authenticated={isLoggedIn}>
+                <CreateRoadmapPage />
               </ProtectedRoute>
             }
           />

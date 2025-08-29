@@ -10,6 +10,9 @@ import {
   CourseChapter,
   CourseOutline,
   CoursesResponse,
+  Roadmap,
+  RoadmapContent,
+  RoadmapsResponse,
 } from "../types/index";
 import {
   Discussion,
@@ -530,5 +533,67 @@ export const deleteCourse = async (
   courseId: string
 ): Promise<{ message: string }> => {
   const response = await api.delete(`/courses/${courseId}`);
+  return response.data;
+};
+
+// Roadmaps API
+export const getRoadmaps = async (params?: {
+  search?: string;
+  filter?: string;
+  sort?: string;
+  page?: number;
+  limit?: number;
+}): Promise<RoadmapsResponse> => {
+  const response = await api.get("/roadmaps", { params });
+  return response.data;
+};
+
+export const getRoadmap = async (id: string): Promise<{ roadmap: Roadmap }> => {
+  const response = await api.get(`/roadmaps/${id}`);
+  return response.data;
+};
+
+export const generateRoadmap = async (
+  topic: string
+): Promise<RoadmapContent> => {
+  const response = await api.post("/roadmaps/generate", { topic });
+  return response.data;
+};
+
+export const createRoadmap = async (roadmapData: {
+  title: string;
+  description: string;
+  topic: string;
+  content: RoadmapContent;
+  isPublic?: boolean;
+}): Promise<{ id: string; message: string; roadmap: Roadmap }> => {
+  const response = await api.post("/roadmaps", roadmapData);
+  return response.data;
+};
+
+export const toggleRoadmapBookmark = async (
+  roadmapId: string
+): Promise<{ message: string; bookmarked: boolean }> => {
+  const response = await api.post(`/roadmaps/${roadmapId}/bookmark`);
+  return response.data;
+};
+
+export const updateRoadmap = async (
+  roadmapId: string,
+  updates: {
+    title?: string;
+    description?: string;
+    topic?: string;
+    isPublic?: boolean;
+  }
+): Promise<{ message: string; roadmap: Roadmap }> => {
+  const response = await api.put(`/roadmaps/${roadmapId}`, updates);
+  return response.data;
+};
+
+export const deleteRoadmap = async (
+  roadmapId: string
+): Promise<{ message: string }> => {
+  const response = await api.delete(`/roadmaps/${roadmapId}`);
   return response.data;
 };

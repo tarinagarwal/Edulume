@@ -34,6 +34,8 @@ model User {
   sentNotifications Notification[] @relation("NotificationSender")
   courses           Course[]
   bookmarkedCourses CourseBookmark[]
+  roadmaps          Roadmap[]
+  bookmarkedRoadmaps RoadmapBookmark[]
 
   @@map("users")
 }
@@ -254,4 +256,37 @@ model CourseBookmark {
 
   @@unique([courseId, userId])
   @@map("course_bookmarks")
+}
+
+model Roadmap {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  topic       String
+  content     String   // JSON string containing the roadmap data
+  authorId    String   @map("author_id") @db.ObjectId
+  isPublic    Boolean  @default(true) @map("is_public")
+  views       Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  author    User              @relation(fields: [authorId], references: [id])
+  bookmarks RoadmapBookmark[]
+
+  @@map("roadmaps")
+}
+
+model RoadmapBookmark {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  roadmapId String   @map("roadmap_id") @db.ObjectId
+  userId    String   @map("user_id") @db.ObjectId
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  roadmap Roadmap @relation(fields: [roadmapId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([roadmapId, userId])
+  @@map("roadmap_bookmarks")
 }
