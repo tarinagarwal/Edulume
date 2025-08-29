@@ -5,11 +5,9 @@ import {
   BookOpen,
   Users,
   Shield,
-  Zap,
   Database,
   MessageSquare,
   Map,
-  Frown,
   Bug,
   Lightbulb,
 } from "lucide-react";
@@ -22,15 +20,15 @@ const LandingPage: React.FC = () => {
         <section className="relative py-20 px-4 text-center">
           <div className="max-w-4xl mx-auto">
             <div className="mb-8 sm:mb-12">
-              <div className="grid gird-cols">
-                <Link to="/">
-                  <div className="inline-flex items-center theme-badge-primary mb-2 sm:mb-2 px-3 sm:px-4 py-2 text-sm sm:text-base bg-gray-900 border rounded-3xl border-gray-700 text-cyan-400">
+              <div className="grid grid-cols-1 gap-2">
+                <Link to="/suggest-feature">
+                  <div className="inline-flex items-center theme-badge-primary mb-2 sm:mb-2 px-3 sm:px-4 py-2 text-sm sm:text-base bg-gray-900 border rounded-3xl border-gray-700 text-cyan-400 hover:bg-gray-800 transition-colors">
                     <Lightbulb className="w-3 sm:w-4 h-3 sm:h-4 mr-2" />
                     Suggest a Feature!
                   </div>
                 </Link>
-                <Link to="/">
-                  <div className="inline-flex items-center theme-badge-primary mb-6 sm:mb-5 px-3 sm:px-4 py-2 text-sm sm:text-base bg-gray-900 border rounded-3xl border-gray-700 text-red-400">
+                <Link to="/report-bug">
+                  <div className="inline-flex items-center theme-badge-primary mb-6 sm:mb-5 px-3 sm:px-4 py-2 text-sm sm:text-base bg-gray-900 border rounded-3xl border-gray-700 text-red-400 hover:bg-gray-800 transition-colors">
                     <Bug className="w-3 sm:w-4 h-3 sm:h-4 mr-2" />
                     Report Bugs!
                   </div>

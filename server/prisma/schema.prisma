@@ -36,6 +36,8 @@ model User {
   bookmarkedCourses CourseBookmark[]
   roadmaps          Roadmap[]
   bookmarkedRoadmaps RoadmapBookmark[]
+  featureSuggestions FeatureSuggestion[]
+  bugReports        BugReport[]
 
   @@map("users")
 }
@@ -289,4 +291,48 @@ model RoadmapBookmark {
 
   @@unique([roadmapId, userId])
   @@map("roadmap_bookmarks")
+}
+
+model FeatureSuggestion {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  category    String   // 'ui', 'functionality', 'performance', 'other'
+  priority    String   @default("medium") // 'low', 'medium', 'high'
+  status      String   @default("pending") // 'pending', 'in-progress', 'completed', 'rejected'
+  userEmail   String?  @map("user_email")
+  userName    String?  @map("user_name")
+  userId      String?  @map("user_id") @db.ObjectId
+  adminNotes  String?  @map("admin_notes")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("feature_suggestions")
+}
+
+model BugReport {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  title         String
+  description   String
+  stepsToReproduce String? @map("steps_to_reproduce")
+  expectedBehavior String? @map("expected_behavior")
+  actualBehavior   String? @map("actual_behavior")
+  severity      String   @default("medium") // 'low', 'medium', 'high', 'critical'
+  status        String   @default("open") // 'open', 'in-progress', 'resolved', 'closed'
+  browserInfo   String?  @map("browser_info")
+  deviceInfo    String?  @map("device_info")
+  userEmail     String?  @map("user_email")
+  userName      String?  @map("user_name")
+  userId        String?  @map("user_id") @db.ObjectId
+  adminNotes    String?  @map("admin_notes")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("bug_reports")
 }

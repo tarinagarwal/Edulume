@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Map,
 } from "lucide-react";
+import AdminNavLink from "../admin/AdminNavLink";
 import { getUserProfile, logout } from "../../utils/api";
 import type { User as UserType } from "../../types";
 import { removeAuthToken } from "../../utils/auth";
@@ -352,6 +353,13 @@ export default function ResponsiveNavbar({
                       <p className="text-xs text-gray-400">{user?.email}</p>
                     </div>
                     <div className="py-1">
+                      <AdminNavLink
+                        authenticated={authenticated}
+                        onMobileMenuClose={() =>
+                          setIsProfileDropdownOpen(false)
+                        }
+                        isDropdown={true}
+                      />
                       <Link
                         to="/forgot-password"
                         onClick={() => setIsProfileDropdownOpen(false)}
@@ -574,6 +582,11 @@ export default function ResponsiveNavbar({
                   </div>
                 </div>
               </div>
+              <AdminNavLink
+                authenticated={authenticated}
+                onMobileMenuClose={() => setIsMobileMenuOpen(false)}
+                isMobile={true}
+              />
               <Link
                 to="/forgot-password"
                 onClick={() => setIsMobileMenuOpen(false)}

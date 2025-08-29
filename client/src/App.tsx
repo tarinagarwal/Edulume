@@ -23,6 +23,10 @@ import CourseDetailPage from "./components/courses/CourseDetailPage";
 import RoadmapsPage from "./components/roadmaps/RoadmapPage";
 import CreateRoadmapPage from "./components/roadmaps/CreateRoadmapPage";
 import RoadmapDetailPage from "./components/roadmaps/RoadmapDetailPage";
+import FeatureSuggestionPage from "./components/feedback/FeatureSuggestionPage";
+import BugReportPage from "./components/feedback/BugReportPage";
+import AdminPanel from "./components/admin/AdminPanel";
+import AdminRoute from "./components/admin/AdminRoute";
 import Footer from "./components/layout/Footer";
 import ScrollToTop from "./components/ui/ScrollToTop";
 import ScrollToTopOnRouteChange from "./components/ui/ScrollToTopOnRouteChange";
@@ -101,6 +105,16 @@ const App: React.FC<AppProps> = () => {
           <Route path="/courses/:id" element={<CourseDetailPage />} />
           <Route path="/roadmaps" element={<RoadmapsPage />} />
           <Route path="/roadmaps/:id" element={<RoadmapDetailPage />} />
+          <Route path="/suggest-feature" element={<FeatureSuggestionPage />} />
+          <Route path="/report-bug" element={<BugReportPage />} />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute authenticated={isLoggedIn}>
+                <AdminPanel />
+              </AdminRoute>
+            }
+          />
           <Route
             path="/discussions/new"
             element={
