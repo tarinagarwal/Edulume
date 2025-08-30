@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fileUpload.uploadRoute import router
-from RAGrespopnse.responseRoute import response_router
+from RAGresponse.responseRoute import response_router
 
 
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-import RAGrespopnse.RAG_app as RAG_app
+import RAGresponse.RAG_app as RAG_app
 from fastapi import Query as FastAPIQuery, HTTPException
 
 
