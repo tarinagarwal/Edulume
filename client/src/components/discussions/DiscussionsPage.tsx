@@ -17,9 +17,9 @@ import {
   CheckCircle,
   X,
 } from "lucide-react";
-import { getDiscussions, getPopularTags } from "../utils/api";
-import type { Discussion } from "../types/discussions";
-import { DISCUSSION_CATEGORIES } from "../types/discussions";
+import { getDiscussions, getPopularTags } from "../../utils/api";
+import type { Discussion } from "../../types/discussions";
+import { DISCUSSION_CATEGORIES } from "../../types/discussions";
 
 const DiscussionsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -184,32 +184,6 @@ const DiscussionsPage: React.FC = () => {
           {/* Desktop Sidebar - Hidden on mobile */}
           <div className="hidden lg:block lg:col-span-1">
             <div className="space-y-6">
-              {/* Popular Tags */}
-              <div className="smoke-card p-6 relative smoke-effect">
-                <h3 className="text-lg font-alien font-bold text-alien-green mb-4 flex items-center">
-                  <Tag className="mr-2" size={20} />
-                  Popular Tags
-                </h3>
-                <div className="space-y-2">
-                  {popularTags.map((tag) => (
-                    <button
-                      key={tag.tag}
-                      onClick={() => setSelectedTag(tag.tag)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
-                        selectedTag === tag.tag
-                          ? "bg-alien-green/20 text-alien-green"
-                          : "text-gray-400 hover:bg-smoke-light hover:text-alien-green"
-                      }`}
-                    >
-                      <span className="font-medium">#{tag.tag}</span>
-                      <span className="text-xs text-gray-500 ml-2">
-                        ({tag.count})
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* Categories */}
               <div className="smoke-card p-6 relative smoke-effect">
                 <h3 className="text-lg font-alien font-bold text-alien-green mb-4 flex items-center">
@@ -241,28 +215,6 @@ const DiscussionsPage: React.FC = () => {
                       {category.label}
                     </button>
                   ))}
-                </div>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="smoke-card p-6 relative smoke-effect">
-                <h3 className="text-lg font-alien font-bold text-alien-green mb-4 flex items-center">
-                  <TrendingUp className="mr-2" size={20} />
-                  Quick Stats
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Total Discussions</span>
-                    <span className="text-white font-bold">
-                      {totalDiscussions}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Popular Tags</span>
-                    <span className="text-white font-bold">
-                      {popularTags.length}
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
@@ -343,7 +295,7 @@ const DiscussionsPage: React.FC = () => {
                     className="alien-input text-sm"
                   >
                     <option value="recent">Recent</option>
-                    <option value="popular">Popular</option>
+                    {/* <option value="popular">Popular</option> */}
                     <option value="answered">Most Answered</option>
                     <option value="unanswered">Unanswered</option>
                   </select>
@@ -376,24 +328,6 @@ const DiscussionsPage: React.FC = () => {
                       {DISCUSSION_CATEGORIES.map((category) => (
                         <option key={category.value} value={category.value}>
                           {category.icon} {category.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Tag
-                    </label>
-                    <select
-                      value={selectedTag}
-                      onChange={(e) => setSelectedTag(e.target.value)}
-                      className="alien-input w-full text-sm"
-                    >
-                      <option value="">All Tags</option>
-                      {popularTags.map((tag) => (
-                        <option key={tag.tag} value={tag.tag}>
-                          {tag.tag} ({tag.count})
                         </option>
                       ))}
                     </select>
@@ -510,10 +444,6 @@ const DiscussionsPage: React.FC = () => {
                                 <MessageCircle size={14} />
                                 <span>{discussion.answer_count} answers</span>
                               </div>
-                              <div className="flex items-center space-x-1">
-                                <Eye size={14} />
-                                <span>{discussion.views} views</span>
-                              </div>
                             </div>
                           </div>
                         </div>
@@ -621,57 +551,6 @@ const DiscussionsPage: React.FC = () => {
                         {category.label}
                       </button>
                     ))}
-                  </div>
-                </div>
-
-                {/* Popular Tags */}
-                <div>
-                  <h3 className="text-md font-alien font-bold text-alien-green mb-3 flex items-center">
-                    <Tag className="mr-2" size={18} />
-                    Popular Tags
-                  </h3>
-                  <div className="space-y-2">
-                    {popularTags.map((tag) => (
-                      <button
-                        key={tag.tag}
-                        onClick={() => {
-                          setSelectedTag(tag.tag);
-                          setShowMobileFilters(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all duration-300 ${
-                          selectedTag === tag.tag
-                            ? "bg-alien-green/20 text-alien-green"
-                            : "text-gray-400 hover:bg-smoke-light hover:text-alien-green"
-                        }`}
-                      >
-                        <span className="font-medium">#{tag.tag}</span>
-                        <span className="text-xs text-gray-500 ml-2">
-                          ({tag.count})
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Quick Stats */}
-                <div>
-                  <h3 className="text-md font-alien font-bold text-alien-green mb-3 flex items-center">
-                    <TrendingUp className="mr-2" size={18} />
-                    Quick Stats
-                  </h3>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Total Discussions</span>
-                      <span className="text-white font-bold">
-                        {totalDiscussions}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-400">Popular Tags</span>
-                      <span className="text-white font-bold">
-                        {popularTags.length}
-                      </span>
-                    </div>
                   </div>
                 </div>
 

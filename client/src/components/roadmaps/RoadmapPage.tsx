@@ -3,26 +3,27 @@ import { Link } from "react-router-dom";
 import {
   Search,
   Plus,
-  BookOpen,
-  Users,
+  Map,
   Clock,
   Bookmark,
   BookmarkCheck,
   ChevronDown,
+  Eye,
+  User,
 } from "lucide-react";
-import { getCourses, toggleCourseBookmark } from "../utils/api";
-import { Course, CoursesResponse } from "../types";
-import { isAuthenticated } from "../utils/auth";
+import { getRoadmaps, toggleRoadmapBookmark } from "../../utils/api";
+import { Roadmap, RoadmapsResponse } from "../../types";
+import { isAuthenticated } from "../../utils/auth";
 
-const CoursesPage: React.FC = () => {
-  const [courses, setCourses] = useState<Course[]>([]);
+const RoadmapsPage: React.FC = () => {
+  const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("recent");
   const [pagination, setPagination] = useState({
     page: 1,
-    limit: 50,
+    limit: 12,
     total: 0,
     pages: 0,
   });
@@ -33,28 +34,18 @@ const CoursesPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchCourses();
+    fetchRoadmaps();
   }, [searchTerm, filter, sort, pagination.page]);
 
   const checkAuth = async () => {
     const authenticated = await isAuthenticated();
-    console.log("🔐 Auth check result:", authenticated);
     setIsAuth(authenticated);
   };
 
-  const fetchCourses = async () => {
+  const fetchRoadmaps = async () => {
     try {
       setLoading(true);
-      console.log("📚 Fetching courses with params:", {
-        search: searchTerm || undefined,
-        filter,
-        sort,
-        page: pagination.page,
-        limit: pagination.limit,
-        isAuth,
-      });
-
-      const response: CoursesResponse = await getCourses({
+      const response: RoadmapsResponse = await getRoadmaps({
         search: searchTerm || undefined,
         filter,
         sort,
@@ -62,61 +53,39 @@ const CoursesPage: React.FC = () => {
         limit: pagination.limit,
       });
 
-      console.log("✅ Courses fetched:", response.courses.length, "courses");
-      if (response.courses.length > 0) {
-        console.log("📖 Sample course bookmark info:", {
-          id: response.courses[0].id,
-          title: response.courses[0].title,
-          isBookmarked: response.courses[0].is_bookmarked,
-          bookmarkCount: response.courses[0].bookmark_count,
-        });
-      }
-
-      setCourses(response.courses);
+      setRoadmaps(response.roadmaps);
       setPagination(response.pagination);
     } catch (error) {
-      console.error("❌ Error fetching courses:", error);
+      console.error("❌ Error fetching roadmaps:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleBookmark = async (courseId: string) => {
+  const handleBookmark = async (roadmapId: string) => {
     if (!isAuth) {
-      console.log("❌ User not authenticated, cannot bookmark");
       return;
     }
 
-    console.log("🔖 Toggling bookmark for course:", courseId);
-
     try {
-      const response = await toggleCourseBookmark(courseId);
-      console.log("✅ Bookmark response:", response);
+      const response = await toggleRoadmapBookmark(roadmapId);
 
-      // Update the course in the local state
-      setCourses((prevCourses) =>
-        prevCourses.map((course) =>
-          course.id === courseId
+      setRoadmaps((prevRoadmaps) =>
+        prevRoadmaps.map((roadmap) =>
+          roadmap.id === roadmapId
             ? {
-                ...course,
+                ...roadmap,
                 is_bookmarked: response.bookmarked,
                 bookmark_count: response.bookmarked
-                  ? course.bookmark_count + 1
-                  : course.bookmark_count - 1,
+                  ? roadmap.bookmark_count + 1
+                  : roadmap.bookmark_count - 1,
               }
-            : course
+            : roadmap
         )
       );
     } catch (error) {
       console.error("❌ Error toggling bookmark:", error);
-      // You could add a toast notification here to inform the user
     }
-  };
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    setPagination((prev) => ({ ...prev, page: 1 }));
-    fetchCourses();
   };
 
   const handleFilterChange = (newFilter: string) => {
@@ -143,25 +112,27 @@ const CoursesPage: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Courses</h1>
+            <h1 className="text-4xl font-alien font-bold glow-text mb-2">
+              Learning Roadmaps
+            </h1>
             <p className="text-gray-400">
-              Discover and create comprehensive learning courses
+              Discover comprehensive learning paths and create your own
             </p>
           </div>
           {isAuth && (
             <Link
-              to="/courses/create"
+              to="/roadmaps/create"
               className="mt-4 sm:mt-0 bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 flex items-center space-x-2 shadow-alien-glow"
             >
               <Plus size={20} />
-              <span>Create Course</span>
+              <span>Create Roadmap</span>
             </Link>
           )}
         </div>
 
         {/* Search and Filters */}
         <div className="bg-smoke-gray rounded-lg p-6 mb-8">
-          <form onSubmit={handleSearch} className="mb-4">
+          <form className="mb-4">
             <div className="relative">
               <Search
                 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
@@ -169,7 +140,7 @@ const CoursesPage: React.FC = () => {
               />
               <input
                 type="text"
-                placeholder="Search courses by title, description, or topic..."
+                placeholder="Search roadmaps by title, description, or topic..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-royal-black border border-smoke-light rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-alien-green focus:ring-1 focus:ring-alien-green"
@@ -185,10 +156,9 @@ const CoursesPage: React.FC = () => {
                 onChange={(e) => handleFilterChange(e.target.value)}
                 className="appearance-none bg-royal-black border border-smoke-light rounded-lg px-4 py-2 pr-8 text-white focus:outline-none focus:border-alien-green focus:ring-1 focus:ring-alien-green"
               >
-                <option value="all">All Courses</option>
+                <option value="all">All Roadmaps</option>
                 {isAuth && (
                   <>
-                    <option value="my-courses">My Courses</option>
                     <option value="bookmarked">Bookmarked</option>
                   </>
                 )}
@@ -207,7 +177,7 @@ const CoursesPage: React.FC = () => {
                 className="appearance-none bg-royal-black border border-smoke-light rounded-lg px-4 py-2 pr-8 text-white focus:outline-none focus:border-alien-green focus:ring-1 focus:ring-alien-green"
               >
                 <option value="recent">Most Recent</option>
-
+                <option value="popular">Most Popular</option>
                 <option value="oldest">Oldest First</option>
               </select>
               <ChevronDown
@@ -225,58 +195,60 @@ const CoursesPage: React.FC = () => {
           </div>
         )}
 
-        {/* Courses Grid */}
+        {/* Roadmaps Grid */}
         {!loading && (
           <>
-            {courses.length === 0 ? (
+            {roadmaps.length === 0 ? (
               <div className="text-center py-12">
-                <BookOpen className="mx-auto text-gray-400 mb-4" size={48} />
+                <Map className="mx-auto text-gray-400 mb-4" size={48} />
                 <h3 className="text-xl font-semibold text-gray-300 mb-2">
-                  No courses found
+                  No roadmaps found
                 </h3>
                 <p className="text-gray-400 mb-6">
-                  {filter === "my-courses"
-                    ? "You haven't created any courses yet."
+                  {filter === "my-roadmaps"
+                    ? "You haven't created any roadmaps yet."
                     : filter === "bookmarked"
-                    ? "You haven't bookmarked any courses yet."
+                    ? "You haven't bookmarked any roadmaps yet."
                     : searchTerm
                     ? "Try adjusting your search terms."
-                    : "Be the first to create a course!"}
+                    : "Be the first to create a roadmap!"}
                 </p>
                 {isAuth && (
                   <Link
-                    to="/courses/create"
+                    to="/roadmaps/create"
                     className="inline-flex items-center space-x-2 bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 shadow-alien-glow"
                   >
                     <Plus size={20} />
-                    <span>Create Course</span>
+                    <span>Create Roadmap</span>
                   </Link>
                 )}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {courses.map((course) => (
+                {roadmaps.map((roadmap) => (
                   <div
-                    key={course.id}
+                    key={roadmap.id}
                     className="bg-smoke-gray rounded-lg overflow-hidden hover:shadow-lg hover:shadow-alien-green/20 transition-all duration-300 border border-smoke-light"
                   >
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
+                          <div className="w-12 h-12 bg-alien-green rounded-lg flex items-center justify-center mb-4 shadow-alien-glow">
+                            <Map className="text-royal-black" size={24} />
+                          </div>
                           <h3 className="text-xl font-semibold text-white mb-2 line-clamp-2">
-                            {course.title}
+                            {roadmap.title}
                           </h3>
-
                           <p className="text-gray-300 text-sm line-clamp-3 mb-4">
-                            {course.description}
+                            {roadmap.description}
                           </p>
                         </div>
                         {isAuth && (
                           <button
-                            onClick={() => handleBookmark(course.id)}
+                            onClick={() => handleBookmark(roadmap.id)}
                             className="ml-2 p-2 rounded-lg hover:bg-smoke-light transition-colors duration-200"
                           >
-                            {course.is_bookmarked ? (
+                            {roadmap.is_bookmarked ? (
                               <BookmarkCheck
                                 className="text-alien-green"
                                 size={20}
@@ -292,24 +264,18 @@ const CoursesPage: React.FC = () => {
                       </div>
 
                       <div className="flex items-center justify-between text-sm text-gray-400 mb-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-1">
-                            <BookOpen size={16} />
-                            <span>{course.chapter_count} chapters</span>
-                          </div>
-                        </div>
                         <div className="flex items-center space-x-1">
                           <Clock size={16} />
-                          <span>{formatDate(course.created_at)}</span>
+                          <span>{formatDate(roadmap.created_at)}</span>
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between">
                         <Link
-                          to={`/courses/${course.id}`}
+                          to={`/roadmaps/${roadmap.id}`}
                           className="bg-alien-green text-royal-black px-4 py-2 rounded-lg font-medium hover:bg-alien-green/90 transition-colors duration-300 text-sm"
                         >
-                          View Course
+                          View Roadmap
                         </Link>
                       </div>
                     </div>
@@ -379,4 +345,4 @@ const CoursesPage: React.FC = () => {
   );
 };
 
-export default CoursesPage;
+export default RoadmapsPage;

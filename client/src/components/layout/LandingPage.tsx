@@ -5,9 +5,11 @@ import {
   BookOpen,
   Users,
   Shield,
-  Zap,
   Database,
   MessageSquare,
+  Map,
+  Bug,
+  Lightbulb,
 } from "lucide-react";
 
 const LandingPage: React.FC = () => {
@@ -17,17 +19,33 @@ const LandingPage: React.FC = () => {
         {/* Hero Section */}
         <section className="relative py-20 px-4 text-center">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-5xl md:text-8xl font-alien font-black mb-6 glow-text ">
-              AlienVault
-            </h1>
-            <p className="text-xl md:text-2xl text-gray-300 mb-8 font-cyber">
-              Your College's Ultimate Resource Hub
-            </p>
-            <p className="text-lg text-gray-400 mb-12 max-w-2xl mx-auto">
-              Access thousands of PDFs and E-books for free. Share knowledge
-              with your fellow students in our secure, alien-themed digital
-              vault.
-            </p>
+            <div className="mb-8 sm:mb-12">
+              <div className="grid grid-cols-1 gap-2">
+                <Link to="/suggest-feature">
+                  <div className="inline-flex items-center theme-badge-primary mb-2 sm:mb-2 px-3 sm:px-4 py-2 text-sm sm:text-base bg-gray-900 border rounded-3xl border-gray-700 text-cyan-400 hover:bg-gray-800 transition-colors">
+                    <Lightbulb className="w-3 sm:w-4 h-3 sm:h-4 mr-2" />
+                    Suggest a Feature!
+                  </div>
+                </Link>
+                <Link to="/report-bug">
+                  <div className="inline-flex items-center theme-badge-primary mb-6 sm:mb-5 px-3 sm:px-4 py-2 text-sm sm:text-base bg-gray-900 border rounded-3xl border-gray-700 text-red-400 hover:bg-gray-800 transition-colors">
+                    <Bug className="w-3 sm:w-4 h-3 sm:h-4 mr-2" />
+                    Report Bugs!
+                  </div>
+                </Link>
+              </div>
+              <h1 className="text-5xl md:text-8xl font-alien font-black mb-6 glow-text ">
+                AlienVault
+              </h1>
+              <p className="text-xl md:text-2xl text-gray-300 mb-8 font-cyber">
+                Your College's Ultimate Resource Hub
+              </p>
+              <p className="text-lg text-gray-400 mb-12 max-w-2xl mx-auto">
+                Access thousands of PDFs and E-books for free. Share knowledge
+                with your fellow students in our secure, alien-themed digital
+                vault.
+              </p>
+            </div>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link to="/pdfs" className="alien-button text-lg px-8 py-4">
@@ -44,6 +62,10 @@ const LandingPage: React.FC = () => {
               >
                 <MessageSquare className="inline mr-2" size={24} />
                 Join Discussions
+              </Link>
+              <Link to="/roadmaps" className="alien-button text-lg px-8 py-4">
+                <Map className="inline mr-2" size={24} />
+                Browse Roadmaps
               </Link>
             </div>
           </div>
@@ -104,14 +126,15 @@ const LandingPage: React.FC = () => {
 
               <div className="smoke-card p-8 text-center relative smoke-effect">
                 <div className="w-16 h-16 bg-alien-green rounded-full flex items-center justify-center mx-auto mb-6 shadow-alien-glow">
-                  <Users className="text-royal-black" size={32} />
+                  <Map className="text-royal-black" size={32} />
                 </div>
                 <h3 className="text-xl font-alien font-bold mb-4 text-alien-green">
-                  Course Management
+                  Learning Roadmaps
                 </h3>
                 <p className="text-gray-300">
-                  Create and manage structured courses with chapter-based
-                  content and progress tracking.
+                  Generate comprehensive learning paths with AI assistance. Get
+                  structured roadmaps with resources, projects, and career
+                  guidance.
                 </p>
               </div>
               <div className="smoke-card p-8 text-center relative smoke-effect">

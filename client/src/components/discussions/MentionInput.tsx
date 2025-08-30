@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { searchUsers } from "../utils/api";
+import { searchUsers } from "../../utils/api";
 
 interface MentionInputProps {
   value: string;

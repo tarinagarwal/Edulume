@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, UserPlus, LogIn, Mail, Shield } from "lucide-react";
-import { login, signup, sendOTP, verifyOTP } from "../utils/api";
+import { login, signup, sendOTP, verifyOTP } from "../../utils/api";
 
 interface AuthFormProps {
   onAuthChange: () => void;
@@ -276,4 +276,3 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
 };
 
 export default AuthForm;
-  

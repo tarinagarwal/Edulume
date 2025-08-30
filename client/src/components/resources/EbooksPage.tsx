@@ -14,9 +14,9 @@ import {
   X,
   Plus,
 } from "lucide-react";
-import { getEbooks } from "../utils/api";
-import { EbookItem } from "../types";
-import { isAuthenticated } from "../utils/auth";
+import { getEbooks } from "../../utils/api";
+import { EbookItem } from "../../types";
+import { isAuthenticated } from "../../utils/auth";
 
 const EbooksPage: React.FC = () => {
   const [ebooks, setEbooks] = useState<EbookItem[]>([]);

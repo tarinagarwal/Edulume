@@ -12,6 +12,8 @@ import discussionRoutes from "./routes/discussions.js";
 import imageRoutes from "./routes/images.js";
 import notificationRoutes from "./routes/notifications.js";
 import courseRoutes from "./routes/courses.js";
+import roadmapRoutes from "./routes/roadmaps.js";
+import feedbackRoutes from "./routes/feedback.js";
 import { setupSocketHandlers } from "./socket/socketHandlers.js";
 
 BigInt.prototype.toJSON = function () {
@@ -81,6 +83,8 @@ app.use("/api/discussions", discussionRoutes);
 app.use("/api/images", imageRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/courses", courseRoutes);
+app.use("/api/roadmaps", roadmapRoutes);
+app.use("/api/feedback", feedbackRoutes);
 
 // Setup Socket.IO handlers
 setupSocketHandlers(io);
