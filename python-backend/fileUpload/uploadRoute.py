@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 import os
 from .pdfUpload import process_pdf
 import cloudinary
@@ -15,11 +15,11 @@ cloudinary.config(
 router = APIRouter()
 
 @router.post("/upload-pdf/")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(file: UploadFile = File(...), session_id: str = Form(None)):
     try:
         # Step 1: Upload to Cloudinary
         file_content = await file.read()
-        public_id = file.filename.split(".")[0]
+        public_id = f"{session_id}_{file.filename.split('.')[0]}" if session_id else file.filename.split(".")[0]
         upload_result = cloudinary.uploader.upload(
             file_content,
             resource_type="raw",
@@ -28,19 +28,17 @@ async def upload_pdf(file: UploadFile = File(...)):
         )
         pdf_url = upload_result["secure_url"]
 
-        # Step 2: Download and embed PDF using process_pdf
-        embedding_result = process_pdf(pdf_url)
+        # Step 2: Download and embed PDF using process_pdf with session_id
+        embedding_result = process_pdf(pdf_url, session_id)
 
-        # Step 3: Delete the file from Cloudinary
-        cloudinary.uploader.destroy(
-            f"pdfs/{public_id}",
-            resource_type="raw"
-        )
+        # Keep the file in Cloudinary for PDF preview
+        # Don't delete it immediately as we need it for the chat session
 
         return {
-            "message": "PDF uploaded, embedded, and deleted from Cloudinary successfully",
+            "message": "PDF uploaded and embedded successfully",
             "cloudinary_url": pdf_url,
-            "embedding_result": embedding_result
+            "embedding_result": embedding_result,
+            "session_id": session_id
         }
     except Exception as e:
-        return {"message": f"Error uploading, processing, or deleting PDF: {e}"}
+        return {"message": f"Error uploading or processing PDF: {e}"}

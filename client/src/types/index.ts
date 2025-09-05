@@ -194,3 +194,21 @@ export interface RoadmapsResponse {
     pages: number;
   };
 }
+
+export interface PdfChatSession {
+  id: string;
+  sessionId: string;
+  pdfUrl: string;
+  pdfName: string;
+  isActive: boolean;
+  createdAt: string;
+  endedAt?: string;
+  messages: PdfChatMessage[];
+}
+
+export interface PdfChatMessage {
+  id: string;
+  message: string;
+  response: string;
+  createdAt: string;
+}

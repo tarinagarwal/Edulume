@@ -27,6 +27,8 @@ import {
 // Debug logging for production
 const isDev = import.meta.env.DEV;
 const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+export const PYTHON_API_URL =
+  import.meta.env.VITE_PYTHON_API_URL || "http://localhost:8000";
 
 // if (!isDev) {
 //   console.log("🔧 Production API Config:", {
@@ -596,4 +598,54 @@ export const deleteRoadmap = async (
 ): Promise<{ message: string }> => {
   const response = await api.delete(`/roadmaps/${roadmapId}`);
   return response.data;
+};
+
+// Python Backend API (PDF Chat)
+export const uploadPdfToPython = async (
+  file: File,
+  sessionId: string
+): Promise<{
+  message: string;
+  cloudinary_url: string;
+  embedding_result: string;
+  session_id: string;
+}> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("session_id", sessionId);
+
+  const response = await fetch(`${PYTHON_API_URL}/upload-pdf/`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to upload PDF to Python backend");
+  }
+
+  return response.json();
+};
+
+export const queryPdfChat = async (
+  sessionId: string,
+  userQuery: string
+): Promise<{ rag_response: string }> => {
+  const response = await fetch(
+    `${PYTHON_API_URL}/query?session_id=${sessionId}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        user_query: userQuery,
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to query PDF chat");
+  }
+
+  return response.json();
 };

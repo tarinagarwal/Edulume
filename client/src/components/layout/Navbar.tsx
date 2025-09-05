@@ -267,7 +267,10 @@ export default function ResponsiveNavbar({
               <button
                 onClick={() => setAiToolsOpen((v) => !v)}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
-                  aiToolsOpen || isActive("/courses") || isActive("/roadmaps")
+                  aiToolsOpen ||
+                  isActive("/courses") ||
+                  isActive("/roadmaps") ||
+                  isActive("/pdf-chatbot")
                     ? "text-alien-green shadow-alien-glow"
                     : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
                 }`}
@@ -302,7 +305,7 @@ export default function ResponsiveNavbar({
                   <Link
                     to="/roadmaps"
                     onClick={() => setAiToolsOpen(false)}
-                    className={`block px-4 py-2 text-sm rounded-b-lg transition-colors duration-200 ${
+                    className={`block px-4 py-2 text-sm transition-colors duration-200 ${
                       isActive("/roadmaps")
                         ? "text-alien-green shadow-alien-glow"
                         : "text-gray-300 hover:text-alien-green hover:bg-smoke-light"
@@ -310,6 +313,18 @@ export default function ResponsiveNavbar({
                     role="menuitem"
                   >
                     Roadmaps
+                  </Link>
+                  <Link
+                    to="/pdf-chatbot"
+                    onClick={() => setAiToolsOpen(false)}
+                    className={`block px-4 py-2 text-sm rounded-b-lg transition-colors duration-200 ${
+                      isActive("/pdf-chatbot")
+                        ? "text-alien-green shadow-alien-glow"
+                        : "text-gray-300 hover:text-alien-green hover:bg-smoke-light"
+                    }`}
+                    role="menuitem"
+                  >
+                    PDF Chatbot
                   </Link>
                 </div>
               )}
@@ -554,6 +569,18 @@ export default function ResponsiveNavbar({
               >
                 <Map size={20} />
                 <span>Roadmaps</span>
+              </Link>
+              <Link
+                to="/pdf-chatbot"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                  isActive("/pdf-chatbot")
+                    ? "text-alien-green shadow-alien-glow bg-alien-green/10"
+                    : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
+                }`}
+              >
+                <MessageSquare size={20} />
+                <span>PDF Chatbot</span>
               </Link>
             </div>
           )}

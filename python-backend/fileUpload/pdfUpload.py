@@ -9,7 +9,7 @@ import pprint
 
 
 file_path="./data/machine_learning.pdf"
-def process_pdf(file_path):
+def process_pdf(file_path, session_id=None):
     from langchain_community.document_loaders import PyPDFLoader
     from langchain_text_splitters import RecursiveCharacterTextSplitter
     from pinecone import Pinecone, ServerlessSpec
@@ -27,6 +27,11 @@ def process_pdf(file_path):
         add_start_index=True,
     )
     all_splits = text_splitter.split_documents(docs)
+
+    # Add session metadata to documents if session_id is provided
+    if session_id:
+        for doc in all_splits:
+            doc.metadata["session_id"] = session_id
 
     PINECONE_API = os.getenv("PINECONE_API_KEY")
     pc = Pinecone(api_key=PINECONE_API)

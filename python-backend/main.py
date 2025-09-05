@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fileUpload.uploadRoute import router
 from RAGresponse.responseRoute import response_router
+from sessionCleanup.cleanupRoute import cleanup_router
 
 
 
@@ -18,3 +19,4 @@ app.add_middleware(
 
 app.include_router(router)
 app.include_router(response_router)
+app.include_router(cleanup_router)

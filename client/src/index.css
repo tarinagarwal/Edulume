@@ -50,6 +50,60 @@
   }
 }
 
+/* Markdown styles for chat messages */
+.prose-chat {
+  color: #d1d5db;
+}
+
+.prose-chat h1,
+.prose-chat h2,
+.prose-chat h3 {
+  color: #ffffff;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-chat p {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+}
+
+.prose-chat code {
+  background-color: #1a1a1a;
+  color: #00cc33;
+  padding: 0.125rem 0.25rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.prose-chat pre {
+  background-color: #1a1a1a;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+}
+
+.prose-chat pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+.prose-chat strong {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.prose-chat ul,
+.prose-chat ol {
+  margin: 0.5rem 0;
+  padding-left: 1rem;
+}
+
+.prose-chat li {
+  margin-bottom: 0.25rem;
+}
+
 /* Line clamp utilities */
 .line-clamp-2 {
   display: -webkit-box;

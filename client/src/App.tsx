@@ -27,6 +27,7 @@ import FeatureSuggestionPage from "./components/feedback/FeatureSuggestionPage";
 import BugReportPage from "./components/feedback/BugReportPage";
 import AdminPanel from "./components/admin/AdminPanel";
 import AdminRoute from "./components/admin/AdminRoute";
+import PdfChatbotPage from "./components/ai/PdfChatbotPage";
 import Footer from "./components/layout/Footer";
 import ScrollToTop from "./components/ui/ScrollToTop";
 import ScrollToTopOnRouteChange from "./components/ui/ScrollToTopOnRouteChange";
@@ -105,6 +106,7 @@ const App: React.FC<AppProps> = () => {
           <Route path="/courses/:id" element={<CourseDetailPage />} />
           <Route path="/roadmaps" element={<RoadmapsPage />} />
           <Route path="/roadmaps/:id" element={<RoadmapDetailPage />} />
+          <Route path="/pdf-chatbot" element={<PdfChatbotPage />} />
           <Route path="/suggest-feature" element={<FeatureSuggestionPage />} />
           <Route path="/report-bug" element={<BugReportPage />} />
           <Route

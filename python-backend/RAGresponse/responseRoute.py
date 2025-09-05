@@ -28,7 +28,7 @@ async def fetch_query(query: Query, session_id: str = FastAPIQuery(...)):
         chat_history[session_id] = []
     if session_id not in gemini_chat_history:
         gemini_chat_history[session_id] = []
-    rag_resp = RAG_app.main(query.user_query, gemini_chat_history[session_id])
+    rag_resp = RAG_app.main(query.user_query, gemini_chat_history[session_id], session_id)
     chat_history[session_id].append({"user_query": query.user_query, "rag_response": rag_resp})
     if rag_resp is not None:
         return Response(rag_response=rag_resp)
