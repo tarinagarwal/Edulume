@@ -12,6 +12,7 @@ import {
   MessageSquare,
   GraduationCap,
   Map,
+  GitGraphIcon,
 } from "lucide-react";
 import AdminNavLink from "../admin/AdminNavLink";
 import { getUserProfile, logout } from "../../utils/api";
@@ -326,6 +327,19 @@ export default function ResponsiveNavbar({
                   >
                     PDF Chatbot
                   </Link>
+                  <Link
+                    to="https://alienboard.vercel.app/"
+                    target="_blank"
+                    onClick={() => setAiToolsOpen(false)}
+                    className={`block px-4 py-2 text-sm rounded-b-lg transition-colors duration-200 ${
+                      isActive("/pdf-chatbot")
+                        ? "text-alien-green shadow-alien-glow"
+                        : "text-gray-300 hover:text-alien-green hover:bg-smoke-light"
+                    }`}
+                    role="menuitem"
+                  >
+                    AlienBoard
+                  </Link>
                 </div>
               )}
             </div>
@@ -581,6 +595,19 @@ export default function ResponsiveNavbar({
               >
                 <MessageSquare size={20} />
                 <span>PDF Chatbot</span>
+              </Link>
+              <Link
+                to="https://alienboard.vercel.app/"
+                target="_blank"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                  isActive("/pdf-chatbot")
+                    ? "text-alien-green shadow-alien-glow bg-alien-green/10"
+                    : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
+                }`}
+              >
+                <GitGraphIcon size={20} />
+                <span>AlienBoard</span>
               </Link>
             </div>
           )}
