@@ -157,16 +157,12 @@ router.get("/", optionalAuth, async (req, res) => {
     } = req.query;
 
     const userId = req.user?.id;
-    console.log("📚 Courses request:", {
-      userId: userId || "anonymous",
-      filter,
-      search: search || "none",
-    });
 
     // Test database connection
     console.log("🔌 Testing database connection...");
     await prisma.$connect();
     console.log("✅ Database connected successfully");
+
     let where = {};
 
     // Apply filters
@@ -174,6 +170,12 @@ router.get("/", optionalAuth, async (req, res) => {
       where.authorId = userId;
     } else if (filter === "bookmarked" && userId) {
       where.bookmarks = {
+        some: {
+          userId: userId,
+        },
+      };
+    } else if (filter === "enrolled" && userId) {
+      where.enrollments = {
         some: {
           userId: userId,
         },
@@ -186,14 +188,49 @@ router.get("/", optionalAuth, async (req, res) => {
       ];
     }
 
-    // Apply search
+    // Apply search - combine with existing filters
     if (search) {
-      where.OR = [
+      const searchConditions = [
         { title: { contains: search, mode: "insensitive" } },
         { description: { contains: search, mode: "insensitive" } },
         { topic: { contains: search, mode: "insensitive" } },
       ];
+
+      // If we already have filter conditions, combine them with search
+      if (where.authorId || where.bookmarks || where.enrollments) {
+        // Keep the existing filter and add search as an AND condition
+        where.AND = [
+          // Existing filter condition
+          where.authorId
+            ? { authorId: where.authorId }
+            : where.bookmarks
+            ? { bookmarks: where.bookmarks }
+            : where.enrollments
+            ? { enrollments: where.enrollments }
+            : {},
+          // Search condition
+          { OR: searchConditions },
+        ];
+        // Clean up the original filter properties
+        delete where.authorId;
+        delete where.bookmarks;
+        delete where.enrollments;
+      } else {
+        // For "all" courses with search, combine OR conditions
+        where.AND = [
+          { OR: where.OR || [{ isPublic: true }] },
+          { OR: searchConditions },
+        ];
+        delete where.OR;
+      }
     }
+
+    console.log("📚 Courses request:", {
+      userId: userId || "anonymous",
+      filter,
+      search: search || "none",
+      whereClause: JSON.stringify(where, null, 2),
+    });
 
     // Apply sorting
     let orderBy = {};
@@ -230,9 +267,19 @@ router.get("/", optionalAuth, async (req, res) => {
                 select: { id: true },
                 take: 0, // Don't actually fetch any bookmarks if not authenticated
               },
+          enrollments: userId
+            ? {
+                where: { userId: userId },
+                select: { id: true },
+              }
+            : {
+                select: { id: true },
+                take: 0,
+              },
           _count: {
             select: {
               bookmarks: true,
+              enrollments: true,
             },
           },
         },
@@ -249,10 +296,24 @@ router.get("/", optionalAuth, async (req, res) => {
       author_username: course.author.username,
       chapter_count: course.chapters.length,
       bookmark_count: course._count.bookmarks,
+      enrollment_count: course._count.enrollments,
       is_bookmarked: userId ? course.bookmarks.length > 0 : false,
+      is_enrolled: userId ? course.enrollments.length > 0 : false,
       created_at: course.createdAt,
       updated_at: course.updatedAt,
     }));
+
+    // Debug logging
+    if (transformedCourses.length > 0) {
+      console.log("🔍 Sample course enrollment data:", {
+        courseId: transformedCourses[0].id,
+        title: transformedCourses[0].title,
+        userId: userId,
+        rawEnrollments: transformedCourses[0].enrollments?.length || 0,
+        isEnrolled: transformedCourses[0].is_enrolled,
+        enrollmentCount: transformedCourses[0].enrollment_count,
+      });
+    }
 
     res.json({
       courses: transformedCourses,
@@ -269,7 +330,7 @@ router.get("/", optionalAuth, async (req, res) => {
   }
 });
 
-// Get single course with chapters
+// Get single course with chapters (includes enrollment and progress data)
 router.get("/:id", optionalAuth, async (req, res) => {
   try {
     const { id } = req.params;
@@ -283,6 +344,14 @@ router.get("/:id", optionalAuth, async (req, res) => {
         },
         chapters: {
           orderBy: { orderIndex: "asc" },
+          include: userId
+            ? {
+                progress: {
+                  where: { userId: userId },
+                  select: { isCompleted: true, completedAt: true },
+                },
+              }
+            : {},
         },
         bookmarks: userId
           ? {
@@ -293,9 +362,26 @@ router.get("/:id", optionalAuth, async (req, res) => {
               select: { id: true },
               take: 0, // Don't actually fetch any bookmarks if not authenticated
             },
+        enrollments: userId
+          ? {
+              where: { userId: userId },
+              select: {
+                id: true,
+                enrolledAt: true,
+                isCompleted: true,
+                completedAt: true,
+                progressPercentage: true,
+                lastAccessedAt: true,
+              },
+            }
+          : {
+              select: { id: true },
+              take: 0,
+            },
         _count: {
           select: {
             bookmarks: true,
+            enrollments: true,
           },
         },
       },
@@ -316,13 +402,40 @@ router.get("/:id", optionalAuth, async (req, res) => {
       data: { views: { increment: 1 } },
     });
 
+    // Update last accessed time if user is enrolled
+    if (userId && course.enrollments.length > 0) {
+      await prisma.courseEnrollment.update({
+        where: {
+          courseId_userId: {
+            courseId: id,
+            userId: userId,
+          },
+        },
+        data: { lastAccessedAt: new Date() },
+      });
+    }
+
+    // Transform chapters to include progress
+    const transformedChapters = course.chapters?.map((chapter) => ({
+      ...chapter,
+      isCompleted:
+        (chapter.progress && chapter.progress[0]?.isCompleted) || false,
+      completedAt:
+        (chapter.progress && chapter.progress[0]?.completedAt) || null,
+    }));
+
     // Transform the response
     const courseDetails = {
       ...course,
       author_username: course.author.username,
       chapter_count: course.chapters.length,
       bookmark_count: course._count.bookmarks,
+      enrollment_count: course._count.enrollments,
       is_bookmarked: userId ? course.bookmarks.length > 0 : false,
+      is_enrolled: userId ? course.enrollments.length > 0 : false,
+      enrollment_data:
+        userId && course.enrollments.length > 0 ? course.enrollments[0] : null,
+      chapters: transformedChapters,
       created_at: course.createdAt,
       updated_at: course.updatedAt,
     };
@@ -708,6 +821,307 @@ router.get("/test-groq", authenticateToken, async (req, res) => {
       error: "Groq API test failed",
       details: error.message,
     });
+  }
+});
+
+// Enroll in a course
+router.post("/:id/enroll", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    console.log("📝 Enrollment request:", { courseId: id, userId });
+
+    // Check if course exists and is public
+    const course = await prisma.course.findUnique({
+      where: { id },
+      include: {
+        chapters: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    if (!course.isPublic && course.authorId !== userId) {
+      return res
+        .status(403)
+        .json({ error: "Course is not available for enrollment" });
+    }
+
+    // Check if already enrolled
+    const existingEnrollment = await prisma.courseEnrollment.findFirst({
+      where: {
+        courseId: id,
+        userId: userId,
+      },
+    });
+
+    if (existingEnrollment) {
+      return res.status(400).json({ error: "Already enrolled in this course" });
+    }
+
+    // Create enrollment
+    const enrollment = await prisma.courseEnrollment.create({
+      data: {
+        courseId: id,
+        userId: userId,
+        lastAccessedAt: new Date(),
+      },
+    });
+
+    console.log("✅ Enrollment created:", enrollment.id);
+
+    res.json({
+      message: "Successfully enrolled in course",
+      enrollment: {
+        id: enrollment.id,
+        enrolledAt: enrollment.enrolledAt,
+        isCompleted: enrollment.isCompleted,
+        progressPercentage: enrollment.progressPercentage,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error enrolling in course:", error);
+    res.status(500).json({ error: "Failed to enroll in course" });
+  }
+});
+
+// Unenroll from a course
+router.delete("/:id/enroll", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    console.log("🗑️ Unenrollment request:", { courseId: id, userId });
+
+    // Find and delete enrollment
+    const enrollment = await prisma.courseEnrollment.findFirst({
+      where: {
+        courseId: id,
+        userId: userId,
+      },
+    });
+
+    if (!enrollment) {
+      return res.status(404).json({ error: "Not enrolled in this course" });
+    }
+
+    // Delete enrollment and all chapter progress
+    await prisma.$transaction([
+      prisma.chapterProgress.deleteMany({
+        where: {
+          userId: userId,
+          chapter: {
+            courseId: id,
+          },
+        },
+      }),
+      prisma.courseEnrollment.delete({
+        where: { id: enrollment.id },
+      }),
+    ]);
+
+    console.log("✅ Unenrollment successful");
+
+    res.json({ message: "Successfully unenrolled from course" });
+  } catch (error) {
+    console.error("❌ Error unenrolling from course:", error);
+    res.status(500).json({ error: "Failed to unenroll from course" });
+  }
+});
+
+// Mark chapter as completed/uncompleted
+router.post(
+  "/:courseId/chapters/:chapterId/progress",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { courseId, chapterId } = req.params;
+      const { isCompleted } = req.body;
+      const userId = req.user.id;
+
+      console.log("📊 Chapter progress update:", {
+        courseId,
+        chapterId,
+        userId,
+        isCompleted,
+      });
+
+      // Verify enrollment
+      const enrollment = await prisma.courseEnrollment.findFirst({
+        where: {
+          courseId: courseId,
+          userId: userId,
+        },
+      });
+
+      if (!enrollment) {
+        return res
+          .status(403)
+          .json({ error: "Must be enrolled in course to track progress" });
+      }
+
+      // Verify chapter belongs to course
+      const chapter = await prisma.courseChapter.findFirst({
+        where: {
+          id: chapterId,
+          courseId: courseId,
+        },
+      });
+
+      if (!chapter) {
+        return res.status(404).json({ error: "Chapter not found" });
+      }
+
+      // Update or create chapter progress
+      const progress = await prisma.chapterProgress.upsert({
+        where: {
+          chapterId_userId: {
+            chapterId: chapterId,
+            userId: userId,
+          },
+        },
+        update: {
+          isCompleted: isCompleted,
+          completedAt: isCompleted ? new Date() : null,
+        },
+        create: {
+          chapterId: chapterId,
+          userId: userId,
+          isCompleted: isCompleted,
+          completedAt: isCompleted ? new Date() : null,
+        },
+      });
+
+      // Calculate overall course progress
+      const allChapters = await prisma.courseChapter.findMany({
+        where: { courseId: courseId },
+        select: { id: true },
+      });
+
+      const completedChapters = await prisma.chapterProgress.count({
+        where: {
+          userId: userId,
+          isCompleted: true,
+          chapter: {
+            courseId: courseId,
+          },
+        },
+      });
+
+      const progressPercentage = Math.round(
+        (completedChapters / allChapters.length) * 100
+      );
+
+      const isCourseCompleted = progressPercentage === 100;
+
+      // Update course enrollment progress
+      await prisma.courseEnrollment.update({
+        where: { id: enrollment.id },
+        data: {
+          progressPercentage: progressPercentage,
+          isCompleted: isCourseCompleted,
+          completedAt:
+            isCourseCompleted && !enrollment.completedAt
+              ? new Date()
+              : enrollment.completedAt,
+          lastAccessedAt: new Date(),
+        },
+      });
+
+      console.log("✅ Progress updated:", {
+        chapterCompleted: isCompleted,
+        overallProgress: progressPercentage,
+        courseCompleted: isCourseCompleted,
+      });
+
+      res.json({
+        message: "Progress updated successfully",
+        progress: {
+          isCompleted: progress.isCompleted,
+          completedAt: progress.completedAt,
+          progressPercentage: progressPercentage,
+          isCourseCompleted: isCourseCompleted,
+        },
+      });
+    } catch (error) {
+      console.error("❌ Error updating chapter progress:", error);
+      res.status(500).json({ error: "Failed to update progress" });
+    }
+  }
+);
+
+// Get user's enrolled courses
+router.get("/user/enrollments", authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 12 } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const take = parseInt(limit);
+
+    console.log("📚 Fetching user enrollments:", { userId, page, limit });
+
+    const [enrollments, total] = await Promise.all([
+      prisma.courseEnrollment.findMany({
+        where: { userId: userId },
+        include: {
+          course: {
+            include: {
+              author: {
+                select: { username: true },
+              },
+              chapters: {
+                select: { id: true },
+              },
+              _count: {
+                select: {
+                  enrollments: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: { lastAccessedAt: "desc" },
+        skip,
+        take,
+      }),
+      prisma.courseEnrollment.count({ where: { userId: userId } }),
+    ]);
+
+    const transformedEnrollments = enrollments.map((enrollment) => ({
+      enrollment_id: enrollment.id,
+      enrolled_at: enrollment.enrolledAt,
+      progress_percentage: enrollment.progressPercentage,
+      is_completed: enrollment.isCompleted,
+      completed_at: enrollment.completedAt,
+      last_accessed_at: enrollment.lastAccessedAt,
+      course: {
+        ...enrollment.course,
+        author_username: enrollment.course.author.username,
+        chapter_count: enrollment.course.chapters.length,
+        enrollment_count: enrollment.course._count.enrollments,
+        created_at: enrollment.course.createdAt,
+        updated_at: enrollment.course.updatedAt,
+      },
+    }));
+
+    res.json({
+      enrollments: transformedEnrollments,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Error fetching user enrollments:", error);
+    res.status(500).json({ error: "Failed to fetch enrollments" });
   }
 });
 

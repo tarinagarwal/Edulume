@@ -55,15 +55,15 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
-    // if (!isDev) {
-    //   console.log("🚀 API Request:", {
-    //     method: config.method?.toUpperCase(),
-    //     url: config.url,
-    //     baseURL: config.baseURL,
-    //     fullURL: `${config.baseURL}${config.url}`,
-    //     hasAuth: !!config.headers.Authorization,
-    //   });
-    // }
+    // Debug logging for courses API
+    if (config.url?.includes("/courses")) {
+      console.log("🚀 API Request (Courses):", {
+        method: config.method?.toUpperCase(),
+        url: config.url,
+        hasAuth: !!config.headers.Authorization,
+        token: token ? "present" : "missing",
+      });
+    }
     return config;
   },
   (error) => {
@@ -75,13 +75,25 @@ api.interceptors.request.use(
 // Add response interceptor to handle 401 errors globally
 api.interceptors.response.use(
   (response) => {
-    // if (!isDev) {
-    //   console.log("✅ API Response:", {
-    //     status: response.status,
-    //     url: response.config.url,
-    //     method: response.config.method?.toUpperCase(),
-    //   });
-    // }
+    // Debug logging for courses API
+    if (
+      response.config.url?.includes("/courses") &&
+      response.config.method === "get"
+    ) {
+      console.log("✅ API Response (Courses):", {
+        status: response.status,
+        url: response.config.url,
+        coursesCount: response.data.courses?.length || 0,
+        sampleCourse: response.data.courses?.[0]
+          ? {
+              id: response.data.courses[0].id,
+              title: response.data.courses[0].title,
+              is_enrolled: response.data.courses[0].is_enrolled,
+              is_bookmarked: response.data.courses[0].is_bookmarked,
+            }
+          : null,
+      });
+    }
     return response;
   },
   (error) => {
@@ -535,6 +547,45 @@ export const deleteCourse = async (
   courseId: string
 ): Promise<{ message: string }> => {
   const response = await api.delete(`/courses/${courseId}`);
+  return response.data;
+};
+
+// Course enrollment functions
+export const enrollInCourse = async (
+  courseId: string
+): Promise<{ message: string; enrollment: any }> => {
+  const response = await api.post(`/courses/${courseId}/enroll`);
+  return response.data;
+};
+
+export const unenrollFromCourse = async (
+  courseId: string
+): Promise<{ message: string }> => {
+  const response = await api.delete(`/courses/${courseId}/enroll`);
+  return response.data;
+};
+
+// Chapter progress functions
+export const updateChapterProgress = async (
+  courseId: string,
+  chapterId: string,
+  isCompleted: boolean
+): Promise<{ message: string; progress: any }> => {
+  const response = await api.post(
+    `/courses/${courseId}/chapters/${chapterId}/progress`,
+    { isCompleted }
+  );
+  return response.data;
+};
+
+// Get user enrollments
+export const getUserEnrollments = async (
+  page = 1,
+  limit = 12
+): Promise<{ enrollments: any[]; pagination: any }> => {
+  const response = await api.get(
+    `/courses/user/enrollments?page=${page}&limit=${limit}`
+  );
   return response.data;
 };
 

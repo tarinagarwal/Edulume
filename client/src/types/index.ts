@@ -41,7 +41,10 @@ export interface Course {
   views: number;
   chapter_count: number;
   bookmark_count: number;
+  enrollment_count: number;
   is_bookmarked: boolean;
+  is_enrolled: boolean;
+  enrollment_data: CourseEnrollment | null;
   created_at: string;
   updated_at: string;
   chapters?: CourseChapter[];
@@ -54,8 +57,19 @@ export interface CourseChapter {
   description: string;
   content?: string;
   orderIndex: number;
+  isCompleted?: boolean;
+  completedAt?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface CourseEnrollment {
+  id: string;
+  enrolledAt: string;
+  completedAt?: string | null;
+  isCompleted: boolean;
+  progressPercentage: number;
+  lastAccessedAt?: string | null;
 }
 
 export interface CourseOutline {

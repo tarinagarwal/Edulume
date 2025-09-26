@@ -9,8 +9,16 @@ import {
   Bookmark,
   BookmarkCheck,
   ChevronDown,
+  UserPlus,
+  UserCheck,
+  Loader2,
 } from "lucide-react";
-import { getCourses, toggleCourseBookmark } from "../../utils/api";
+import {
+  getCourses,
+  toggleCourseBookmark,
+  enrollInCourse,
+  unenrollFromCourse,
+} from "../../utils/api";
 import { Course, CoursesResponse } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
 
@@ -27,6 +35,7 @@ const CoursesPage: React.FC = () => {
     pages: 0,
   });
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
+  const [enrollingCourse, setEnrollingCourse] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -34,7 +43,7 @@ const CoursesPage: React.FC = () => {
 
   useEffect(() => {
     fetchCourses();
-  }, [searchTerm, filter, sort, pagination.page]);
+  }, [searchTerm, filter, sort, pagination.page, isAuth]); // Added isAuth dependency
 
   const checkAuth = async () => {
     const authenticated = await isAuthenticated();
@@ -43,6 +52,12 @@ const CoursesPage: React.FC = () => {
   };
 
   const fetchCourses = async () => {
+    // Don't fetch if auth state is still loading
+    if (isAuth === null) {
+      console.log("⏳ Auth state still loading, skipping course fetch");
+      return;
+    }
+
     try {
       setLoading(true);
       console.log("📚 Fetching courses with params:", {
@@ -64,11 +79,13 @@ const CoursesPage: React.FC = () => {
 
       console.log("✅ Courses fetched:", response.courses.length, "courses");
       if (response.courses.length > 0) {
-        console.log("📖 Sample course bookmark info:", {
+        console.log("📖 Sample course enrollment info:", {
           id: response.courses[0].id,
           title: response.courses[0].title,
           isBookmarked: response.courses[0].is_bookmarked,
+          isEnrolled: response.courses[0].is_enrolled,
           bookmarkCount: response.courses[0].bookmark_count,
+          enrollmentCount: response.courses[0].enrollment_count,
         });
       }
 
@@ -110,6 +127,38 @@ const CoursesPage: React.FC = () => {
     } catch (error) {
       console.error("❌ Error toggling bookmark:", error);
       // You could add a toast notification here to inform the user
+    }
+  };
+
+  const handleEnrollment = async (courseId: string, isEnrolled: boolean) => {
+    if (!isAuth) {
+      console.log("❌ User not authenticated, cannot enroll");
+      return;
+    }
+
+    setEnrollingCourse(courseId);
+    try {
+      if (isEnrolled) {
+        await unenrollFromCourse(courseId);
+      } else {
+        await enrollInCourse(courseId);
+      }
+
+      // Update the course in the local state
+      setCourses((prevCourses) =>
+        prevCourses.map((course) =>
+          course.id === courseId
+            ? {
+                ...course,
+                is_enrolled: !isEnrolled,
+              }
+            : course
+        )
+      );
+    } catch (error) {
+      console.error("❌ Error with enrollment:", error);
+    } finally {
+      setEnrollingCourse(null);
     }
   };
 
@@ -190,6 +239,7 @@ const CoursesPage: React.FC = () => {
                   <>
                     <option value="my-courses">My Courses</option>
                     <option value="bookmarked">Bookmarked</option>
+                    <option value="enrolled">Enrolled Courses</option>
                   </>
                 )}
               </select>
@@ -239,6 +289,8 @@ const CoursesPage: React.FC = () => {
                     ? "You haven't created any courses yet."
                     : filter === "bookmarked"
                     ? "You haven't bookmarked any courses yet."
+                    : filter === "enrolled"
+                    ? "You haven't enrolled in any courses yet."
                     : searchTerm
                     ? "Try adjusting your search terms."
                     : "Be the first to create a course!"}
@@ -307,10 +359,49 @@ const CoursesPage: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <Link
                           to={`/courses/${course.id}`}
-                          className="bg-alien-green text-royal-black px-4 py-2 rounded-lg font-medium hover:bg-alien-green/90 transition-colors duration-300 text-sm"
+                          className="bg-smoke-light text-white px-4 py-2 rounded-lg font-medium hover:bg-royal-black transition-colors duration-300 text-sm border border-smoke-light"
                         >
                           View Course
                         </Link>
+
+                        {/* Enrollment Button */}
+                        {isAuth && (
+                          <button
+                            onClick={() =>
+                              handleEnrollment(
+                                course.id,
+                                course.is_enrolled || false
+                              )
+                            }
+                            disabled={enrollingCourse === course.id}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors duration-300 text-sm flex items-center space-x-1 ${
+                              course.is_enrolled
+                                ? "bg-red-600 hover:bg-red-700 text-white"
+                                : "bg-alien-green text-royal-black hover:bg-alien-green/90 shadow-alien-glow"
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          >
+                            {enrollingCourse === course.id ? (
+                              <>
+                                <Loader2 className="animate-spin" size={16} />
+                                <span>
+                                  {course.is_enrolled
+                                    ? "Leaving..."
+                                    : "Joining..."}
+                                </span>
+                              </>
+                            ) : course.is_enrolled ? (
+                              <>
+                                <UserCheck size={16} />
+                                <span>Enrolled</span>
+                              </>
+                            ) : (
+                              <>
+                                <UserPlus size={16} />
+                                <span>Enroll</span>
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

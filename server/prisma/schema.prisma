@@ -34,6 +34,8 @@ model User {
   sentNotifications Notification[] @relation("NotificationSender")
   courses           Course[]
   bookmarkedCourses CourseBookmark[]
+  enrolledCourses   CourseEnrollment[]
+  chapterProgress   ChapterProgress[]
   roadmaps          Roadmap[]
   bookmarkedRoadmaps RoadmapBookmark[]
   featureSuggestions FeatureSuggestion[]
@@ -224,9 +226,10 @@ model Course {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  author    User             @relation(fields: [authorId], references: [id])
-  chapters  CourseChapter[]
-  bookmarks CourseBookmark[]
+  author      User               @relation(fields: [authorId], references: [id])
+  chapters    CourseChapter[]
+  bookmarks   CourseBookmark[]
+  enrollments CourseEnrollment[]
 
   @@map("courses")
 }
@@ -242,7 +245,8 @@ model CourseChapter {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress ChapterProgress[]
 
   @@map("course_chapters")
 }
@@ -366,4 +370,39 @@ model PdfChatMessage {
   session PdfChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("pdf_chat_messages")
+}
+
+model CourseEnrollment {
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  courseId     String    @map("course_id") @db.ObjectId
+  userId       String    @map("user_id") @db.ObjectId
+  enrolledAt   DateTime  @default(now()) @map("enrolled_at")
+  completedAt  DateTime? @map("completed_at")
+  isCompleted  Boolean   @default(false) @map("is_completed")
+  progressPercentage Int @default(0) @map("progress_percentage")
+  lastAccessedAt DateTime? @map("last_accessed_at")
+
+  // Relations
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([courseId, userId])
+  @@map("course_enrollments")
+}
+
+model ChapterProgress {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  chapterId   String   @map("chapter_id") @db.ObjectId
+  userId      String   @map("user_id") @db.ObjectId
+  isCompleted Boolean  @default(false) @map("is_completed")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  chapter CourseChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id])
+
+  @@unique([chapterId, userId])
+  @@map("chapter_progress")
 }

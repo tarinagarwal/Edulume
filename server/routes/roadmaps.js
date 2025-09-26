@@ -170,8 +170,8 @@ Make sure all URLs are valid and working. Use only well-known, established resou
 - Coursera
 - edX
 - Udemy
-- YouTube channels with millions of subscribers
-- GitHub repositories with thousands of stars
+- YouTube channels 
+- GitHub repositories 
 - Stack Overflow
 - Reddit communities
 
