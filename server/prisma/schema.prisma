@@ -36,6 +36,7 @@ model User {
   bookmarkedCourses CourseBookmark[]
   enrolledCourses   CourseEnrollment[]
   chapterProgress   ChapterProgress[]
+  courseTests       CourseTest[]
   roadmaps          Roadmap[]
   bookmarkedRoadmaps RoadmapBookmark[]
   featureSuggestions FeatureSuggestion[]
@@ -230,6 +231,7 @@ model Course {
   chapters    CourseChapter[]
   bookmarks   CourseBookmark[]
   enrollments CourseEnrollment[]
+  tests       CourseTest[]
 
   @@map("courses")
 }
@@ -405,4 +407,31 @@ model ChapterProgress {
 
   @@unique([chapterId, userId])
   @@map("chapter_progress")
+}
+
+model CourseTest {
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  courseId           String    @map("course_id") @db.ObjectId
+  userId             String    @map("user_id") @db.ObjectId
+  questions          String    // JSON string containing the test questions
+  testInstructions   String    @map("test_instructions") // JSON string containing test instructions
+  answers            String?   // JSON string containing user answers
+  evaluationResults  String?   @map("evaluation_results") // JSON string containing evaluation results
+  timeLimit          Int       @map("time_limit") @default(180) // Time limit in minutes
+  passingScore       Int       @map("passing_score") @default(80) // Passing score percentage
+  totalMarks         Int       @map("total_marks") @default(100)
+  marksObtained      Float?    @map("marks_obtained")
+  score              Int?      // Score as percentage
+  hasPassed          Boolean?  @map("has_passed")
+  status             String    @default("in_progress") // 'in_progress', 'processing', 'completed', 'evaluation_failed', 'expired'
+  createdAt          DateTime  @default(now()) @map("created_at")
+  submittedAt        DateTime? @map("submitted_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([courseId, userId, createdAt])
+  @@map("course_tests")
 }

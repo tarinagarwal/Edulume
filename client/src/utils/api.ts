@@ -40,7 +40,7 @@ export const PYTHON_API_URL =
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // 30 second timeout
+  timeout: 120000, // Increase to 2 minutes for test submission
   headers: {
     "Content-Type": "application/json",
   },
@@ -587,6 +587,195 @@ export const getUserEnrollments = async (
     `/courses/user/enrollments?page=${page}&limit=${limit}`
   );
   return response.data;
+};
+
+// Certificate Test API Functions
+export const generateCertificateTest = async (
+  courseId: string
+): Promise<{
+  success: boolean;
+  message: string;
+  test?: {
+    id: string;
+    questions: any[];
+    testInstructions: any;
+    timeLimit: number;
+    passingScore: number;
+    totalMarks: number;
+    status: string;
+    createdAt: string;
+  };
+  tests?: {
+    id: string;
+    status: string;
+    score?: number;
+    hasPassed?: boolean;
+    marksObtained?: number;
+    totalMarks?: number;
+    createdAt: string;
+    submittedAt?: string;
+  }[];
+  cooldown?: {
+    isActive: boolean;
+    remainingHours: number;
+    remainingMinutes: number;
+    remainingMs: number;
+    nextAvailableAt: string;
+    lastTestDate: string;
+  };
+  error?: string;
+}> => {
+  try {
+    const response = await api.post(`/courses/${courseId}/test/generate`);
+    return { success: true, ...response.data };
+  } catch (error: any) {
+    // Handle cooldown error (429) specially
+    if (error.response?.status === 429) {
+      return {
+        success: false,
+        ...error.response.data,
+      };
+    }
+    throw error;
+  }
+};
+
+export const submitCertificateTest = async (
+  courseId: string,
+  testId: string,
+  answers: any[]
+): Promise<{
+  message: string;
+  testId: string;
+  status: string;
+}> => {
+  const response = await api.post(
+    `/courses/${courseId}/test/submit`,
+    { testId, answers },
+    { timeout: 120000 } // 2 minutes timeout for submission
+  );
+  return response.data;
+};
+
+export const validateTestAccess = async (
+  courseId: string,
+  testId: string
+): Promise<{
+  success: boolean;
+  message?: string;
+  testId?: string;
+  status?: string;
+  error?: string;
+}> => {
+  const response = await api.get(`/courses/${courseId}/test/${testId}/validate`);
+  return response.data;
+};
+
+export const getTestStatus = async (
+  courseId: string,
+  testId: string
+): Promise<{
+  status: string;
+  score?: number;
+  hasPassed?: boolean;
+  marksObtained?: number;
+  totalMarks?: number;
+  submittedAt?: string;
+  updatedAt?: string;
+}> => {
+  const response = await api.get(`/courses/${courseId}/test/${testId}/status`);
+  return response.data;
+};
+
+export const getUserTests = async (
+  courseId: string
+): Promise<{
+  tests: {
+    id: string;
+    status: string;
+    score?: number;
+    hasPassed?: boolean;
+    submittedAt?: string;
+    createdAt: string;
+  }[];
+}> => {
+  const response = await api.get(`/courses/${courseId}/tests`);
+  return response.data;
+};
+
+export const getCertificateTestResult = async (
+  courseId: string,
+  testId: string
+): Promise<{
+  result: {
+    id: string;
+    courseTitle: string;
+    score: number;
+    marksObtained: number;
+    totalMarks: number;
+    hasPassed: boolean;
+    passingScore: number;
+    evaluationResults: any[];
+    submittedAt: string;
+    timeLimit: number;
+  };
+}> => {
+  const response = await api.get(`/courses/${courseId}/test/${testId}/status`);
+
+  // Check if test is completed
+  if (response.data.status !== "completed") {
+    throw new Error(
+      `Test is not completed yet. Current status: ${response.data.status}`
+    );
+  }
+
+  // Parse evaluation results if they exist
+  let evaluationResults = [];
+  if (response.data.evaluationResults) {
+    try {
+      const parsedResults =
+        typeof response.data.evaluationResults === "string"
+          ? JSON.parse(response.data.evaluationResults)
+          : response.data.evaluationResults;
+
+      // The server stores results with a breakdown array, extract it
+      if (parsedResults.breakdown && Array.isArray(parsedResults.breakdown)) {
+        evaluationResults = parsedResults.breakdown.map(
+          (item: any, index: number) => ({
+            questionId: `q_${index}`,
+            type: item.questionType || item.type || "unknown",
+            question: item.question || "",
+            userAnswer: item.userAnswer || "No answer provided",
+            correctAnswer: item.correctAnswer || "",
+            marksAwarded: item.points || 0,
+            maxMarks: item.maxPoints || 0,
+            isCorrect: item.isCorrect || false,
+            feedback:
+              item.aiEvaluation?.feedback ||
+              (item.isCorrect ? "Correct!" : "Incorrect or incomplete"),
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error parsing evaluation results:", error);
+    }
+  }
+
+  // Transform the status response to match the expected result format
+  return {
+    result: {
+      id: testId,
+      courseTitle: "Course Certificate Test", // We'll need to fetch course title separately if needed
+      score: response.data.score || 0,
+      marksObtained: response.data.marksObtained || 0,
+      totalMarks: response.data.totalMarks || 100,
+      hasPassed: response.data.hasPassed || false,
+      passingScore: 80, // Default passing score
+      evaluationResults: evaluationResults,
+      submittedAt: response.data.submittedAt || new Date().toISOString(),
+      timeLimit: 180, // Default time limit
+    },
+  };
 };
 
 // Roadmaps API

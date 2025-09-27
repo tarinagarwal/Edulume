@@ -20,6 +20,9 @@ import DiscussionDetailPage from "./components/discussions/DiscussionDetailPage"
 import CoursesPage from "./components/courses/CoursesPage";
 import CreateCoursePage from "./components/courses/CreateCoursePage";
 import CourseDetailPage from "./components/courses/CourseDetailPage";
+import TestPageStandalone from "./components/courses/TestPageStandalone";
+import TestResultsPageStandalone from "./components/courses/TestResultsPageStandalone";
+import TestProcessingPage from "./components/courses/TestProcessingPage";
 import RoadmapsPage from "./components/roadmaps/RoadmapPage";
 import CreateRoadmapPage from "./components/roadmaps/CreateRoadmapPage";
 import RoadmapDetailPage from "./components/roadmaps/RoadmapDetailPage";
@@ -104,6 +107,30 @@ const App: React.FC<AppProps> = () => {
           <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
           <Route path="/courses" element={<CoursesPage />} />
           <Route path="/courses/:id" element={<CourseDetailPage />} />
+          <Route
+            path="/courses/:courseId/test/:testId"
+            element={
+              <ProtectedRoute authenticated={isLoggedIn}>
+                <TestPageStandalone />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses/:courseId/test/:testId/processing"
+            element={
+              <ProtectedRoute authenticated={isLoggedIn}>
+                <TestProcessingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/courses/:courseId/test/:testId/results"
+            element={
+              <ProtectedRoute authenticated={isLoggedIn}>
+                <TestResultsPageStandalone />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/roadmaps" element={<RoadmapsPage />} />
           <Route path="/roadmaps/:id" element={<RoadmapDetailPage />} />
           <Route path="/pdf-chatbot" element={<PdfChatbotPage />} />

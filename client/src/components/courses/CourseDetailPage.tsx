@@ -30,9 +30,12 @@ import {
   enrollInCourse,
   unenrollFromCourse,
   updateChapterProgress,
+  generateCertificateTest,
+  getUserTests,
 } from "../../utils/api";
 import type { Course } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
+import TestInstructionsModal from "./TestInstructionsModal";
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -50,6 +53,16 @@ const CourseDetailPage: React.FC = () => {
   >(null);
   const [enrolling, setEnrolling] = useState(false);
   const [updatingProgress, setUpdatingProgress] = useState<string | null>(null);
+  const [showTestInstructions, setShowTestInstructions] = useState(false);
+  const [currentTest, setCurrentTest] = useState<any>(null);
+  const [generatingTest, setGeneratingTest] = useState(false);
+  const [userTests, setUserTests] = useState<any[]>([]);
+  const [testCooldown, setTestCooldown] = useState<{
+    isActive: boolean;
+    remainingMs: number;
+    nextAvailableAt: string;
+  } | null>(null);
+  const [cooldownTimer, setCooldownTimer] = useState<string>("");
 
   useEffect(() => {
     checkAuth();
@@ -57,6 +70,49 @@ const CourseDetailPage: React.FC = () => {
       fetchCourse();
     }
   }, [id]);
+
+  // Fetch tests when auth state changes from null to true
+  useEffect(() => {
+    if (isAuth === true && id && course) {
+      console.log("🔄 Auth state changed to true, fetching tests now...");
+      fetchUserTests();
+    }
+  }, [isAuth, id, course]);
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (!testCooldown?.isActive) {
+      setCooldownTimer("");
+      return;
+    }
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const remaining = testCooldown.remainingMs - (now - Date.parse(testCooldown.nextAvailableAt) + testCooldown.remainingMs);
+      
+      if (remaining <= 0) {
+        setTestCooldown(null);
+        setCooldownTimer("");
+        return;
+      }
+
+      const hours = Math.floor(remaining / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+      
+      setCooldownTimer(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    };
+
+    updateTimer(); // Initial call
+    const interval = setInterval(updateTimer, 1000);
+
+    return () => clearInterval(interval);
+  }, [testCooldown]);
+
+  // Check for navigation state (removed - no longer needed)
+  useEffect(() => {
+    // Navigation state handling removed as we now use separate results page
+  }, []);
 
   const checkAuth = async () => {
     const authenticated = await isAuthenticated();
@@ -70,11 +126,49 @@ const CourseDetailPage: React.FC = () => {
       setLoading(true);
       const response = await getCourse(id);
       setCourse(response.course);
+
+      console.log("📋 Course fetched:", {
+        courseId: response.course.id,
+        isAuth,
+        isEnrolled: response.course.is_enrolled,
+      });
+
+      // Fetch user tests if authenticated (for enrolled users or course owners)
+      if (isAuth) {
+        console.log("👍 User is authenticated, calling fetchUserTests...");
+        fetchUserTests();
+      } else {
+        console.log("❌ User not authenticated, skipping test fetch");
+      }
     } catch (error) {
       console.error("Error fetching course:", error);
       navigate("/courses");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUserTests = async () => {
+    if (!id) return;
+
+    try {
+      console.log("🧪 Fetching user tests for course:", id);
+      const response = await getUserTests(id);
+      console.log("✅ User tests fetched:", response.tests);
+      console.log("📊 Number of tests found:", response.tests.length);
+      console.log(
+        "🔍 Test details:",
+        response.tests.map((test) => ({
+          id: test.id,
+          status: test.status,
+          hasPassed: test.hasPassed,
+          score: test.score,
+          submittedAt: test.submittedAt,
+        }))
+      );
+      setUserTests(response.tests);
+    } catch (error) {
+      console.error("❌ Error fetching user tests:", error);
     }
   };
 
@@ -341,6 +435,113 @@ const CourseDetailPage: React.FC = () => {
     }
   };
 
+  const handleGenerateCertificateTest = async () => {
+    if (!course) return;
+
+    setGeneratingTest(true);
+    try {
+      const response = await generateCertificateTest(course.id);
+
+      // Handle cooldown response
+      if (!response.success && response.cooldown?.isActive) {
+        setTestCooldown({
+          isActive: true,
+          remainingMs: response.cooldown.remainingMs,
+          nextAvailableAt: response.cooldown.nextAvailableAt,
+        });
+        
+        // Update user tests with the tests from cooldown response
+        if (response.tests) {
+          setUserTests(response.tests);
+        }
+        
+        setGeneratingTest(false);
+        return;
+      }
+
+      // Handle successful test generation
+      if (response.success && response.test) {
+        // Transform the backend response to match frontend expectations
+        const transformedTest = {
+          ...response.test,
+          instructions: {
+            title: "Course Certificate Test",
+            duration: "3 hours",
+            totalQuestions: 20, // Fixed: 20 questions as per requirements
+            totalMarks: response.test.totalMarks || 100,
+            passingScore: response.test.passingScore || 80,
+            rules: (response.test as any).testInstructions?.instructions || [
+              "This is a comprehensive certification test with 20 questions.",
+              "You have exactly 3 hours to complete this test.",
+              "The test cannot be paused once started.",
+              "Questions include multiple choice, true/false, short answer, coding, and situational types.",
+              "Each question has specific marks as indicated.",
+              "You need to score at least 80% to pass and receive a certificate.",
+              "If you reload the page or close the browser, the test will be automatically submitted.",
+              "Make sure you have a stable internet connection.",
+              "Read each question carefully before answering.",
+            ],
+            questionTypes: (response.test as any).testInstructions
+              ?.questionTypes || {
+              mcq: "Multiple Choice - Select the best answer from given options",
+              true_false: "True/False - Determine if the statement is correct",
+              short_answer: "Short Answer - Provide concise written responses",
+              coding: "Coding/Practical - Demonstrate implementation skills",
+              situational:
+                "Situational - Apply knowledge to real-world scenarios",
+            },
+          },
+        };
+
+        setCurrentTest(transformedTest);
+        setShowTestInstructions(true);
+        
+        // Update user tests list
+        if (response.tests) {
+          setUserTests(response.tests);
+        }
+      }
+    } catch (error) {
+      console.error("Error generating test:", error);
+      alert(
+        `Failed to generate test: ${
+          //@ts-ignore
+          error.response?.data?.error || error.message || "Please try again."
+        }`
+      );
+    } finally {
+      setGeneratingTest(false);
+    }
+  };
+
+  const handleStartTest = () => {
+    if (!course || !currentTest) return;
+
+    setShowTestInstructions(false);
+    // Navigate to standalone test page with test data
+    navigate(`/courses/${course.id}/test/${currentTest.id}`, {
+      state: { testData: currentTest },
+    });
+    // Also save to localStorage as fallback
+    localStorage.setItem(`test_${currentTest.id}`, JSON.stringify(currentTest));
+  };
+
+  const handleTestComplete = (result: any) => {
+    // This won't be used in the new flow
+  };
+
+  const handleTestExit = () => {
+    setShowTestInstructions(false);
+    setCurrentTest(null);
+  };
+
+  const handleViewTestResult = async (testId: string) => {
+    if (!course) return;
+
+    // Navigate directly to the standalone test results page
+    navigate(`/courses/${course.id}/test/${testId}/results`);
+  };
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -539,12 +740,113 @@ const CourseDetailPage: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      <button className="bg-alien-green text-royal-black px-3 sm:px-4 py-2 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 shadow-alien-glow text-xs sm:text-sm">
-                        Get Certificate
-                      </button>
+                      
+                      {/* Show cooldown timer if active */}
+                      {testCooldown?.isActive ? (
+                        <div className="bg-orange-500/20 border border-orange-500 rounded-lg px-3 py-2">
+                          <div className="text-center">
+                            <div className="text-orange-400 font-semibold text-sm">
+                              Next test available in:
+                            </div>
+                            <div className="text-orange-300 font-mono text-lg">
+                              {cooldownTimer}
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          className="bg-alien-green text-royal-black px-3 sm:px-4 py-2 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 shadow-alien-glow text-xs sm:text-sm"
+                          onClick={handleGenerateCertificateTest}
+                          disabled={generatingTest}
+                        >
+                          {generatingTest ? (
+                            <>
+                              <Loader2 className="animate-spin w-4 h-4 inline mr-2" />
+                              Generating Test...
+                            </>
+                          ) : (
+                            "Get Certificate"
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
+
+                {/* Test Results Section */}
+                {/* {userTests.length > 0 && (
+                  <div className="mt-4 sm:mt-6">
+                    <h4 className="text-sm font-semibold text-white mb-3 flex items-center">
+                      <Award className="w-4 h-4 mr-2 text-alien-green" />
+                      Certificate Tests
+                    </h4>
+                    <div className="space-y-2">
+                      {userTests.map((test) => (
+                        <div
+                          key={test.id}
+                          className="bg-royal-black rounded-lg p-3 border border-smoke-light"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div
+                                className={`w-3 h-3 rounded-full ${
+                                  test.status === "completed" && test.hasPassed
+                                    ? "bg-green-400"
+                                    : test.status === "completed" &&
+                                      !test.hasPassed
+                                    ? "bg-red-400"
+                                    : test.status === "processing"
+                                    ? "bg-yellow-400 animate-pulse"
+                                    : "bg-gray-400"
+                                }`}
+                              ></div>
+                              <div>
+                                <p className="text-white text-sm font-medium">
+                                  {test.status === "completed"
+                                    ? test.hasPassed
+                                      ? `Passed (${test.score}%)`
+                                      : `Failed (${test.score}%)`
+                                    : test.status === "processing"
+                                    ? "Processing..."
+                                    : "In Progress"}
+                                </p>
+                                <p className="text-gray-400 text-xs">
+                                  {test.submittedAt
+                                    ? `Submitted ${new Date(
+                                        test.submittedAt
+                                      ).toLocaleDateString()}`
+                                    : `Started ${new Date(
+                                        test.createdAt
+                                      ).toLocaleDateString()}`}
+                                </p>
+                              </div>
+                            </div>
+                            {test.status === "completed" && (
+                              <button
+                                onClick={() => handleViewTestResult(test.id)}
+                                className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-medium transition-colors duration-300"
+                              >
+                                Test Results
+                              </button>
+                            )}
+                            {test.status === "processing" && (
+                              <button
+                                onClick={() =>
+                                  navigate(
+                                    `/courses/${course.id}/test/${test.id}/processing`
+                                  )
+                                }
+                                className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 text-white rounded text-xs font-medium transition-colors duration-300"
+                              >
+                                Check Status
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )} */}
 
                 <div className="text-xs text-gray-400">
                   Enrolled on{" "}
@@ -565,7 +867,103 @@ const CourseDetailPage: React.FC = () => {
             </div>
           )}
 
-          {/* Chapters */}
+          {/* Test Results Section - Show even if not enrolled (for course owners or special cases) */}
+          {isAuth && userTests.length > 0 && (
+            <div className="bg-smoke-gray rounded-lg p-4 sm:p-6">
+              <h2 className="text-lg sm:text-xl font-semibold mb-4 flex items-center space-x-2">
+                <Award className="text-alien-green w-5 h-5 sm:w-6 sm:h-6" />
+                <span>Certificate Test History</span>
+              </h2>
+              <div className="space-y-3">
+                {userTests.map((test, index) => (
+                  <div
+                    key={test.id}
+                    className="bg-royal-black rounded-lg p-4 border border-smoke-light"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
+                            Attempt #{userTests.length - index}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded font-semibold ${
+                            test.status === "completed" && test.hasPassed
+                              ? "bg-green-600 text-white"
+                              : test.status === "completed" && !test.hasPassed
+                              ? "bg-red-600 text-white" 
+                              : test.status === "processing"
+                              ? "bg-yellow-600 text-black"
+                              : "bg-gray-600 text-white"
+                          }`}>
+                            {test.status === "completed" && test.hasPassed && "PASSED"}
+                            {test.status === "completed" && !test.hasPassed && "FAILED"}
+                            {test.status === "processing" && "PROCESSING"}
+                            {test.status === "in_progress" && "IN PROGRESS"}
+                          </span>
+                          {test.status === "completed" && test.score !== null && (
+                            <span className={`font-bold ${
+                              test.hasPassed ? "text-green-400" : "text-red-400"
+                            }`}>
+                              {test.score}%
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400">
+                          <span>
+                            Created: {new Date(test.createdAt).toLocaleDateString()}
+                          </span>
+                          {test.submittedAt && (
+                            <span>
+                              Submitted: {new Date(test.submittedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                          {test.status === "completed" && test.marksObtained !== null && test.totalMarks && (
+                            <span>
+                              Score: {test.marksObtained}/{test.totalMarks} marks
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        {test.status === "in_progress" && (
+                          <button
+                            onClick={() => {
+                              navigate(`/courses/${course?.id}/test/${test.id}`);
+                            }}
+                            className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-semibold transition-colors"
+                          >
+                            Continue Test
+                          </button>
+                        )}
+                        {test.status === "processing" && (
+                          <button
+                            onClick={() => {
+                              navigate(`/courses/${course?.id}/test/${test.id}/processing`);
+                            }}
+                            className="bg-yellow-600 hover:bg-yellow-700 text-black px-3 py-1 rounded text-xs font-semibold transition-colors"
+                          >
+                            Check Status
+                          </button>
+                        )}
+                        {test.status === "completed" && (
+                          <button
+                            onClick={() => {
+                              navigate(`/courses/${course?.id}/test/${test.id}/results`);
+                            }}
+                            className="bg-alien-green hover:bg-alien-green/90 text-royal-black px-3 py-1 rounded text-xs font-semibold transition-colors"
+                          >
+                            View Results
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="bg-smoke-gray rounded-lg p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-4 sm:mb-6">
               <h2 className="text-lg sm:text-xl font-semibold">
@@ -625,9 +1023,8 @@ const CourseDetailPage: React.FC = () => {
             )}
 
             {/* Show completion message if all chapters have content. Add logic to show it for one time*/}
-            
-            
-            {isOwner && 
+
+            {isOwner &&
               course.chapters &&
               course.chapters.length > 0 &&
               course.chapters.every((ch) => ch.content) && (
@@ -649,7 +1046,6 @@ const CourseDetailPage: React.FC = () => {
                     <span className="text-alien-green font-medium text-xs sm:text-sm">
                       All course content has been generated successfully!
                     </span>
-
                   </div>
                 </div>
               )}
@@ -863,6 +1259,18 @@ const CourseDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Test Components */}
+      {showTestInstructions && currentTest && (
+        <TestInstructionsModal
+          isOpen={showTestInstructions}
+          onClose={handleTestExit}
+          onStartTest={handleStartTest}
+          instructions={currentTest.instructions}
+          courseTitle={course.title}
+          questions={currentTest.questions}
+        />
+      )}
     </div>
   );
 };
