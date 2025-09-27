@@ -657,6 +657,48 @@ export const submitCertificateTest = async (
   return response.data;
 };
 
+export const getCertificateData = async (
+  courseId: string,
+  testId: string
+): Promise<{
+  success: boolean;
+  message: string;
+  certificateData: {
+    studentName: string;
+    courseName: string;
+    instructorName: string;
+    completionDate: string;
+    certificateId: string;
+    score: number;
+    totalMarks: number;
+    marksObtained: number;
+  };
+}> => {
+  const response = await api.get(
+    `/courses/${courseId}/test/${testId}/certificate`
+  );
+  return response.data;
+};
+
+// Get certificate verification data
+export const getCertificateVerification = async (certificateId: string) => {
+  const response = await fetch(
+    `${API_BASE_URL}/courses/verify-certificate/${certificateId}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Error: ${response.status}`);
+  }
+
+  return response.json();
+};
+
 export const validateTestAccess = async (
   courseId: string,
   testId: string
@@ -667,7 +709,9 @@ export const validateTestAccess = async (
   status?: string;
   error?: string;
 }> => {
-  const response = await api.get(`/courses/${courseId}/test/${testId}/validate`);
+  const response = await api.get(
+    `/courses/${courseId}/test/${testId}/validate`
+  );
   return response.data;
 };
 

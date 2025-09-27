@@ -121,7 +121,7 @@ const FeatureSuggestionPage: React.FC = () => {
                 Suggest a Feature
               </h1>
               <p className="text-gray-400">
-                Help us improve AlienVault with your ideas
+                Help us improve Teacher's Choice with your ideas
               </p>
             </div>
           </div>

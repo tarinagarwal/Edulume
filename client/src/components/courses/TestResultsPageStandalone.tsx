@@ -8,7 +8,8 @@ import {
   Download,
   Loader2,
 } from "lucide-react";
-import { getCertificateTestResult } from "../../utils/api";
+import { getCertificateTestResult, getCertificateData } from "../../utils/api";
+import { generateAndDownloadCertificate } from "../../services/certificateService";
 
 interface TestResult {
   id: string;
@@ -33,6 +34,7 @@ const TestResultsPageStandalone: React.FC = () => {
   const [result, setResult] = useState<TestResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingCertificate, setDownloadingCertificate] = useState(false);
 
   useEffect(() => {
     const fetchTestResult = async () => {
@@ -54,11 +56,11 @@ const TestResultsPageStandalone: React.FC = () => {
 
     // Security: Prevent back navigation to test/processing pages
     window.history.pushState(null, "", window.location.href);
-    
+
     const handlePopState = (e: PopStateEvent) => {
       // Allow normal navigation but prevent going back to test pages
       const currentPath = window.location.pathname;
-      if (currentPath.includes('/test/') && !currentPath.includes('/results')) {
+      if (currentPath.includes("/test/") && !currentPath.includes("/results")) {
         e.preventDefault();
         window.history.pushState(null, "", window.location.href);
       }
@@ -128,9 +130,51 @@ const TestResultsPageStandalone: React.FC = () => {
     navigate(`/courses/${courseId}`, { replace: true });
   };
 
-  const handleDownloadCertificate = () => {
-    // TODO: Implement certificate download functionality
-    alert("Certificate download functionality will be implemented soon!");
+  const handleDownloadCertificate = async () => {
+    if (!courseId || !testId || !result) return;
+
+    setDownloadingCertificate(true);
+    try {
+      console.log("🏆 Starting certificate download...");
+      console.log("📋 Course ID:", courseId);
+      console.log("📋 Test ID:", testId);
+
+      // Get certificate data from server
+      const response = await getCertificateData(courseId, testId);
+      console.log("📡 Server response:", response);
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to get certificate data");
+      }
+
+      console.log("📄 Certificate data received:", response.certificateData);
+
+      // Generate and download the certificate PDF
+      await generateAndDownloadCertificate(response.certificateData);
+
+      console.log("✅ Certificate download completed successfully!");
+    } catch (error) {
+      console.error("❌ Error downloading certificate:", error);
+
+      let errorMessage = "Please try again.";
+
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      //@ts-ignore
+      else if (error.response?.data?.error) {
+        //@ts-ignore
+        errorMessage = error.response.data.error;
+      }
+      //@ts-ignore
+      else if (error.response?.status === 429) {
+        errorMessage = "Please wait before trying again (rate limit).";
+      }
+
+      alert(`Failed to download certificate: ${errorMessage}`);
+    } finally {
+      setDownloadingCertificate(false);
+    }
   };
 
   if (loading) {
@@ -233,10 +277,20 @@ const TestResultsPageStandalone: React.FC = () => {
               </div>
               <button
                 onClick={handleDownloadCertificate}
-                className="bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors shadow-alien-glow flex items-center space-x-2 mx-auto"
+                disabled={downloadingCertificate}
+                className="bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors shadow-alien-glow flex items-center space-x-2 mx-auto disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Download size={20} />
-                <span>Download Certificate</span>
+                {downloadingCertificate ? (
+                  <>
+                    <Loader2 className="animate-spin" size={20} />
+                    <span>Generating...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download size={20} />
+                    <span>Download Certificate</span>
+                  </>
+                )}
               </button>
             </div>
           )}

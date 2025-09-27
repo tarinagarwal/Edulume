@@ -170,7 +170,7 @@ const BugReportPage: React.FC = () => {
                 Report a Bug
               </h1>
               <p className="text-gray-400">
-                Help us fix issues and improve AlienVault
+                Help us fix issues and improve Teacher's Choice
               </p>
             </div>
           </div>

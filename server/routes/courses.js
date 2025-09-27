@@ -1264,16 +1264,20 @@ router.post("/:courseId/test/generate", authenticateToken, async (req, res) => {
         return res.status(429).json({
           success: false,
           error: "Test cooldown active",
-          message: `You must wait ${Math.ceil(remainingHours)} hours before generating a new test`,
+          message: `You must wait ${Math.ceil(
+            remainingHours
+          )} hours before generating a new test`,
           cooldown: {
             isActive: true,
             remainingHours: Math.ceil(remainingHours),
             remainingMinutes: remainingMinutes,
             remainingMs: remainingMs,
-            nextAvailableAt: new Date(testCreatedAt.getTime() + (cooldownHours * 60 * 60 * 1000)).toISOString(),
+            nextAvailableAt: new Date(
+              testCreatedAt.getTime() + cooldownHours * 60 * 60 * 1000
+            ).toISOString(),
             lastTestDate: latestTest.createdAt,
           },
-          tests: existingTests.map(test => ({
+          tests: existingTests.map((test) => ({
             id: test.id,
             status: test.status,
             score: test.score,
@@ -1287,7 +1291,9 @@ router.post("/:courseId/test/generate", authenticateToken, async (req, res) => {
       }
 
       // Check if there's an in-progress test
-      const inProgressTest = existingTests.find(test => test.status === "in_progress");
+      const inProgressTest = existingTests.find(
+        (test) => test.status === "in_progress"
+      );
       if (inProgressTest) {
         return res.json({
           success: true,
@@ -1302,7 +1308,7 @@ router.post("/:courseId/test/generate", authenticateToken, async (req, res) => {
             status: inProgressTest.status,
             createdAt: inProgressTest.createdAt,
           },
-          tests: existingTests.map(test => ({
+          tests: existingTests.map((test) => ({
             id: test.id,
             status: test.status,
             score: test.score,
@@ -1948,7 +1954,7 @@ Requirements:
         status: test.status,
         createdAt: test.createdAt,
       },
-      tests: allTests.map(t => ({
+      tests: allTests.map((t) => ({
         id: t.id,
         status: t.status,
         score: t.score,
@@ -2409,5 +2415,202 @@ Provide ONLY a JSON response in this exact format:
     }
   }
 }
+
+// Download certificate for completed test
+router.get(
+  "/:courseId/test/:testId/certificate",
+  authenticateToken,
+  async (req, res) => {
+    try {
+      const { courseId, testId } = req.params;
+      const userId = req.user.id;
+
+      console.log("🏆 Certificate download request:", {
+        courseId,
+        testId,
+        userId,
+      });
+
+      // Get the test with validation
+      const test = await prisma.courseTest.findFirst({
+        where: {
+          id: testId,
+          courseId: courseId,
+          userId: userId, // Security: only user's own test
+        },
+        include: {
+          course: {
+            select: {
+              title: true,
+              author: {
+                select: {
+                  username: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!test) {
+        return res.status(404).json({
+          success: false,
+          error: "Test not found or access denied",
+        });
+      }
+
+      // Validate test is completed and passed
+      if (test.status !== "completed") {
+        return res.status(400).json({
+          success: false,
+          error: "Test must be completed to download certificate",
+        });
+      }
+
+      if (!test.hasPassed) {
+        return res.status(400).json({
+          success: false,
+          error: "Test must be passed to download certificate",
+        });
+      }
+
+      // Get user information
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          username: true,
+          email: true,
+        },
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          error: "User not found",
+        });
+      }
+
+      // Prepare certificate data
+      const certificateData = {
+        studentName: user.username,
+        courseName: test.course.title,
+        instructorName: test.course.author.username,
+        completionDate: new Date(test.submittedAt).toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        }),
+        certificateId: test.id,
+        score: test.score || 0,
+        totalMarks: test.totalMarks || 100,
+        marksObtained: test.marksObtained || 0,
+      };
+
+      console.log("✅ Certificate data prepared:", {
+        studentName: certificateData.studentName,
+        courseName: certificateData.courseName,
+        score: certificateData.score,
+        certificateId: certificateData.certificateId,
+      });
+
+      res.json({
+        success: true,
+        message: "Certificate data retrieved successfully",
+        certificateData,
+      });
+    } catch (error) {
+      console.error("❌ Error retrieving certificate data:", error);
+      res.status(500).json({
+        success: false,
+        error: "Failed to retrieve certificate data",
+      });
+    }
+  }
+);
+
+// Certificate verification endpoint (public access)
+router.get("/verify-certificate/:certificateId", async (req, res) => {
+  try {
+    const { certificateId } = req.params;
+
+    console.log("🔍 Certificate verification request:", {
+      certificateId,
+    });
+
+    // Get the test with certificate validation
+    const test = await prisma.courseTest.findFirst({
+      where: {
+        id: certificateId,
+        status: "completed",
+        hasPassed: true,
+      },
+      include: {
+        course: {
+          select: {
+            title: true,
+            author: {
+              select: {
+                username: true,
+              },
+            },
+          },
+        },
+        user: {
+          select: {
+            username: true,
+          },
+        },
+      },
+    });
+
+    if (!test) {
+      return res.json({
+        success: true,
+        isValid: false,
+        error: "Certificate not found or invalid",
+      });
+    }
+
+    // Prepare certificate verification data
+    const certificateDetails = {
+      studentName: test.user.username,
+      courseName: test.course.title,
+      instructorName: test.course.author.username,
+      completionDate: new Date(test.submittedAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      certificateId: test.id,
+      score: test.score || 0,
+      totalMarks: test.totalMarks || 100,
+      marksObtained: test.marksObtained || 0,
+      issueDate: new Date(test.submittedAt).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+    };
+
+    console.log("✅ Certificate verification successful:", {
+      certificateId,
+      studentName: certificateDetails.studentName,
+      courseName: certificateDetails.courseName,
+    });
+
+    res.json({
+      success: true,
+      isValid: true,
+      certificateDetails,
+    });
+  } catch (error) {
+    console.error("❌ Error verifying certificate:", error);
+    res.status(500).json({
+      success: false,
+      isValid: false,
+      error: "Failed to verify certificate",
+    });
+  }
+});
 
 export default router;

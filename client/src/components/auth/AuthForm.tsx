@@ -59,7 +59,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
 
       // Set success message for signup
       if (!isLogin) {
-        setSuccess("Account created successfully! Welcome to AlienVault!");
+        setSuccess("Account created successfully! Welcome to Teacher's Choice!");
       }
 
       // Notify parent component to re-check auth status

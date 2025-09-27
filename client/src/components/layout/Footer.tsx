@@ -60,7 +60,7 @@ const Footer: React.FC = () => {
             <div className="flex items-center space-x-2 mb-4">
               <img src="/logo.png" alt="AlienVault Logo" className="w-8 h-8" />
               <span className="glow-text text-xl font-alien font-bold">
-                AlienVault
+                Teacher's Choice
               </span>
             </div>
             <p className="text-gray-400 text-sm mb-6 leading-relaxed">
@@ -223,7 +223,7 @@ const Footer: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col lg:flex-row justify-between items-center space-y-4 lg:space-y-0">
             <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4 text-sm text-gray-400 text-center sm:text-left">
-              <span>© {currentYear} AlienVault</span>
+              <span>© {currentYear} Teacher's Choice</span>
               <span className="hidden md:inline">•</span>
               <span className="flex items-center">
                 Made with <Heart className="mx-1 text-red-400" size={14} /> for

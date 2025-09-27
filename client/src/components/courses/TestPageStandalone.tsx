@@ -67,11 +67,11 @@ const TestPageStandalone: React.FC = () => {
         console.log("✅ Test access validated");
       } catch (error: any) {
         console.error("❌ Test access denied:", error);
-        
+
         // Clear any stored test data for security
         localStorage.removeItem(`test_${testId}`);
         localStorage.removeItem(`test_answers_${testId}`);
-        
+
         setAccessDenied(true);
         setAccessError(
           error.response?.data?.error || "Access denied to this test"

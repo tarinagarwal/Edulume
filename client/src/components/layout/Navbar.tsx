@@ -147,7 +147,9 @@ export default function ResponsiveNavbar({
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center space-x-2">
               <img src="/logo.png" alt="AlienVault Logo" className="w-8 h-8 " />
-              <span className="glow-text text-xl font-bold">AlienVault</span>
+              <span className="glow-text text-xl font-bold">
+                Teacher's Choice
+              </span>
             </Link>
             <div className="w-6 h-6 border-2 border-alien-green border-t-transparent rounded-full animate-spin" />
           </div>
@@ -162,7 +164,9 @@ export default function ResponsiveNavbar({
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
             <img src="/logo.png" alt="AlienVault Logo" className="w-8 h-8 " />
-            <span className="glow-text text-xl font-bold">AlienVault</span>
+            <span className="glow-text text-xl font-bold">
+              Teacher's Choice
+            </span>
           </Link>
 
           {/* Mobile hamburger */}
@@ -456,7 +460,9 @@ export default function ResponsiveNavbar({
             className="flex items-center space-x-2"
           >
             <img src="/logo.png" alt="AlienVault Logo" className="w-8 h-8" />
-            <span className="glow-text text-xl font-bold">AlienVault</span>
+            <span className="glow-text text-xl font-bold">
+              Teacher's Choice
+            </span>
           </Link>
           <button
             aria-label="Close menu"

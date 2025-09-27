@@ -31,6 +31,7 @@ import BugReportPage from "./components/feedback/BugReportPage";
 import AdminPanel from "./components/admin/AdminPanel";
 import AdminRoute from "./components/admin/AdminRoute";
 import PdfChatbotPage from "./components/ai/PdfChatbotPage";
+import CertificateVerificationPage from "./pages/CertificateVerificationPage";
 import Footer from "./components/layout/Footer";
 import ScrollToTop from "./components/ui/ScrollToTop";
 import ScrollToTopOnRouteChange from "./components/ui/ScrollToTopOnRouteChange";
@@ -175,6 +176,10 @@ const App: React.FC<AppProps> = () => {
                 <UploadForm />
               </ProtectedRoute>
             }
+          />
+          <Route
+            path="/verify-certificate"
+            element={<CertificateVerificationPage />}
           />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

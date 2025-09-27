@@ -60,7 +60,7 @@ const TestProcessingPage: React.FC = () => {
 
     // Security: Prevent back navigation during processing
     window.history.pushState(null, "", window.location.href);
-    
+
     const handlePopState = (e: PopStateEvent) => {
       e.preventDefault();
       window.history.pushState(null, "", window.location.href);

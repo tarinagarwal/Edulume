@@ -88,8 +88,12 @@ const CourseDetailPage: React.FC = () => {
 
     const updateTimer = () => {
       const now = Date.now();
-      const remaining = testCooldown.remainingMs - (now - Date.parse(testCooldown.nextAvailableAt) + testCooldown.remainingMs);
-      
+      const remaining =
+        testCooldown.remainingMs -
+        (now -
+          Date.parse(testCooldown.nextAvailableAt) +
+          testCooldown.remainingMs);
+
       if (remaining <= 0) {
         setTestCooldown(null);
         setCooldownTimer("");
@@ -99,8 +103,12 @@ const CourseDetailPage: React.FC = () => {
       const hours = Math.floor(remaining / (1000 * 60 * 60));
       const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
       const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-      
-      setCooldownTimer(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+
+      setCooldownTimer(
+        `${hours.toString().padStart(2, "0")}:${minutes
+          .toString()
+          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+      );
     };
 
     updateTimer(); // Initial call
@@ -449,12 +457,12 @@ const CourseDetailPage: React.FC = () => {
           remainingMs: response.cooldown.remainingMs,
           nextAvailableAt: response.cooldown.nextAvailableAt,
         });
-        
+
         // Update user tests with the tests from cooldown response
         if (response.tests) {
           setUserTests(response.tests);
         }
-        
+
         setGeneratingTest(false);
         return;
       }
@@ -495,7 +503,7 @@ const CourseDetailPage: React.FC = () => {
 
         setCurrentTest(transformedTest);
         setShowTestInstructions(true);
-        
+
         // Update user tests list
         if (response.tests) {
           setUserTests(response.tests);
@@ -740,7 +748,7 @@ const CourseDetailPage: React.FC = () => {
                           </p>
                         </div>
                       </div>
-                      
+
                       {/* Show cooldown timer if active */}
                       {testCooldown?.isActive ? (
                         <div className="bg-orange-500/20 border border-orange-500 rounded-lg px-3 py-2">
@@ -886,51 +894,69 @@ const CourseDetailPage: React.FC = () => {
                           <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded">
                             Attempt #{userTests.length - index}
                           </span>
-                          <span className={`text-xs px-2 py-1 rounded font-semibold ${
-                            test.status === "completed" && test.hasPassed
-                              ? "bg-green-600 text-white"
-                              : test.status === "completed" && !test.hasPassed
-                              ? "bg-red-600 text-white" 
-                              : test.status === "processing"
-                              ? "bg-yellow-600 text-black"
-                              : "bg-gray-600 text-white"
-                          }`}>
-                            {test.status === "completed" && test.hasPassed && "PASSED"}
-                            {test.status === "completed" && !test.hasPassed && "FAILED"}
+                          <span
+                            className={`text-xs px-2 py-1 rounded font-semibold ${
+                              test.status === "completed" && test.hasPassed
+                                ? "bg-green-600 text-white"
+                                : test.status === "completed" && !test.hasPassed
+                                ? "bg-red-600 text-white"
+                                : test.status === "processing"
+                                ? "bg-yellow-600 text-black"
+                                : "bg-gray-600 text-white"
+                            }`}
+                          >
+                            {test.status === "completed" &&
+                              test.hasPassed &&
+                              "PASSED"}
+                            {test.status === "completed" &&
+                              !test.hasPassed &&
+                              "FAILED"}
                             {test.status === "processing" && "PROCESSING"}
                             {test.status === "in_progress" && "IN PROGRESS"}
                           </span>
-                          {test.status === "completed" && test.score !== null && (
-                            <span className={`font-bold ${
-                              test.hasPassed ? "text-green-400" : "text-red-400"
-                            }`}>
-                              {test.score}%
-                            </span>
-                          )}
+                          {test.status === "completed" &&
+                            test.score !== null && (
+                              <span
+                                className={`font-bold ${
+                                  test.hasPassed
+                                    ? "text-green-400"
+                                    : "text-red-400"
+                                }`}
+                              >
+                                {test.score}%
+                              </span>
+                            )}
                         </div>
-                        
+
                         <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400">
                           <span>
-                            Created: {new Date(test.createdAt).toLocaleDateString()}
+                            Created:{" "}
+                            {new Date(test.createdAt).toLocaleDateString()}
                           </span>
                           {test.submittedAt && (
                             <span>
-                              Submitted: {new Date(test.submittedAt).toLocaleDateString()}
+                              Submitted:{" "}
+                              {new Date(test.submittedAt).toLocaleDateString()}
                             </span>
                           )}
-                          {test.status === "completed" && test.marksObtained !== null && test.totalMarks && (
-                            <span>
-                              Score: {test.marksObtained}/{test.totalMarks} marks
-                            </span>
-                          )}
+                          {test.status === "completed" &&
+                            test.marksObtained !== null &&
+                            test.totalMarks && (
+                              <span>
+                                Score: {test.marksObtained}/{test.totalMarks}{" "}
+                                marks
+                              </span>
+                            )}
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center space-x-2">
                         {test.status === "in_progress" && (
                           <button
                             onClick={() => {
-                              navigate(`/courses/${course?.id}/test/${test.id}`);
+                              navigate(
+                                `/courses/${course?.id}/test/${test.id}`
+                              );
                             }}
                             className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs font-semibold transition-colors"
                           >
@@ -940,7 +966,9 @@ const CourseDetailPage: React.FC = () => {
                         {test.status === "processing" && (
                           <button
                             onClick={() => {
-                              navigate(`/courses/${course?.id}/test/${test.id}/processing`);
+                              navigate(
+                                `/courses/${course?.id}/test/${test.id}/processing`
+                              );
                             }}
                             className="bg-yellow-600 hover:bg-yellow-700 text-black px-3 py-1 rounded text-xs font-semibold transition-colors"
                           >
@@ -950,7 +978,9 @@ const CourseDetailPage: React.FC = () => {
                         {test.status === "completed" && (
                           <button
                             onClick={() => {
-                              navigate(`/courses/${course?.id}/test/${test.id}/results`);
+                              navigate(
+                                `/courses/${course?.id}/test/${test.id}/results`
+                              );
                             }}
                             className="bg-alien-green hover:bg-alien-green/90 text-royal-black px-3 py-1 rounded text-xs font-semibold transition-colors"
                           >
