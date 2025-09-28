@@ -13,6 +13,12 @@ import {
   X,
 } from "lucide-react";
 import { submitCertificateTest, validateTestAccess } from "../../utils/api";
+import MonacoCodeEditor from "../ui/MonacoCodeEditor";
+import {
+  detectLanguageFromQuestion,
+  getMonacoLanguageId,
+  getLanguageDisplayName,
+} from "../../utils/languageDetection";
 
 interface Question {
   id: string;
@@ -345,15 +351,46 @@ const TestPageStandalone: React.FC = () => {
         );
 
       case "coding":
+        const detectedLang = detectLanguageFromQuestion(question.question);
+        const monacoLang = getMonacoLanguageId(detectedLang);
+        const displayLang = getLanguageDisplayName(monacoLang);
+
         return (
-          <textarea
-            key={`${questionId}-coding`}
-            value={currentAnswer || ""}
-            onChange={(e) => handleAnswerChange(questionId, e.target.value)}
-            placeholder="Write your code here..."
-            className="w-full h-48 sm:h-64 p-3 bg-smoke-gray border border-smoke-light rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-alien-green font-mono text-xs sm:text-sm resize-none"
-            id={`${questionId}-coding`}
-          />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-gray-400">
+                Auto-detected:{" "}
+                <span className="text-alien-green font-semibold">
+                  {displayLang}
+                </span>
+              </span>
+            </div>
+            <MonacoCodeEditor
+              key={`${questionId}-coding`}
+              value={currentAnswer || ""}
+              onChange={(value) => handleAnswerChange(questionId, value)}
+              language={monacoLang}
+              placeholder={`Write your ${displayLang} code here...`}
+              height="400px"
+              className="w-full"
+              showLanguageSelector={true}
+              onLanguageChange={(newLang) => {
+                console.log(`Language changed to: ${newLang}`);
+              }}
+            />
+            <div className="text-xs text-gray-400 mt-2 p-2 bg-smoke-gray rounded">
+              <p>
+                💡 <strong>Coding Tips:</strong>
+              </p>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>Use proper indentation and formatting</li>
+                <li>Add comments to explain your logic</li>
+                <li>Focus on correctness and best practices</li>
+                <li>Press Ctrl+Space for auto-completion</li>
+                <li>Use F1 for editor commands and shortcuts</li>
+              </ul>
+            </div>
+          </div>
         );
 
       default:

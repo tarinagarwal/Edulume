@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/vite": "^4.1.12",
     "@types/qrcode": "^1.5.5",
     "@vercel/blob": "^1.1.1",
@@ -20,6 +21,7 @@
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
     "lucide-react": "^0.540.0",
+    "monaco-editor": "^0.53.0",
     "qrcode": "^1.5.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

@@ -18,6 +18,12 @@ import {
 } from "lucide-react";
 import { submitCertificateTest } from "../../utils/api";
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
+import MonacoCodeEditor from "../ui/MonacoCodeEditor";
+import {
+  detectLanguageFromQuestion,
+  getMonacoLanguageId,
+  getLanguageDisplayName,
+} from "../../utils/languageDetection";
 
 interface Question {
   id: string;
@@ -161,8 +167,17 @@ const TestPage: React.FC<TestPageProps> = ({
 
     setIsSubmitting(true);
     try {
-      const result = await submitCertificateTest(courseId, test.id, answers);
-      onTestComplete(result.result);
+      // Convert answers object to array format expected by server
+      const answersArray = test.questions.map((question) => {
+        return answers[question.id] || null; // Use null for unanswered questions
+      });
+
+      const result = await submitCertificateTest(
+        courseId,
+        test.id,
+        answersArray
+      );
+      onTestComplete(result);
     } catch (error) {
       console.error("Error submitting test:", error);
       alert("Failed to submit test. Please try again.");
@@ -272,20 +287,55 @@ const TestPage: React.FC<TestPageProps> = ({
         );
 
       case "coding":
+        const detectedLang = detectLanguageFromQuestion(
+          currentQuestion.question
+        );
+        const monacoLang = getMonacoLanguageId(detectedLang);
+        const displayLang = getLanguageDisplayName(monacoLang);
+
         return (
-          <div>
-            <textarea
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-400">
+                Auto-detected:{" "}
+                <span className="text-alien-green font-semibold">
+                  {displayLang}
+                </span>
+              </span>
+              <span className="text-xs text-blue-400">
+                You can change language using the dropdown
+              </span>
+            </div>
+            <MonacoCodeEditor
               value={answers[currentQuestion.id] || ""}
-              onChange={(e) =>
-                handleAnswerChange(currentQuestion.id, e.target.value)
+              onChange={(value) =>
+                handleAnswerChange(currentQuestion.id, value)
               }
-              placeholder="Enter your code or solution here..."
-              className="w-full h-48 p-4 bg-royal-black border border-smoke-light rounded-lg text-white placeholder-gray-400 focus:border-alien-green focus:ring-1 focus:ring-alien-green resize-none font-mono"
+              language={monacoLang}
+              placeholder={`Enter your ${displayLang} code or solution here...`}
+              height="400px"
+              className="w-full"
+              showLanguageSelector={true}
+              onLanguageChange={(newLang) => {
+                console.log(`Language changed to: ${newLang}`);
+              }}
             />
-            <p className="text-gray-400 text-sm mt-2">
-              Write your code solution. Focus on the logic and approach rather
-              than perfect syntax.
-            </p>
+            <div className="text-xs text-gray-400 p-3 bg-royal-black border border-smoke-light rounded-lg">
+              <p className="text-alien-green font-semibold mb-2">
+                💡 Coding Tips:
+              </p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Write clean, readable code with proper indentation</li>
+                <li>Add comments to explain your logic and approach</li>
+                <li>Focus on correctness and algorithm efficiency</li>
+                <li>Test your logic mentally before submitting</li>
+                <li>Use meaningful variable and function names</li>
+              </ul>
+              <p className="text-yellow-400 mt-2 text-xs">
+                Press Ctrl+Space for auto-completion • Press F1 for editor
+                commands
+              </p>
+            </div>
           </div>
         );
 
