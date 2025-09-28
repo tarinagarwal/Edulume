@@ -22,7 +22,14 @@ import {
 
 interface Question {
   id: string;
-  type: "mcq" | "true_false" | "short_answer" | "coding" | "situational";
+  type:
+    | "mcq"
+    | "true_false"
+    | "true/false"
+    | "short_answer"
+    | "short answer"
+    | "coding"
+    | "situational";
   question: string;
   options?: string[];
   marks: number;
@@ -124,6 +131,14 @@ const TestPageStandalone: React.FC = () => {
 
         setTestData(data);
         setTimeRemaining(data.timeLimit * 60);
+
+        // Debug logging
+        console.log("📊 Test data loaded:", {
+          totalQuestions: data.questions?.length,
+          questionTypes: data.questions?.map((q, i) => `${i + 1}: ${q.type}`),
+          sampleQuestion: data.questions?.[0],
+        });
+
         const savedAnswers = localStorage.getItem(`test_answers_${testId}`);
         if (savedAnswers) {
           try {
@@ -282,11 +297,90 @@ const TestPageStandalone: React.FC = () => {
     // Get answer specifically for this question ID
     const currentAnswer = answers[questionId];
 
-    switch (question.type) {
+    // Normalize question type to handle various AI-generated formats
+    const normalizeQuestionType = (type: string): string => {
+      const normalized = type.toLowerCase().trim();
+
+      // Handle true/false variations
+      if (
+        normalized === "true/false" ||
+        normalized === "true_false" ||
+        normalized === "true false"
+      ) {
+        return "true_false";
+      }
+
+      // Handle short answer variations
+      if (
+        normalized === "short answer" ||
+        normalized === "short_answer" ||
+        normalized === "short-answer"
+      ) {
+        return "short_answer";
+      }
+
+      // Handle other variations
+      if (
+        normalized === "multiple choice" ||
+        normalized === "multiple_choice" ||
+        normalized === "mcq"
+      ) {
+        return "mcq";
+      }
+
+      if (
+        normalized === "code" ||
+        normalized === "coding" ||
+        normalized === "programming"
+      ) {
+        return "coding";
+      }
+
+      if (
+        normalized === "situation" ||
+        normalized === "situational" ||
+        normalized === "scenario"
+      ) {
+        return "situational";
+      }
+
+      return normalized;
+    };
+
+    const normalizedType = normalizeQuestionType(question.type);
+
+    // Debug logging to check question types
+    console.log(`📝 Rendering question ${index + 1}:`, {
+      originalType: question.type,
+      normalizedType: normalizedType,
+      hasOptions: !!question.options,
+      optionsLength: question.options?.length,
+      questionPreview: question.question.substring(0, 50) + "...",
+    });
+
+    // Additional debug for problematic types
+    if (question.type.includes("/") || question.type.includes(" ")) {
+      console.log(`🔍 Special type normalization:`, {
+        input: question.type,
+        output: normalizedType,
+        willMatch:
+          normalizedType === "true_false" ? "true_false case" : "other case",
+      });
+    }
+
+    switch (normalizedType) {
       case "mcq":
+        if (!question.options || question.options.length === 0) {
+          console.error(`MCQ question ${index + 1} has no options:`, question);
+          return (
+            <div className="text-red-400 p-4 border border-red-500 rounded">
+              Error: Multiple choice question missing options
+            </div>
+          );
+        }
         return (
           <div className="space-y-3">
-            {question.options?.map((option, optIndex) => (
+            {question.options.map((option, optIndex) => (
               <label
                 key={`${questionId}-mcq-${optIndex}-${option}`}
                 className="flex items-start space-x-3 p-3 rounded-lg border border-smoke-light hover:bg-smoke-gray/50 cursor-pointer transition-colors"
@@ -311,6 +405,14 @@ const TestPageStandalone: React.FC = () => {
         );
 
       case "true_false":
+        console.log(
+          `🔴 True/False question detected (original: ${question.type}, normalized: ${normalizedType}):`,
+          {
+            hasOptions: !!question.options,
+            optionsProvided: question.options,
+            questionText: question.question,
+          }
+        );
         return (
           <div className="space-y-3">
             {["True", "False"].map((option, optIndex) => (
@@ -339,6 +441,9 @@ const TestPageStandalone: React.FC = () => {
 
       case "short_answer":
       case "situational":
+        console.log(
+          `📝 Short answer/Situational question detected (original: ${question.type}, normalized: ${normalizedType}):`
+        );
         return (
           <textarea
             key={`${questionId}-textarea`}
@@ -354,6 +459,12 @@ const TestPageStandalone: React.FC = () => {
         const detectedLang = detectLanguageFromQuestion(question.question);
         const monacoLang = getMonacoLanguageId(detectedLang);
         const displayLang = getLanguageDisplayName(monacoLang);
+
+        console.log(`💻 Coding question detected:`, {
+          detectedLang,
+          monacoLang,
+          displayLang,
+        });
 
         return (
           <div className="space-y-3">
@@ -394,7 +505,66 @@ const TestPageStandalone: React.FC = () => {
         );
 
       default:
-        return null;
+        console.error(
+          `❌ Unknown question type: ${question.type} (normalized: ${normalizedType})`,
+          question
+        );
+
+        // Smart fallback: Try to determine what type this should be based on content
+        if (question.options && question.options.length > 0) {
+          console.log(
+            `🔄 Treating unknown type as MCQ due to presence of options`
+          );
+          return (
+            <div className="space-y-3">
+              <div className="text-yellow-400 text-sm mb-2">
+                ⚠️ Unknown question type "{question.type}", treating as multiple
+                choice
+              </div>
+              {question.options.map((option, optIndex) => (
+                <label
+                  key={`${questionId}-fallback-${optIndex}-${option}`}
+                  className="flex items-start space-x-3 p-3 rounded-lg border border-smoke-light hover:bg-smoke-gray/50 cursor-pointer transition-colors"
+                >
+                  <input
+                    type="radio"
+                    name={`question_${questionId}`}
+                    value={option}
+                    checked={currentAnswer === option}
+                    onChange={(e) =>
+                      handleAnswerChange(questionId, e.target.value)
+                    }
+                    className="mt-0.5 w-4 h-4 text-alien-green border-gray-300 focus:ring-alien-green focus:ring-2 flex-shrink-0"
+                    id={`${questionId}-fallback-${optIndex}`}
+                  />
+                  <span className="text-gray-300 text-sm sm:text-base break-words">
+                    {option}
+                  </span>
+                </label>
+              ))}
+            </div>
+          );
+        } else {
+          console.log(
+            `🔄 Treating unknown type as short answer due to no options`
+          );
+          return (
+            <div className="space-y-3">
+              <div className="text-yellow-400 text-sm mb-2">
+                ⚠️ Unknown question type "{question.type}", treating as short
+                answer
+              </div>
+              <textarea
+                key={`${questionId}-fallback-textarea`}
+                value={currentAnswer || ""}
+                onChange={(e) => handleAnswerChange(questionId, e.target.value)}
+                placeholder="Enter your answer here..."
+                className="w-full h-32 sm:h-40 p-3 bg-smoke-gray border border-smoke-light rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-alien-green resize-none text-sm sm:text-base"
+                id={`${questionId}-fallback-textarea`}
+              />
+            </div>
+          );
+        }
     }
   };
 
