@@ -1329,7 +1329,9 @@ router.post("/:courseId/test/generate", authenticateToken, async (req, res) => {
 
     const testPrompt = `CRITICAL: You must respond with VALID JSON ONLY. No markdown, no explanations, no additional text.
 
-You are a professional assessment specialist. Create a comprehensive certification test for the course "${course.title}" based on the provided course content.
+You are a professional assessment specialist. Create a comprehensive certification test for the course "${
+      course.title
+    }" based on the provided course content.
 
 Course: ${course.title}
 Chapter Titles: ${course.chapters.map((ch) => ch.title).join(", ")}
@@ -1685,14 +1687,22 @@ function demonstrate${topic.replace(/\s+/g, "")}() {
 
     // Validate each question and ensure proper structure
     let totalMarks = 0;
-    console.log(`🔍 Starting validation of ${testData.questions.length} questions...`);
-    
+    console.log(
+      `🔍 Starting validation of ${testData.questions.length} questions...`
+    );
+
     for (let i = 0; i < testData.questions.length; i++) {
       const q = testData.questions[i];
-      console.log(`🔍 Validating question ${i + 1}: type=${q.type}, hasOptions=${!!q.options}, correctAnswer=${q.correctAnswer}`);
-      
+      console.log(
+        `🔍 Validating question ${i + 1}: type=${
+          q.type
+        }, hasOptions=${!!q.options}, correctAnswer=${q.correctAnswer}`
+      );
+
       if (!q.question || !q.type || !q.explanation) {
-        throw new Error(`Invalid question structure at index ${i}: missing question, type, or explanation`);
+        throw new Error(
+          `Invalid question structure at index ${i}: missing question, type, or explanation`
+        );
       }
 
       // Ensure marks field exists
@@ -1705,37 +1715,50 @@ function demonstrate${topic.replace(/\s+/g, "")}() {
       if (q.type === "mcq" || q.type === "true_false") {
         // Ensure options array exists and has items
         if (!q.options || !Array.isArray(q.options) || q.options.length === 0) {
-          console.log(`⚠️ Generating contextual options for question ${i + 1} (${q.type})`);
-          
+          console.log(
+            `⚠️ Generating contextual options for question ${i + 1} (${q.type})`
+          );
+
           if (q.type === "mcq") {
             // Generate contextual MCQ options based on question content
             const questionLower = q.question.toLowerCase();
             let contextualOptions = [];
-            
+
             // Extract key topics from course for better options
-            const courseTopics = course.chapters.map(ch => ch.title);
-            const randomTopic = courseTopics[Math.floor(Math.random() * courseTopics.length)] || "General";
-            
-            if (questionLower.includes('what') || questionLower.includes('which')) {
+            const courseTopics = course.chapters.map((ch) => ch.title);
+            const randomTopic =
+              courseTopics[Math.floor(Math.random() * courseTopics.length)] ||
+              "General";
+
+            if (
+              questionLower.includes("what") ||
+              questionLower.includes("which")
+            ) {
               contextualOptions = [
                 `Primary concept from ${randomTopic}`,
                 `Secondary aspect of the topic`,
                 `Advanced implementation technique`,
-                `All of the above`
+                `All of the above`,
               ];
-            } else if (questionLower.includes('how') || questionLower.includes('implement')) {
+            } else if (
+              questionLower.includes("how") ||
+              questionLower.includes("implement")
+            ) {
               contextualOptions = [
                 "Step-by-step systematic approach",
                 "Direct implementation without planning",
                 "Using automated tools only",
-                "Combination of manual and automated methods"
+                "Combination of manual and automated methods",
               ];
-            } else if (questionLower.includes('best') || questionLower.includes('practice')) {
+            } else if (
+              questionLower.includes("best") ||
+              questionLower.includes("practice")
+            ) {
               contextualOptions = [
                 "Follow industry standards",
                 "Use personal preference",
                 "Apply course methodology",
-                "Combine multiple approaches"
+                "Combine multiple approaches",
               ];
             } else {
               // Generic but contextual options
@@ -1743,34 +1766,45 @@ function demonstrate${topic.replace(/\s+/g, "")}() {
                 `Core principle from ${randomTopic}`,
                 "Alternative approach",
                 "Best practice method",
-                "Comprehensive solution"
+                "Comprehensive solution",
               ];
             }
-            
+
             q.options = contextualOptions;
           } else if (q.type === "true_false") {
             q.options = ["True", "False"];
           }
         }
-        
+
         // Ensure correctAnswer is a valid number
-        if (typeof q.correctAnswer !== "number" || q.correctAnswer < 0 || q.correctAnswer >= q.options.length) {
-          console.log(`⚠️ Setting intelligent correctAnswer for question ${i + 1} (${q.type})`);
-          
+        if (
+          typeof q.correctAnswer !== "number" ||
+          q.correctAnswer < 0 ||
+          q.correctAnswer >= q.options.length
+        ) {
+          console.log(
+            `⚠️ Setting intelligent correctAnswer for question ${i + 1} (${
+              q.type
+            })`
+          );
+
           if (q.type === "mcq") {
             // For MCQ, prefer "All of the above" or "Comprehensive solution" if available
-            const allOfAboveIndex = q.options.findIndex(opt => 
-              opt.toLowerCase().includes('all of the above') || 
-              opt.toLowerCase().includes('comprehensive')
+            const allOfAboveIndex = q.options.findIndex(
+              (opt) =>
+                opt.toLowerCase().includes("all of the above") ||
+                opt.toLowerCase().includes("comprehensive")
             );
             q.correctAnswer = allOfAboveIndex >= 0 ? allOfAboveIndex : 0;
           } else if (q.type === "true_false") {
             // For true/false, analyze question to determine likely answer
             const questionLower = q.question.toLowerCase();
-            if (questionLower.includes('important') || 
-                questionLower.includes('essential') || 
-                questionLower.includes('requires') ||
-                questionLower.includes('necessary')) {
+            if (
+              questionLower.includes("important") ||
+              questionLower.includes("essential") ||
+              questionLower.includes("requires") ||
+              questionLower.includes("necessary")
+            ) {
               q.correctAnswer = 0; // True
             } else {
               q.correctAnswer = 0; // Default to True for safety
@@ -1796,8 +1830,10 @@ function demonstrate${topic.replace(/\s+/g, "")}() {
     }
 
     console.log("✅ Test data validated successfully");
-    console.log(`📊 Total questions: ${testData.questions.length}, Total marks: ${totalMarks}`);
-    
+    console.log(
+      `📊 Total questions: ${testData.questions.length}, Total marks: ${totalMarks}`
+    );
+
     // Log question types summary
     const questionTypes = testData.questions.reduce((acc, q) => {
       acc[q.type] = (acc[q.type] || 0) + 1;
