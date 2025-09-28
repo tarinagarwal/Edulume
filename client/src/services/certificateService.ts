@@ -40,6 +40,7 @@ export class CertificateGenerator {
       this.addPremiumBorder();
       await this.addPremiumHeader();
       this.addPremiumContent(data);
+      await this.addSignatureSection(); // Add signature section
       await this.addPremiumQRCode(data.certificateId);
 
       console.log("✅ Professional certificate generated successfully");
@@ -346,15 +347,15 @@ export class CertificateGenerator {
 
   private async addSignatureSection(): Promise<void> {
     try {
-      const signatureResponse = await fetch("/signature.png");
+      const signatureResponse = await fetch("/sign.png"); // Changed from signature.png to sign.png
       if (signatureResponse.ok) {
         const signatureBlob = await signatureResponse.blob();
         const signatureDataURL = await this.blobToDataURL(signatureBlob);
 
-        const sigWidth = 25;
-        const sigHeight = 12;
-        const sigX = this.pageWidth - 80 - sigWidth / 2;
-        const sigY = 190; // Adjusted position
+        const sigWidth = 35; // Good size for visibility
+        const sigHeight = 18; // Proportional height
+        const sigX = this.pageWidth - 60 - sigWidth / 2; // Centered where instructor name was
+        const sigY = this.pageHeight - 66; // Position where instructor name was (footerY + 5)
 
         this.doc.addImage(
           signatureDataURL,
@@ -364,18 +365,27 @@ export class CertificateGenerator {
           sigWidth,
           sigHeight
         );
+
+        console.log("✅ Signature image loaded successfully from sign.png");
       }
     } catch (error) {
-      // Add signature placeholder
-      this.doc.setTextColor(100, 100, 110);
+      console.error("❌ Error loading signature image:", error);
+      // Add signature placeholder in same position
+      this.doc.setTextColor(180, 180, 180); // Light gray for fallback
       this.doc.setFontSize(8);
-      this.doc.text("Digital Signature", this.pageWidth - 80, 200, {
-        align: "center",
-      });
+      this.doc.setFont("helvetica", "italic");
+      this.doc.text(
+        "Digital Signature",
+        this.pageWidth - 60,
+        this.pageHeight - 70,
+        {
+          align: "center",
+        }
+      );
     }
 
     // Add official seal placeholder
-    this.addOfficialSeal();
+    // this.addOfficialSeal();
   }
 
   private addOfficialSeal(): void {
@@ -582,14 +592,14 @@ export class CertificateGenerator {
   // ============ PREMIUM PROFESSIONAL DESIGN ============
 
   private addPremiumBorder(): void {
-    // Elegant double border design
-    this.doc.setDrawColor(30, 30, 35);
+    // Elegant double border design - moved borders further out for more content space
+    this.doc.setDrawColor(0, 255, 65); // Bright green for outer border
     this.doc.setLineWidth(3);
-    this.doc.rect(20, 20, this.pageWidth - 40, this.pageHeight - 40);
+    this.doc.rect(10, 10, this.pageWidth - 20, this.pageHeight - 20); // Moved from 20px to 10px
 
-    this.doc.setDrawColor(0, 200, 50);
-    this.doc.setLineWidth(1);
-    this.doc.rect(25, 25, this.pageWidth - 50, this.pageHeight - 50);
+    // this.doc.setDrawColor(255, 255, 255); // White for inner border
+    // this.doc.setLineWidth(1);
+    // this.doc.rect(15, 15, this.pageWidth - 30, this.pageHeight - 30); // Moved from 25px to 15px
 
     // Corner decorations
     this.addElegantCorners();
@@ -597,9 +607,9 @@ export class CertificateGenerator {
 
   private addElegantCorners(): void {
     const size = 12;
-    const offset = 30;
+    const offset = 20; // Updated to match new border position (was 30)
 
-    this.doc.setDrawColor(0, 200, 50);
+    this.doc.setDrawColor(0, 255, 65); // Updated to bright green
     this.doc.setLineWidth(2);
 
     // Top corners
@@ -678,22 +688,22 @@ export class CertificateGenerator {
 
     // Student name with premium styling in green
     this.doc.setTextColor(0, 255, 65); // Bright green for name
-    this.doc.setFontSize(32);
-    this.doc.setFont("helvetica", "bold");
-    this.doc.text(data.studentName, this.pageWidth / 2, 160, {
-      align: "center",
+    this.doc.setFontSize(28);
+    this.doc.setFont("Fredoka", "normal");
+    this.doc.text(data.studentName.toUpperCase(), this.pageWidth / 2, 160, {
+      align: "center",  
     });
 
     // Name underline in green
-    const nameWidth = this.doc.getTextWidth(data.studentName);
-    this.doc.setDrawColor(0, 255, 65);
-    this.doc.setLineWidth(1.5);
-    this.doc.line(
-      this.pageWidth / 2 - nameWidth / 2,
-      165,
-      this.pageWidth / 2 + nameWidth / 2,
-      165
-    );
+    // const nameWidth = this.doc.getTextWidth(data.studentName);
+    // this.doc.setDrawColor(0, 255, 65);
+    // this.doc.setLineWidth(1.5);
+    // this.doc.line(
+    //   this.pageWidth / 2 - nameWidth / 2,
+    //   165,
+    //   this.pageWidth / 2 + nameWidth / 2,
+    //   165
+    // );
 
     // Achievement text in light gray
     this.doc.setTextColor(200, 200, 200);
@@ -706,25 +716,26 @@ export class CertificateGenerator {
       { align: "center" }
     );
 
-    // Course name with FIXED wrapping to stay within frame
+    // Course name immediately after, within the green frame
     this.doc.setTextColor(255, 255, 255); // White text
-    this.doc.setFontSize(14); // Reduced font size to fit better
+    this.doc.setFontSize(14); // Smaller size to fit better
     this.doc.setFont("helvetica", "bold");
 
-    const maxWidth = this.pageWidth - 120; // More conservative margin
+    // VERY conservative margins - green border is at 25px, so use 60px margins total
+    const maxWidth = this.pageWidth - 120; // Much more conservative to ensure it stays inside
     const lines = this.doc.splitTextToSize(`"${data.courseName}"`, maxWidth);
 
-    let yPosition = 200;
-    // Limit to maximum 2 lines to prevent overflow
+    let courseStartY = 195; // Close to achievement text
+    // Limit to maximum 2 lines to stay within frame
     const maxLines = Math.min(lines.length, 2);
     for (let i = 0; i < maxLines; i++) {
-      this.doc.text(lines[i], this.pageWidth / 2, yPosition + i * 8, {
+      this.doc.text(lines[i], this.pageWidth / 2, courseStartY + i * 10, {
         align: "center",
       });
     }
 
-    // Performance section with proper positioning
-    const scoreY = yPosition + maxLines * 8 + 20;
+    // Performance section positioned after course name
+    const scoreY = courseStartY + maxLines * 10 + 15;
     this.doc.setFillColor(40, 40, 45); // Dark gray background
     this.doc.setDrawColor(0, 255, 65); // Green border
     this.doc.setLineWidth(1);
@@ -756,19 +767,11 @@ export class CertificateGenerator {
     this.doc.setTextColor(180, 180, 180);
     this.doc.setFontSize(9);
     this.doc.setFont("helvetica", "normal");
-    this.doc.text("CERTIFIED BY", this.pageWidth - 60, footerY - 5, {
+    this.doc.text("Founder and CEO", this.pageWidth - 60, footerY - 5, {
       align: "center",
     });
 
-    this.doc.setTextColor(255, 255, 255); // White text
-    this.doc.setFontSize(11);
-    this.doc.setFont("helvetica", "bold");
-    this.doc.text(
-      data.instructorName || "AlienVault Academy",
-      this.pageWidth - 60,
-      footerY + 5,
-      { align: "center" }
-    );
+    // Remove the instructor name text - signature will go here instead
 
     // // Certificate ID in light gray
     // this.doc.setTextColor(150, 150, 150);
