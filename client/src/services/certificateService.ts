@@ -18,7 +18,6 @@ export class CertificateGenerator {
   private pageHeight: number;
 
   constructor() {
-    // Create PDF in landscape orientation for certificate
     this.doc = new jsPDF({
       orientation: "landscape",
       unit: "mm",
@@ -32,16 +31,14 @@ export class CertificateGenerator {
     try {
       console.log("🏆 Starting professional certificate generation:", data);
 
-      // Set black background to match website theme
-      this.doc.setFillColor(25, 25, 35); // Dark background matching the website
+      this.doc.setFillColor(252, 251, 247); // Warm cream background
       this.doc.rect(0, 0, this.pageWidth, this.pageHeight, "F");
 
-      // Add professional styling with green and white theme
-      this.addPremiumBorder();
-      await this.addPremiumHeader();
-      this.addPremiumContent(data);
-      await this.addSignatureSection(); // Add signature section
-      await this.addPremiumQRCode(data.certificateId);
+      this.addMinimalBorder();
+      await this.addCleanHeader();
+      this.addElegantContent(data);
+      await this.addProfessionalFooter(data);
+      await this.addQRCode(data.certificateId);
 
       console.log("✅ Professional certificate generated successfully");
       return this.doc.output("blob");
@@ -51,499 +48,181 @@ export class CertificateGenerator {
     }
   }
 
-  private addProfessionalBackground(): void {
-    this.doc.setDrawColor(35, 35, 45);
-    this.doc.setLineWidth(0.2);
+  private addMinimalBorder(): void {
+    this.doc.setDrawColor(45, 45, 45); // Dark charcoal
+    this.doc.setLineWidth(0.8);
+    this.doc.rect(20, 15, this.pageWidth - 40, this.pageHeight - 30);
 
-    // Create elegant hexagonal pattern
-    const hexSize = 8;
-    const spacing = 14;
-
-    for (let x = 0; x < this.pageWidth; x += spacing) {
-      for (let y = 0; y < this.pageHeight; y += spacing * 0.866) {
-        const offsetX = (y / (spacing * 0.866)) % 2 === 0 ? 0 : spacing / 2;
-        this.drawHexagon(x + offsetX, y, hexSize);
-      }
-    }
+    this.doc.setDrawColor(180, 140, 90); // Warm gold accent
+    this.doc.setLineWidth(0.3);
+    this.doc.rect(22, 17, this.pageWidth - 44, this.pageHeight - 34);
   }
 
-  private drawHexagon(centerX: number, centerY: number, size: number): void {
-    const points: [number, number][] = [];
-    for (let i = 0; i < 6; i++) {
-      const angle = (i * Math.PI) / 3;
-      const x = centerX + size * Math.cos(angle);
-      const y = centerY + size * Math.sin(angle);
-      points.push([x, y]);
-    }
-
-    for (let i = 0; i < points.length; i++) {
-      const [x1, y1] = points[i];
-      const [x2, y2] = points[(i + 1) % points.length];
-      this.doc.line(x1, y1, x2, y2);
-    }
-  }
-
-  private addProfessionalBorders(): void {
-    // Outer border with rounded corners effect
-    this.doc.setDrawColor(0, 255, 65);
-    this.doc.setLineWidth(3);
-    this.doc.rect(15, 15, this.pageWidth - 30, this.pageHeight - 30);
-
-    // Inner decorative border
-    this.doc.setLineWidth(1);
-    this.doc.rect(20, 20, this.pageWidth - 40, this.pageHeight - 40);
-
-    // Accent lines at corners
-    this.addCornerAccents();
-  }
-
-  private addCornerAccents(): void {
-    const cornerLength = 15;
-    const offset = 25;
-
-    this.doc.setDrawColor(0, 255, 65);
-    this.doc.setLineWidth(2);
-
-    // Top-left corner
-    this.doc.line(offset, offset, offset + cornerLength, offset);
-    this.doc.line(offset, offset, offset, offset + cornerLength);
-
-    // Top-right corner
-    this.doc.line(
-      this.pageWidth - offset - cornerLength,
-      offset,
-      this.pageWidth - offset,
-      offset
-    );
-    this.doc.line(
-      this.pageWidth - offset,
-      offset,
-      this.pageWidth - offset,
-      offset + cornerLength
-    );
-
-    // Bottom-left corner
-    this.doc.line(
-      offset,
-      this.pageHeight - offset - cornerLength,
-      offset,
-      this.pageHeight - offset
-    );
-    this.doc.line(
-      offset,
-      this.pageHeight - offset,
-      offset + cornerLength,
-      this.pageHeight - offset
-    );
-
-    // Bottom-right corner
-    this.doc.line(
-      this.pageWidth - offset,
-      this.pageHeight - offset - cornerLength,
-      this.pageWidth - offset,
-      this.pageHeight - offset
-    );
-    this.doc.line(
-      this.pageWidth - offset - cornerLength,
-      this.pageHeight - offset,
-      this.pageWidth - offset,
-      this.pageHeight - offset
-    );
-  }
-
-  private async addProfessionalHeader(): Promise<void> {
-    try {
-      const logoResponse = await fetch("/logo.png");
-      const logoBlob = await logoResponse.blob();
-      const logoDataURL = await this.blobToDataURL(logoBlob);
-
-      const logoSize = 20;
-      const logoX = 40;
-      const logoY = 35;
-
-      this.doc.addImage(logoDataURL, "PNG", logoX, logoY, logoSize, logoSize);
-    } catch (error) {
-      console.error("Error loading logo:", error);
-      // Fallback: Professional text logo
-      this.doc.setTextColor(0, 255, 65);
-      this.doc.setFontSize(14);
-      this.doc.setFont("helvetica", "bold");
-      this.doc.text("AlienVault", 40, 45);
-    }
-
-    // Institution name and tagline
-    this.doc.setTextColor(180, 180, 190);
-    this.doc.setFontSize(10);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.text("PROFESSIONAL CERTIFICATION AUTHORITY", 70, 42);
-    this.doc.text("Excellence in Digital Education", 70, 50);
-  }
-
-  private addCertificateTitle(): void {
-    this.doc.setTextColor(0, 255, 65);
-    this.doc.setFontSize(32);
-    this.doc.setFont("helvetica", "bold");
-    const title = "CERTIFICATE OF ACHIEVEMENT";
-    this.doc.text(title, this.pageWidth / 2, 80, { align: "center" });
-
-    // Add decorative underline
-    this.doc.setDrawColor(0, 255, 65);
-    this.doc.setLineWidth(1);
-    const titleWidth = this.doc.getTextWidth(title);
-    const startX = (this.pageWidth - titleWidth) / 2;
-    this.doc.line(startX, 85, startX + titleWidth, 85);
-  }
-
-  private addPresentationText(): void {
-    this.doc.setTextColor(200, 200, 210);
-    this.doc.setFontSize(12);
-    this.doc.setFont("helvetica", "normal");
-    const text = "This is to certify that";
-    this.doc.text(text, this.pageWidth / 2, 100, { align: "center" });
-  }
-
-  private addStudentNameSection(studentName: string): void {
-    console.log("📝 Adding student name section for:", studentName);
-
-    // Add elegant background highlight for name (subtle green)
-    this.doc.setFillColor(0, 255, 65, 0.05); // Very light green
-    const nameWidth = this.doc.getTextWidth(studentName) * 1.5;
-    const nameHeight = 18;
-    const nameX = (this.pageWidth - nameWidth) / 2;
-    const nameY = 108;
-
-    this.doc.rect(nameX, nameY, nameWidth, nameHeight, "F");
-
-    this.doc.setTextColor(0, 255, 65);
-    this.doc.setFontSize(26);
-    this.doc.setFont("helvetica", "bold");
-    this.doc.text(studentName, this.pageWidth / 2, 122, { align: "center" });
-
-    // Add decorative flourishes
-    this.addNameDecorations();
-  }
-
-  private addNameDecorations(): void {
-    const centerX = this.pageWidth / 2;
-    const y = 122; // Match the new name position
-
-    this.doc.setDrawColor(0, 255, 65);
-    this.doc.setLineWidth(1);
-
-    // Left decoration
-    this.doc.line(centerX - 80, y + 5, centerX - 60, y + 5);
-    this.doc.line(centerX - 75, y, centerX - 65, y + 10);
-
-    // Right decoration
-    this.doc.line(centerX + 60, y + 5, centerX + 80, y + 5);
-    this.doc.line(centerX + 65, y, centerX + 75, y + 10);
-  }
-
-  private addAchievementText(): void {
-    this.doc.setTextColor(200, 200, 210);
-    this.doc.setFontSize(12);
-    this.doc.setFont("helvetica", "normal");
-    const text = "has successfully completed the comprehensive course";
-    this.doc.text(text, this.pageWidth / 2, 140, { align: "center" });
-  }
-
-  private addCourseNameSection(courseName: string): void {
-    this.doc.setTextColor(255, 255, 255);
-    this.doc.setFontSize(16);
-    this.doc.setFont("helvetica", "bold");
-
-    // Handle long course names by wrapping text
-    const maxWidth = this.pageWidth - 80;
-    const lines = this.doc.splitTextToSize(`"${courseName}"`, maxWidth);
-
-    let yPosition = 155;
-    for (let i = 0; i < lines.length; i++) {
-      this.doc.text(lines[i], this.pageWidth / 2, yPosition + i * 8, {
-        align: "center",
-      });
-    }
-
-    // Add subtle underline under the last line
-    const lastLineY = yPosition + (lines.length - 1) * 8;
-    this.doc.setDrawColor(100, 100, 120);
-    this.doc.setLineWidth(0.5);
-    const lastLineWidth = this.doc.getTextWidth(lines[lines.length - 1]);
-    const startX = (this.pageWidth - lastLineWidth) / 2;
-    this.doc.line(startX, lastLineY + 3, startX + lastLineWidth, lastLineY + 3);
-  }
-
-  private addPerformanceSection(data: CertificateData): void {
-    const centerX = this.pageWidth / 2;
-    const y = 185; // Adjusted for better spacing
-
-    // Performance box background
-    this.doc.setFillColor(35, 35, 45);
-    this.doc.setDrawColor(0, 255, 65);
-    this.doc.setLineWidth(1);
-    this.doc.rect(centerX - 50, y - 8, 100, 18, "FD");
-
-    this.doc.setTextColor(0, 255, 65);
-    this.doc.setFontSize(11);
-    this.doc.setFont("helvetica", "bold");
-    const scoreText = `FINAL SCORE: ${data.score}% | ${data.marksObtained}/${data.totalMarks} MARKS`;
-    this.doc.text(scoreText, centerX, y + 1, { align: "center" });
-  }
-
-  private addAuthenticationSection(
-    completionDate: string,
-    instructorName: string,
-    certificateId: string
-  ): void {
-    const y = 210; // Adjusted positioning
-    const leftX = 80;
-    const rightX = this.pageWidth - 80;
-
-    // Date section
-    this.addAuthField("DATE OF COMPLETION", completionDate, leftX, y);
-
-    // Instructor section
-    this.addAuthField(
-      "CERTIFIED BY",
-      instructorName || "AlienVault Academy",
-      rightX,
-      y
-    );
-
-    // Certificate ID in center
-    this.doc.setTextColor(120, 120, 130);
-    this.doc.setFontSize(8);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.text(
-      `Certificate ID: ${certificateId}`,
-      this.pageWidth / 2,
-      y + 25,
-      { align: "center" }
-    );
-  }
-
-  private addAuthField(
-    label: string,
-    value: string,
-    x: number,
-    y: number
-  ): void {
-    // Label
-    this.doc.setTextColor(150, 150, 160);
-    this.doc.setFontSize(8);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.text(label, x, y - 5, { align: "center" });
-
-    // Value
-    this.doc.setTextColor(255, 255, 255);
-    this.doc.setFontSize(10);
-    this.doc.setFont("helvetica", "bold");
-    this.doc.text(value, x, y + 5, { align: "center" });
-
-    // Underline
-    this.doc.setDrawColor(0, 255, 65);
-    this.doc.setLineWidth(0.5);
-    this.doc.line(x - 30, y + 8, x + 30, y + 8);
-  }
-
-  private async addSignatureSection(): Promise<void> {
-    try {
-      const signatureResponse = await fetch("/sign.png"); // Changed from signature.png to sign.png
-      if (signatureResponse.ok) {
-        const signatureBlob = await signatureResponse.blob();
-        const signatureDataURL = await this.blobToDataURL(signatureBlob);
-
-        const sigWidth = 35; // Good size for visibility
-        const sigHeight = 18; // Proportional height
-        const sigX = this.pageWidth - 60 - sigWidth / 2; // Centered where instructor name was
-        const sigY = this.pageHeight - 66; // Position where instructor name was (footerY + 5)
-
-        this.doc.addImage(
-          signatureDataURL,
-          "PNG",
-          sigX,
-          sigY,
-          sigWidth,
-          sigHeight
-        );
-
-        console.log("✅ Signature image loaded successfully from sign.png");
-      }
-    } catch (error) {
-      console.error("❌ Error loading signature image:", error);
-      // Add signature placeholder in same position
-      this.doc.setTextColor(180, 180, 180); // Light gray for fallback
-      this.doc.setFontSize(8);
-      this.doc.setFont("helvetica", "italic");
-      this.doc.text(
-        "Digital Signature",
-        this.pageWidth - 60,
-        this.pageHeight - 70,
-        {
-          align: "center",
-        }
-      );
-    }
-
-    // Add official seal placeholder
-    // this.addOfficialSeal();
-  }
-
-  private addOfficialSeal(): void {
-    const sealX = 80;
-    const sealY = 190; // Adjusted position
-    const sealRadius = 12;
-
-    // Seal circle
-    this.doc.setDrawColor(0, 255, 65);
-    this.doc.setLineWidth(2);
-    this.doc.circle(sealX, sealY, sealRadius);
-
-    // Inner circle
-    this.doc.setLineWidth(1);
-    this.doc.circle(sealX, sealY, sealRadius - 3);
-
-    // Seal text
-    this.doc.setTextColor(0, 255, 65);
-    this.doc.setFontSize(6);
-    this.doc.setFont("helvetica", "bold");
-    this.doc.text("OFFICIAL", sealX, sealY - 2, { align: "center" });
-    this.doc.text("SEAL", sealX, sealY + 3, { align: "center" });
-  }
-
-  private async addProfessionalFooter(): Promise<void> {
-    const footerY = this.pageHeight - 25;
-
+  private async addCleanHeader(): Promise<void> {
     try {
       const logoResponse = await fetch("/logo.png");
       const logoBlob = await logoResponse.blob();
       const logoDataURL = await this.blobToDataURL(logoBlob);
 
       const logoSize = 15;
-      const logoX = (this.pageWidth - logoSize) / 2;
+      const logoX = 35;
+      const logoY = 28;
 
-      this.doc.addImage(
-        logoDataURL,
-        "PNG",
-        logoX,
-        footerY - 10,
-        logoSize,
-        logoSize
-      );
+      this.doc.addImage(logoDataURL, "PNG", logoX, logoY, logoSize, logoSize);
     } catch (error) {
-      console.error("Error loading footer logo:", error);
+      this.doc.setTextColor(45, 45, 45);
+      this.doc.setFontSize(14);
+      this.doc.setFont("times", "bold");
+      this.doc.text("TC", 42, 40);
     }
 
-    // Footer text
-    this.doc.setTextColor(0, 255, 65);
-    this.doc.setFontSize(8);
-    this.doc.setFont("helvetica", "bold");
-    this.doc.text("ALIENVAULT ACADEMY", this.pageWidth / 2, footerY + 8, {
-      align: "center",
-    });
+    this.doc.setTextColor(45, 45, 45);
+    this.doc.setFontSize(16);
+    this.doc.setFont("times", "bold");
+    this.doc.text("Teacher's Choice", 55, 35);
 
-    this.doc.setTextColor(120, 120, 130);
-    this.doc.setFontSize(6);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.text(
-      "Advancing Digital Excellence Through Innovation",
-      this.pageWidth / 2,
-      footerY + 12,
-      {
-        align: "center",
-      }
-    );
+    this.doc.setFontSize(9);
+    this.doc.setFont("times", "normal");
+    this.doc.text("Your Ultimate Learning Hub", 55, 42);
   }
 
-  private async addSecurityElements(certificateId: string): Promise<void> {
-    // Subtle watermark
-    this.doc.setTextColor(40, 40, 50);
-    this.doc.setFontSize(60);
-    this.doc.setFont("helvetica", "bold");
-
-    // Save current state
-    this.doc.saveGraphicsState();
-
-    // Rotate and add watermark
+  private addElegantContent(data: CertificateData): void {
     const centerX = this.pageWidth / 2;
-    const centerY = this.pageHeight / 2;
 
-    this.doc.text("VERIFIED", centerX, centerY, {
+    this.doc.setTextColor(45, 45, 45);
+    this.doc.setFontSize(48);
+    this.doc.setFont("times", "bold");
+    this.doc.text("Certificate", centerX, 70, { align: "center" });
+
+    this.doc.setFontSize(24);
+    this.doc.setFont("times", "normal");
+    this.doc.text("of Achievement", centerX, 85, { align: "center" });
+
+    this.doc.setDrawColor(180, 140, 90);
+    this.doc.setLineWidth(1);
+    this.doc.line(centerX - 60, 95, centerX + 60, 95);
+
+    this.doc.setTextColor(80, 80, 80);
+    this.doc.setFontSize(14);
+    this.doc.setFont("times", "normal");
+    this.doc.text("This is to certify that", centerX, 105, { align: "center" });
+
+    this.doc.setTextColor(45, 45, 45);
+    this.doc.setFontSize(32);
+    this.doc.setFont("times", "bold");
+    this.doc.text(data.studentName, centerX, 120, { align: "center" });
+
+    this.doc.setTextColor(80, 80, 80);
+    this.doc.setFontSize(14);
+    this.doc.setFont("times", "normal");
+    this.doc.text("has successfully completed the course", centerX, 130, {
       align: "center",
-      angle: -45,
     });
 
-    this.doc.restoreGraphicsState();
+    this.doc.setTextColor(45, 45, 45);
+    this.doc.setFontSize(18);
+    this.doc.setFont("times", "italic");
 
-    // Add QR code with verification URL
-    await this.addQRCode(certificateId);
+    const maxWidth = this.pageWidth - 100;
+    const lines = this.doc.splitTextToSize(`"${data.courseName}"`, maxWidth);
+
+    const courseStartY = 140;
+    for (let i = 0; i < Math.min(lines.length, 2); i++) {
+      this.doc.text(lines[i], centerX, courseStartY + i * 12, {
+        align: "center",
+      });
+    }
+  }
+
+  private async addProfessionalFooter(data: CertificateData): Promise<void> {
+    const footerY = this.pageHeight - 45;
+
+    this.doc.setTextColor(100, 100, 100);
+    this.doc.setFontSize(10);
+    this.doc.setFont("times", "normal");
+    this.doc.text("Date of Completion", 50, footerY + 10);
+
+    this.doc.setTextColor(45, 45, 45);
+    this.doc.setFontSize(12);
+    this.doc.setFont("times", "bold");
+    this.doc.text(data.completionDate, 50, footerY + 18);
+
+    try {
+      const signatureResponse = await fetch("/sign.png");
+      if (signatureResponse.ok) {
+        const signatureBlob = await signatureResponse.blob();
+        const signatureDataURL = await this.blobToDataURL(signatureBlob);
+
+        const sigWidth = 30;
+        const sigHeight = 15;
+        const sigX = this.pageWidth - 85;
+        const sigY = footerY + 1;
+
+        this.doc.addImage(
+          signatureDataURL,
+          "JPEG",
+          sigX,
+          sigY,
+          sigWidth,
+          sigHeight
+        );
+      }
+    } catch (error) {
+      console.error("Signature not found, using text fallback");
+    }
+
+    this.doc.setTextColor(45, 45, 45);
+    this.doc.setFontSize(12);
+    this.doc.setFont("times", "bold");
+    this.doc.text("Tarin Agarwal", this.pageWidth - 70, footerY + 18, {
+      align: "center",
+    });
+    this.doc.setTextColor(45, 45, 45);
+    this.doc.setFontSize(12);
+    this.doc.setFont("times", "bold");
+    this.doc.text("(Founder & CEO)", this.pageWidth - 70, footerY + 22, {
+      align: "center",
+    });
+
+    // this.doc.setTextColor(120, 120, 120);
+    // this.doc.setFontSize(8);
+    // this.doc.setFont("times", "normal");
+    // this.doc.text(
+    //   `Certificate ID: ${data.certificateId}`,
+    //   this.pageWidth / 2,
+    //   footerY + 15,
+    //   { align: "center" }
+    // );
   }
 
   private async addQRCode(certificateId: string): Promise<void> {
     try {
-      const qrSize = 20;
-      const qrX = this.pageWidth - 30;
-      const qrY = this.pageHeight - 40;
+      const qrSize = 18;
+      const qrX = this.pageWidth - 45;
+      const qrY = this.pageHeight - 185;
 
-      // Generate verification URL
       const verificationUrl = `${window.location.origin}/verify-certificate?id=${certificateId}&source=qr`;
 
-      console.log("🔗 Generating QR code for:", verificationUrl);
-
-      // Generate QR code with standard black/white colors
       const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
         width: 256,
         margin: 1,
         color: {
-          dark: "#000000", // Standard black
-          light: "#FFFFFF", // Standard white
+          dark: "#2D2D2D", // Dark charcoal
+          light: "#FCFBF7", // Cream background
         },
       });
 
-      console.log("✅ QR code generated successfully with standard colors");
-
-      // Add QR code to PDF
       this.doc.addImage(qrCodeDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
 
-      // QR label
-      this.doc.setTextColor(0, 255, 65);
-      this.doc.setFontSize(6);
-      this.doc.setFont("helvetica", "bold");
-      this.doc.text("SCAN TO VERIFY", qrX + qrSize / 2, qrY + qrSize + 5, {
+      this.doc.setTextColor(120, 120, 120);
+      this.doc.setFontSize(7);
+      this.doc.setFont("times", "normal");
+      this.doc.text("Verify", qrX + qrSize / 2, qrY + qrSize + 3, {
         align: "center",
       });
     } catch (error) {
-      console.error("❌ Error generating QR code:", error);
-      // Fallback to placeholder if QR generation fails
-      this.addQRPlaceholder();
+      console.error("Error generating QR code:", error);
     }
-  }
-
-  private addQRPlaceholder(): void {
-    const qrSize = 15;
-    const qrX = this.pageWidth - 35;
-    const qrY = this.pageHeight - 35;
-
-    // QR code border
-    this.doc.setDrawColor(100, 100, 110);
-    this.doc.setLineWidth(0.5);
-    this.doc.rect(qrX, qrY, qrSize, qrSize);
-
-    // QR pattern simulation
-    this.doc.setFillColor(100, 100, 110);
-    for (let i = 0; i < 5; i++) {
-      for (let j = 0; j < 5; j++) {
-        if ((i + j) % 2 === 0) {
-          this.doc.rect(qrX + i * 3, qrY + j * 3, 2, 2, "F");
-        }
-      }
-    }
-
-    // QR label
-    this.doc.setTextColor(100, 100, 110);
-    this.doc.setFontSize(6);
-    this.doc.text("VERIFY", qrX + qrSize / 2, qrY + qrSize + 5, {
-      align: "center",
-    });
   }
 
   private async blobToDataURL(blob: Blob): Promise<string> {
@@ -557,267 +236,26 @@ export class CertificateGenerator {
 
   downloadCertificate(blob: Blob, filename: string): void {
     try {
-      console.log("📁 Starting download process...");
-      console.log("📁 Blob size:", blob.size, "bytes");
-      console.log("📁 Filename:", filename);
-
       const url = URL.createObjectURL(blob);
-      console.log("🔗 Object URL created:", url);
-
       const link = document.createElement("a");
       link.href = url;
       link.download = filename;
-      link.style.display = "none"; // Hide the link
-
-      console.log("🔗 Link element created:", link);
+      link.style.display = "none";
 
       document.body.appendChild(link);
-      console.log("🔗 Link added to document");
-
       link.click();
-      console.log("🔗 Link clicked - download should start");
 
-      // Clean up
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
-        console.log("🗞️ Cleanup completed");
       }, 100);
     } catch (error) {
       console.error("❌ Download failed:", error);
       throw error;
     }
   }
-
-  // ============ PREMIUM PROFESSIONAL DESIGN ============
-
-  private addPremiumBorder(): void {
-    // Elegant double border design - moved borders further out for more content space
-    this.doc.setDrawColor(0, 255, 65); // Bright green for outer border
-    this.doc.setLineWidth(3);
-    this.doc.rect(10, 10, this.pageWidth - 20, this.pageHeight - 20); // Moved from 20px to 10px
-
-    // this.doc.setDrawColor(255, 255, 255); // White for inner border
-    // this.doc.setLineWidth(1);
-    // this.doc.rect(15, 15, this.pageWidth - 30, this.pageHeight - 30); // Moved from 25px to 15px
-
-    // Corner decorations
-    this.addElegantCorners();
-  }
-
-  private addElegantCorners(): void {
-    const size = 12;
-    const offset = 20; // Updated to match new border position (was 30)
-
-    this.doc.setDrawColor(0, 255, 65); // Updated to bright green
-    this.doc.setLineWidth(2);
-
-    // Top corners
-    this.doc.line(offset, offset + size, offset + size, offset);
-    this.doc.line(
-      this.pageWidth - offset - size,
-      offset,
-      this.pageWidth - offset,
-      offset + size
-    );
-
-    // Bottom corners
-    this.doc.line(
-      offset,
-      this.pageHeight - offset - size,
-      offset + size,
-      this.pageHeight - offset
-    );
-    this.doc.line(
-      this.pageWidth - offset - size,
-      this.pageHeight - offset,
-      this.pageWidth - offset,
-      this.pageHeight - offset - size
-    );
-  }
-
-  private async addPremiumHeader(): Promise<void> {
-    try {
-      const logoResponse = await fetch("/logo.png");
-      const logoBlob = await logoResponse.blob();
-      const logoDataURL = await this.blobToDataURL(logoBlob);
-
-      this.doc.addImage(logoDataURL, "PNG", 40, 40, 20, 20);
-    } catch (error) {
-      // Elegant text fallback in green
-      this.doc.setTextColor(0, 255, 65); // Bright green for logo text
-      this.doc.setFontSize(16);
-      this.doc.setFont("helvetica", "bold");
-      this.doc.text("AlienVault", 40, 55);
-    }
-
-    // Institution details in white
-    this.doc.setTextColor(0, 255, 65);
-    this.doc.setFontSize(20);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.text("Teacher's Choice", 70, 50);
-    // this.doc.setFontSize(16);
-    // this.doc.text("Professional Certification Authority", 70, 58);
-  }
-
-  private addPremiumContent(data: CertificateData): void {
-    // Main title with elegant styling in white
-    this.doc.setTextColor(255, 255, 255); // White text
-    this.doc.setFontSize(36);
-    this.doc.setFont("helvetica", "bold");
-    this.doc.text("CERTIFICATE", this.pageWidth / 2, 90, { align: "center" });
-
-    this.doc.setFontSize(20);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.text("OF ACHIEVEMENT", this.pageWidth / 2, 110, {
-      align: "center",
-    });
-
-    // Elegant divider in green
-    this.doc.setDrawColor(0, 255, 65); // Bright green
-    this.doc.setLineWidth(2);
-    this.doc.line(this.pageWidth / 2 - 80, 115, this.pageWidth / 2 + 80, 115);
-
-    // Certification text in light gray
-    this.doc.setTextColor(200, 200, 200); // Light gray
-    this.doc.setFontSize(14);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.text("This is to certify that", this.pageWidth / 2, 135, {
-      align: "center",
-    });
-
-    // Student name with premium styling in green
-    this.doc.setTextColor(0, 255, 65); // Bright green for name
-    this.doc.setFontSize(28);
-    this.doc.setFont("Fredoka", "normal");
-    this.doc.text(data.studentName.toUpperCase(), this.pageWidth / 2, 160, {
-      align: "center",  
-    });
-
-    // Name underline in green
-    // const nameWidth = this.doc.getTextWidth(data.studentName);
-    // this.doc.setDrawColor(0, 255, 65);
-    // this.doc.setLineWidth(1.5);
-    // this.doc.line(
-    //   this.pageWidth / 2 - nameWidth / 2,
-    //   165,
-    //   this.pageWidth / 2 + nameWidth / 2,
-    //   165
-    // );
-
-    // Achievement text in light gray
-    this.doc.setTextColor(200, 200, 200);
-    this.doc.setFontSize(12);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.text(
-      "has successfully completed the comprehensive course",
-      this.pageWidth / 2,
-      180,
-      { align: "center" }
-    );
-
-    // Course name immediately after, within the green frame
-    this.doc.setTextColor(255, 255, 255); // White text
-    this.doc.setFontSize(14); // Smaller size to fit better
-    this.doc.setFont("helvetica", "bold");
-
-    // VERY conservative margins - green border is at 25px, so use 60px margins total
-    const maxWidth = this.pageWidth - 120; // Much more conservative to ensure it stays inside
-    const lines = this.doc.splitTextToSize(`"${data.courseName}"`, maxWidth);
-
-    let courseStartY = 195; // Close to achievement text
-    // Limit to maximum 2 lines to stay within frame
-    const maxLines = Math.min(lines.length, 2);
-    for (let i = 0; i < maxLines; i++) {
-      this.doc.text(lines[i], this.pageWidth / 2, courseStartY + i * 10, {
-        align: "center",
-      });
-    }
-
-    // Performance section positioned after course name
-    const scoreY = courseStartY + maxLines * 10 + 15;
-    this.doc.setFillColor(40, 40, 45); // Dark gray background
-    this.doc.setDrawColor(0, 255, 65); // Green border
-    this.doc.setLineWidth(1);
-    this.doc.rect(this.pageWidth / 2 - 80, scoreY - 8, 160, 20, "FD");
-
-    this.doc.setTextColor(0, 255, 65); // Green text for score
-    this.doc.setFontSize(14);
-    this.doc.setFont("helvetica", "bold");
-    const scoreText = `Final Score: ${data.score}% • ${data.marksObtained}/${data.totalMarks} Points`;
-    this.doc.text(scoreText, this.pageWidth / 2, scoreY + 3, {
-      align: "center",
-    });
-
-    // Footer section with proper spacing
-    const footerY = this.pageHeight - 60;
-
-    // Date in light gray
-    this.doc.setTextColor(180, 180, 180);
-    this.doc.setFontSize(9);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.text("DATE OF COMPLETION", 60, footerY - 5);
-
-    this.doc.setTextColor(255, 255, 255); // White text
-    this.doc.setFontSize(11);
-    this.doc.setFont("helvetica", "bold");
-    this.doc.text(data.completionDate, 60, footerY + 5);
-
-    // Instructor in light gray
-    this.doc.setTextColor(180, 180, 180);
-    this.doc.setFontSize(9);
-    this.doc.setFont("helvetica", "normal");
-    this.doc.text("Founder and CEO", this.pageWidth - 60, footerY - 5, {
-      align: "center",
-    });
-
-    // Remove the instructor name text - signature will go here instead
-
-    // // Certificate ID in light gray
-    // this.doc.setTextColor(150, 150, 150);
-    // this.doc.setFontSize(8);
-    // this.doc.setFont("helvetica", "normal");
-    // this.doc.text(
-    //   `Certificate ID: ${data.certificateId}`,
-    //   this.pageWidth / 2,
-    //   this.pageHeight - 35,
-    //   { align: "center" }
-    // );
-  }
-
-  private async addPremiumQRCode(certificateId: string): Promise<void> {
-    try {
-      const qrSize = 30;
-      const qrX = this.pageWidth - 70;
-      const qrY = 40;
-
-      const verificationUrl = `${window.location.origin}/verify-certificate?id=${certificateId}&source=qr`;
-
-      const qrCodeDataUrl = await QRCode.toDataURL(verificationUrl, {
-        width: 256,
-        margin: 1,
-        color: {
-          dark: "#000000",
-          light: "#FFFFFF",
-        },
-      });
-
-      this.doc.addImage(qrCodeDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
-
-      // QR label
-      this.doc.setTextColor(80, 80, 85);
-      this.doc.setFontSize(8);
-      this.doc.setFont("helvetica", "normal");
-      //   this.doc.text("Scan to Verify", qrX + qrSize / 2, qrY + qrSize + 8, {
-      //     align: "center",
-      //   });
-    } catch (error) {
-      console.error("Error generating QR code:", error);
-    }
-  }
 }
 
-// Factory function for easy usage
 export const generateAndDownloadCertificate = async (
   data: CertificateData
 ): Promise<void> => {
@@ -827,14 +265,9 @@ export const generateAndDownloadCertificate = async (
     const generator = new CertificateGenerator();
     const blob = await generator.generateCertificate(data);
 
-    console.log("📄 Certificate blob generated:", blob.size, "bytes");
-
     const filename = `${data.studentName.replace(/\s+/g, "_")}_Certificate_${
       data.certificateId
     }.pdf`;
-
-    console.log("📁 Downloading as:", filename);
-
     generator.downloadCertificate(blob, filename);
 
     console.log("✅ Certificate download initiated");

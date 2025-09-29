@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fontsource/fredoka": "^5.2.10",
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/vite": "^4.1.12",
     "@types/qrcode": "^1.5.5",
