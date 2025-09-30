@@ -146,10 +146,8 @@ export default function ResponsiveNavbar({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <Link to="/" className="flex items-center space-x-2">
-              <img src="/logo.png" alt="AlienVault Logo" className="w-8 h-8 " />
-              <span className="glow-text text-xl font-bold">
-                Teacher's Choice
-              </span>
+              <img src="/logo.png" alt="Edulume" className="w-8 h-8 " />
+              <span className="glow-text text-xl font-bold">Edulume</span>
             </Link>
             <div className="w-6 h-6 border-2 border-alien-green border-t-transparent rounded-full animate-spin" />
           </div>
@@ -163,10 +161,8 @@ export default function ResponsiveNavbar({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <Link to="/" className="flex items-center space-x-2">
-            <img src="/logo.png" alt="AlienVault Logo" className="w-8 h-8 " />
-            <span className="glow-text text-xl font-bold">
-              Teacher's Choice
-            </span>
+            <img src="/logo.png" alt="Edulume" className="w-8 h-8 " />
+            <span className="glow-text text-xl font-bold">Edulume</span>
           </Link>
 
           {/* Mobile hamburger */}
@@ -459,10 +455,8 @@ export default function ResponsiveNavbar({
             onClick={() => setIsMobileMenuOpen(false)}
             className="flex items-center space-x-2"
           >
-            <img src="/logo.png" alt="AlienVault Logo" className="w-8 h-8" />
-            <span className="glow-text text-xl font-bold">
-              Teacher's Choice
-            </span>
+            <img src="/logo.png" alt="Edulume" className="w-8 h-8" />
+            <span className="glow-text text-xl font-bold">Edulume</span>
           </Link>
           <button
             aria-label="Close menu"

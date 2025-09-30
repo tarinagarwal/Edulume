@@ -285,7 +285,7 @@ const CertificateVerificationPage: React.FC = () => {
           <div className="flex items-center space-x-4">
             <img
               src="/logo.png"
-              alt="Teacher's Choice"
+              alt="Edulume"
               className="w-16 h-16 object-contain"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
@@ -293,9 +293,7 @@ const CertificateVerificationPage: React.FC = () => {
               }}
             />
             <div>
-              <h3 className="text-lg font-semibold text-green-500">
-                Teacher's Choice
-              </h3>
+              <h3 className="text-lg font-semibold text-green-500">Edulume</h3>
               <p className="text-gray-400">
                 Professional Certification Authority
               </p>
@@ -310,7 +308,7 @@ const CertificateVerificationPage: React.FC = () => {
         <div className="text-center mt-8">
           <p className="text-sm text-gray-500">
             This verification is valid at the time of scanning. For any
-            questions about this certificate, please contact Teacher's Choice.
+            questions about this certificate, please contact Edulume.
           </p>
         </div>
       </div>

@@ -35,7 +35,7 @@ const LandingPage: React.FC = () => {
                 </Link>
               </div>
               <h1 className="text-5xl md:text-8xl font-alien font-black mb-6 glow-text ">
-                Teacher's Choice
+                Edulume
               </h1>
               <p className="text-xl md:text-2xl text-gray-300 mb-8 font-cyber">
                 Your College's Ultimate Resource Hub
@@ -80,7 +80,7 @@ const LandingPage: React.FC = () => {
         <section className="py-20 px-4">
           <div className="max-w-6xl mx-auto">
             <h2 className="text-4xl font-alien font-bold text-center mb-16 glow-text">
-              Why Choose Teacher's Choice?
+              Why Choose Edulume?
             </h2>
 
             <div className="grid md:grid-cols-3 gap-8">

@@ -28,14 +28,14 @@ export const sendOTPEmail = async (email, otp, type = "signup") => {
 
     const subject =
       type === "signup"
-        ? "AlienVault - Verify Your Account"
-        : "AlienVault - Password Reset Code";
+        ? "Edulume - Verify Your Account"
+        : "Edulume - Password Reset Code";
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #0a0a0a; color: #ffffff; padding: 20px; border-radius: 10px;">
         <div style="text-align: center; margin-bottom: 30px;">
           <h1 style="color: #00ff41; font-size: 32px; margin: 0; text-shadow: 0 0 10px rgba(0, 255, 65, 0.5);">
-            👽 AlienVault
+            Edulume
           </h1>
           <p style="color: #888; margin: 5px 0 0 0;">College Resource Hub</p>
         </div>
@@ -44,7 +44,7 @@ export const sendOTPEmail = async (email, otp, type = "signup") => {
           <h2 style="color: #00ff41; margin-top: 0;">
             ${
               type === "signup"
-                ? "Welcome to the Vault!"
+                ? "Welcome to the Edulume!"
                 : "Password Reset Request"
             }
           </h2>
@@ -52,7 +52,7 @@ export const sendOTPEmail = async (email, otp, type = "signup") => {
           <p style="color: #ccc; line-height: 1.6;">
             ${
               type === "signup"
-                ? "Thank you for joining AlienVault! To complete your registration, please verify your email address using the code below:"
+                ? "Thank you for joining Edulume! To complete your registration, please verify your email address using the code below:"
                 : "You requested to reset your password. Use the verification code below to proceed:"
             }
           </p>
@@ -72,7 +72,7 @@ export const sendOTPEmail = async (email, otp, type = "signup") => {
               type === "signup"
                 ? "create an account"
                 : "request a password reset"
-            } with AlienVault, please ignore this email.
+            } with Edulume, please ignore this email.
           </p>
         </div>
       </div>

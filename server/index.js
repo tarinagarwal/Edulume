@@ -33,7 +33,7 @@ const getAllowedOrigins = () => {
 
   // Always allow localhost for development
   origins.push("http://localhost:5173");
-
+  origins.push("https://edulume.vercel.app");
   // Add production client origin if specified
   if (process.env.CLIENT_ORIGIN) {
     origins.push(process.env.CLIENT_ORIGIN);
@@ -100,7 +100,7 @@ app.get("/api/health", async (req, res) => {
 
     res.json({
       status: "OK",
-      message: "AlienVault server is running",
+      message: "Edulume server is running",
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV || "development",
       allowedOrigins: getAllowedOrigins(),
@@ -135,7 +135,7 @@ app.use("*", (req, res) => {
 
 // Start server
 server.listen(PORT, () => {
-  console.log(`🚀 AlienVault server running on port ${PORT}`);
+  console.log(`🚀 Edulume server running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🔌 WebSocket server ready`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || "development"}`);
