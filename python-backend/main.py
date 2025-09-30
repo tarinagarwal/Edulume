@@ -19,7 +19,7 @@ app.add_middleware(
 
 @app.get("/")
 async def indexPage():
-    return {"response":"Hi! there is nothing here, you can go back"}
+    return {"response":"Hi! there is nothing here"}
 
 app.include_router(router)
 app.include_router(response_router)
