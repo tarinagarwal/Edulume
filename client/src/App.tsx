@@ -11,6 +11,7 @@ import LandingPage from "./components/layout/LandingPage";
 import AuthForm from "./components/auth/AuthForm";
 import PDFsPage from "./components/resources/PDFsPage";
 import EbooksPage from "./components/resources/EbooksPage";
+import InterviewResourcesPage from "./components/resources/InterviewResourcesPage";
 import UploadForm from "./components/resources/UploadForm";
 import ForgotPasswordForm from "./components/auth/ForgotPasswordForm";
 import NotFoundPage from "./components/layout/NotFoundPage";
@@ -103,6 +104,10 @@ const App: React.FC<AppProps> = () => {
           />
           <Route path="/pdfs" element={<PDFsPage />} />
           <Route path="/ebooks" element={<EbooksPage />} />
+          <Route
+            path="/interview-resources"
+            element={<InterviewResourcesPage />}
+          />
           <Route path="/forgot-password" element={<ForgotPasswordForm />} />
           <Route path="/discussions" element={<DiscussionsPage />} />
           <Route path="/discussions/:id" element={<DiscussionDetailPage />} />

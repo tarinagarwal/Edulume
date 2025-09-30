@@ -13,6 +13,7 @@ import {
   GraduationCap,
   Map,
   GitGraphIcon,
+  Briefcase,
 } from "lucide-react";
 import AdminNavLink from "../admin/AdminNavLink";
 import { getUserProfile, logout } from "../../utils/api";
@@ -199,7 +200,10 @@ export default function ResponsiveNavbar({
               <button
                 onClick={() => setResourcesOpen((v) => !v)}
                 className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
-                  resourcesOpen || isActive("/pdfs") || isActive("/ebooks")
+                  resourcesOpen ||
+                  isActive("/pdfs") ||
+                  isActive("/ebooks") ||
+                  isActive("/interview-resources")
                     ? "text-alien-green shadow-alien-glow"
                     : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
                 }`}
@@ -234,7 +238,7 @@ export default function ResponsiveNavbar({
                   <Link
                     to="/ebooks"
                     onClick={() => setResourcesOpen(false)}
-                    className={`block px-4 py-2 text-sm rounded-b-lg transition-colors duration-200 ${
+                    className={`block px-4 py-2 text-sm transition-colors duration-200 ${
                       isActive("/ebooks")
                         ? "text-alien-green shadow-alien-glow"
                         : "text-gray-300 hover:text-alien-green hover:bg-smoke-light"
@@ -242,6 +246,18 @@ export default function ResponsiveNavbar({
                     role="menuitem"
                   >
                     E-books
+                  </Link>
+                  <Link
+                    to="/interview-resources"
+                    onClick={() => setResourcesOpen(false)}
+                    className={`block px-4 py-2 text-sm rounded-b-lg transition-colors duration-200 ${
+                      isActive("/interview-resources")
+                        ? "text-alien-green shadow-alien-glow"
+                        : "text-gray-300 hover:text-alien-green hover:bg-smoke-light"
+                    }`}
+                    role="menuitem"
+                  >
+                    Interview Resources
                   </Link>
                 </div>
               )}
@@ -523,6 +539,18 @@ export default function ResponsiveNavbar({
               >
                 <BookOpen size={20} />
                 <span>E-books</span>
+              </Link>
+              <Link
+                to="/interview-resources"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all duration-300 ${
+                  isActive("/interview-resources")
+                    ? "text-alien-green shadow-alien-glow bg-alien-green/10"
+                    : "text-gray-300 hover:text-alien-green hover:shadow-alien-glow"
+                }`}
+              >
+                <Briefcase size={20} />
+                <span>Interview Resources</span>
               </Link>
             </div>
           )}
