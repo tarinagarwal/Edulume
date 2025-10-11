@@ -6,6 +6,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Navbar from "./components/layout/Navbar";
 import LandingPage from "./components/layout/LandingPage";
 import AuthForm from "./components/auth/AuthForm";
@@ -190,6 +192,8 @@ const App: React.FC<AppProps> = () => {
         </Routes>
         <Footer />
         <ScrollToTop />
+        <Analytics />
+        <SpeedInsights />
       </div>
     </Router>
   );
