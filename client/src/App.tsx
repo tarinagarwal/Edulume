@@ -11,6 +11,8 @@ import { SpeedInsights } from "@vercel/speed-insights/react";
 import Navbar from "./components/layout/Navbar";
 import LandingPage from "./components/layout/LandingPage";
 import AuthForm from "./components/auth/AuthForm";
+import AuthCallback from "./components/auth/AuthCallback";
+import CompleteProfile from "./components/auth/CompleteProfile";
 import PDFsPage from "./components/resources/PDFsPage";
 import EbooksPage from "./components/resources/EbooksPage";
 import InterviewResourcesPage from "./components/resources/InterviewResourcesPage";
@@ -104,6 +106,8 @@ const App: React.FC<AppProps> = () => {
               </AuthRoute>
             }
           />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/auth/complete-profile" element={<CompleteProfile />} />
           <Route path="/pdfs" element={<PDFsPage />} />
           <Route path="/ebooks" element={<EbooksPage />} />
           <Route

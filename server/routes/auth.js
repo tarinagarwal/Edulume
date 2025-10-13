@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../db.js";
 import { generateOTP, sendOTPEmail, isOTPEnabled } from "../utils/email.js";
+import passport from "../config/passport.js";
 
 const router = express.Router();
 
@@ -13,6 +14,7 @@ const generateToken = (user) => {
       userId: user.id,
       username: user.username,
       email: user.email,
+      needsUsername: user.needsUsername || false,
     },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
@@ -143,6 +145,12 @@ router.post("/signup", async (req, res) => {
       return res
         .status(400)
         .json({ error: "Username, email, and password are required" });
+    }
+
+    if (username.length < 3) {
+      return res
+        .status(400)
+        .json({ error: "Username must be at least 3 characters" });
     }
 
     if (password.length < 6) {
@@ -465,6 +473,103 @@ router.get("/profile", async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Profile error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// Google OAuth routes
+router.get(
+  "/google",
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+  })
+);
+
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: "/auth?error=google_auth_failed",
+  }),
+  (req, res) => {
+    try {
+      const user = req.user;
+      const token = generateToken(user);
+
+      // Redirect to frontend with token
+      const clientURL = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+
+      if (user.needsUsername) {
+        // Redirect to username selection page
+        res.redirect(`${clientURL}/auth/complete-profile?token=${token}`);
+      } else {
+        // Redirect to home with token
+        res.redirect(`${clientURL}/auth/callback?token=${token}`);
+      }
+    } catch (error) {
+      console.error("Google callback error:", error);
+      res.redirect(`${clientURL}/auth?error=callback_failed`);
+    }
+  }
+);
+
+// Set username for Google OAuth users
+router.post("/set-username", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Access token required" });
+    }
+
+    const token = authHeader.substring(7);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const { username } = req.body;
+
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    if (username.length < 3) {
+      return res
+        .status(400)
+        .json({ error: "Username must be at least 3 characters" });
+    }
+
+    // Check if username is taken
+    const existingUser = await prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ error: "Username already taken" });
+    }
+
+    // Update user with username
+    const user = await prisma.user.update({
+      where: { id: decoded.userId },
+      data: {
+        username,
+        needsUsername: false,
+      },
+    });
+
+    // Generate new token with updated info
+    const newToken = generateToken(user);
+
+    res.json({
+      token: newToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        profilePicture: user.profilePicture,
+      },
+    });
+  } catch (error) {
+    console.error("Set username error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import passport from "./config/passport.js";
 import authRoutes from "./routes/auth.js";
 import pdfRoutes from "./routes/pdfs.js";
 import ebookRoutes from "./routes/ebooks.js";
@@ -62,6 +63,9 @@ app.use(
 app.use(cookieParser());
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// Initialize Passport
+app.use(passport.initialize());
 
 // Debug middleware to log all requests
 app.use((req, res, next) => {

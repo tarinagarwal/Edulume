@@ -12,14 +12,22 @@ datasource db {
 
 model User {
   id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  username          String   @unique
+  username          String?  @unique
   email             String   @unique
-  passwordHash      String   @map("password_hash")
+  passwordHash      String?  @map("password_hash")
   isVerified        Boolean  @default(false) @map("is_verified")
   verificationToken String?  @map("verification_token")
   resetToken        String?  @map("reset_token")
   resetTokenExpires DateTime? @map("reset_token_expires")
   createdAt         DateTime @default(now()) @map("created_at")
+  
+  // OAuth fields
+  googleId          String?  @map("google_id")
+  authProvider      String   @default("local") @map("auth_provider") // "local" or "google"
+  profilePicture    String?  @map("profile_picture")
+  needsUsername     Boolean  @default(false) @map("needs_username")
+  
+  @@index([googleId], map: "users_google_id_key")
 
   // Relations
   pdfs              Pdf[]
