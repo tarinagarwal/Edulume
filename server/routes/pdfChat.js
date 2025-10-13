@@ -11,7 +11,7 @@ const PYTHON_API_URL = process.env.PYTHON_API_URL || "http://localhost:8000";
 // Create a new PDF chat session
 router.post("/sessions", authenticateToken, async (req, res) => {
   try {
-    const { sessionId, pdfUrl, pdfName } = req.body;
+    const { sessionId, pdfUrl, pdfName, cloudinaryPublicId } = req.body;
     const userId = req.user.id;
 
     const session = await prisma.pdfChatSession.create({
@@ -20,6 +20,7 @@ router.post("/sessions", authenticateToken, async (req, res) => {
         sessionId,
         pdfUrl,
         pdfName,
+        cloudinaryPublicId: cloudinaryPublicId || null,
       },
     });
 
@@ -92,17 +93,26 @@ router.post("/sessions/:sessionId/end", authenticateToken, async (req, res) => {
       },
     });
 
-    // Call Python backend to cleanup embeddings
+    // Call Python backend to cleanup embeddings and Cloudinary
     try {
+      const params = new URLSearchParams({ session_id: sessionId });
+      if (session.cloudinaryPublicId) {
+        params.append("cloudinary_public_id", session.cloudinaryPublicId);
+      }
+
       const cleanupResponse = await fetch(
-        `${PYTHON_API_URL}/cleanup-session?session_id=${sessionId}`,
+        `${PYTHON_API_URL}/cleanup-session?${params.toString()}`,
         {
           method: "POST",
         }
       );
 
       if (!cleanupResponse.ok) {
-        console.error("Failed to cleanup embeddings in Python backend");
+        const errorData = await cleanupResponse.json().catch(() => ({}));
+        console.error("Failed to cleanup in Python backend:", errorData);
+      } else {
+        const cleanupData = await cleanupResponse.json();
+        console.log("Cleanup successful:", cleanupData);
       }
     } catch (cleanupError) {
       console.error("Error calling Python cleanup:", cleanupError);

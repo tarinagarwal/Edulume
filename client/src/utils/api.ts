@@ -891,6 +891,7 @@ export const uploadPdfToPython = async (
 ): Promise<{
   message: string;
   cloudinary_url: string;
+  cloudinary_public_id: string;
   embedding_result: string;
   session_id: string;
 }> => {
@@ -904,7 +905,10 @@ export const uploadPdfToPython = async (
   });
 
   if (!response.ok) {
-    throw new Error("Failed to upload PDF to Python backend");
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage =
+      errorData.detail || "Failed to upload PDF to Python backend";
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -928,7 +932,62 @@ export const queryPdfChat = async (
   );
 
   if (!response.ok) {
-    throw new Error("Failed to query PDF chat");
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || "Failed to query PDF chat";
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+};
+
+export const cleanupPdfSession = async (
+  sessionId: string,
+  cloudinaryPublicId?: string
+): Promise<{
+  message: string;
+  pinecone_deleted: boolean;
+  cloudinary_deleted: boolean;
+}> => {
+  const params = new URLSearchParams({ session_id: sessionId });
+  if (cloudinaryPublicId) {
+    params.append("cloudinary_public_id", cloudinaryPublicId);
+  }
+
+  const response = await fetch(
+    `${PYTHON_API_URL}/cleanup-session?${params.toString()}`,
+    {
+      method: "POST",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || "Failed to cleanup session";
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
+};
+
+export const getPdfSessionInfo = async (
+  sessionId: string
+): Promise<{
+  session_id: string;
+  message_count: number;
+  last_accessed: string;
+  messages_remaining: number;
+}> => {
+  const response = await fetch(
+    `${PYTHON_API_URL}/session-info?session_id=${sessionId}`,
+    {
+      method: "GET",
+    }
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    const errorMessage = errorData.detail || "Failed to get session info";
+    throw new Error(errorMessage);
   }
 
   return response.json();

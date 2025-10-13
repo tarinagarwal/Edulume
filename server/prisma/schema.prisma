@@ -345,14 +345,15 @@ model BugReport {
 }
 
 model PdfChatSession {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId    String   @map("user_id") @db.ObjectId
-  sessionId String   @unique @map("session_id")
-  pdfUrl    String   @map("pdf_url")
-  pdfName   String   @map("pdf_name")
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  endedAt   DateTime? @map("ended_at")
+  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String   @map("user_id") @db.ObjectId
+  sessionId          String   @unique @map("session_id")
+  pdfUrl             String   @map("pdf_url")
+  pdfName            String   @map("pdf_name")
+  cloudinaryPublicId String?  @map("cloudinary_public_id")
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at")
+  endedAt            DateTime? @map("ended_at")
 
   // Relations
   user     User              @relation(fields: [userId], references: [id])

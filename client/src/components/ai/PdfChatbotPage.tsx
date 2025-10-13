@@ -5,7 +5,6 @@ import {
   FileText,
   MessageSquare,
   X,
-  History,
   Trash2,
   Loader2,
   ChevronDown,
@@ -47,6 +46,7 @@ export default function PdfChatbotPage() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [sessionId, setSessionId] = useState<string>("");
+  const [cloudinaryPublicId, setCloudinaryPublicId] = useState<string>("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +58,9 @@ export default function PdfChatbotPage() {
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [lastMessageCount, setLastMessageCount] = useState(0);
+  const [messagesRemaining, setMessagesRemaining] = useState<number | null>(
+    null
+  );
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -154,11 +157,32 @@ export default function PdfChatbotPage() {
       fileInputRef.current.value = "";
     }
 
+    // If there's an existing session, clean it up first
+    if (sessionId && cloudinaryPublicId) {
+      try {
+        addToast({
+          type: "info",
+          title: "Replacing PDF",
+          message: "Cleaning up previous document...",
+        });
+
+        // Cleanup old session
+        await fetch(`/api/pdf-chat/sessions/${sessionId}/end`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${getAuthToken()}`,
+          },
+        });
+      } catch (error) {
+        console.error("Error cleaning up old session:", error);
+      }
+    }
+
     setPdfFile(file);
     setIsUploading(true);
     setUploadProgress(0);
 
-    let progressInterval: NodeJS.Timeout;
+    let progressInterval: NodeJS.Timeout | undefined;
 
     try {
       // Simulate progress for better UX
@@ -189,7 +213,11 @@ export default function PdfChatbotPage() {
       // Set session data
       setSessionId(newSessionId);
       setPdfUrl(result.cloudinary_url);
+      setCloudinaryPublicId(result.cloudinary_public_id);
       setMessages([]);
+      setMessagesRemaining(100); // Initial message limit
+      setLastMessageCount(0);
+      setShouldAutoScroll(true);
 
       // Save session to backend
       const sessionResponse = await fetch("/api/pdf-chat/sessions", {
@@ -202,6 +230,7 @@ export default function PdfChatbotPage() {
           sessionId: newSessionId,
           pdfUrl: result.cloudinary_url,
           pdfName: file.name,
+          cloudinaryPublicId: result.cloudinary_public_id,
         }),
       });
 
@@ -223,15 +252,34 @@ export default function PdfChatbotPage() {
         title: "PDF Uploaded Successfully",
         message: "You can now start chatting with your document!",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading PDF:", error);
       if (progressInterval) {
         clearInterval(progressInterval);
       }
+
+      // Handle specific error messages
+      let errorMessage = "Failed to upload PDF. Please try again.";
+      if (error.message) {
+        if (error.message.includes("10MB")) {
+          errorMessage = "File size exceeds 10MB limit.";
+        } else if (
+          error.message.includes("whitespace") ||
+          error.message.includes("public_id")
+        ) {
+          errorMessage =
+            "Please rename your PDF file to remove special characters and try again.";
+        } else if (error.message.includes("PDF")) {
+          errorMessage = error.message;
+        } else if (error.message.includes("session_id")) {
+          errorMessage = "Session error. Please refresh and try again.";
+        }
+      }
+
       addToast({
         type: "error",
         title: "Upload Failed",
-        message: "Failed to upload PDF. Please try again.",
+        message: errorMessage,
       });
       setIsUploading(false);
       setUploadProgress(0);
@@ -242,6 +290,17 @@ export default function PdfChatbotPage() {
     if (!currentMessage.trim() || !sessionId || isLoading) return;
 
     const userMessage = currentMessage.trim();
+
+    // Validate message length
+    if (userMessage.length > 1000) {
+      addToast({
+        type: "error",
+        title: "Message Too Long",
+        message: "Please keep your question under 1000 characters.",
+      });
+      return;
+    }
+
     const messageId = Date.now().toString();
 
     // Add message immediately with loading state
@@ -270,6 +329,11 @@ export default function PdfChatbotPage() {
         )
       );
 
+      // Update messages remaining count
+      if (messagesRemaining !== null) {
+        setMessagesRemaining(messagesRemaining - 1);
+      }
+
       // Save message to backend
       const saveResponse = await fetch("/api/pdf-chat/messages", {
         method: "POST",
@@ -287,8 +351,29 @@ export default function PdfChatbotPage() {
       if (!saveResponse.ok) {
         console.error("Failed to save message to backend");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending message:", error);
+
+      // Handle specific error messages
+      let errorMessage = "Failed to send message. Please try again.";
+      let errorTitle = "Message Failed";
+
+      if (error.message) {
+        if (error.message.includes("limit reached")) {
+          errorMessage =
+            "You've reached the maximum number of messages for this session. Please start a new session.";
+          errorTitle = "Message Limit Reached";
+        } else if (error.message.includes("rate limit")) {
+          errorMessage =
+            "Too many requests. Please wait a moment and try again.";
+          errorTitle = "Rate Limit";
+        } else if (error.message.includes("empty")) {
+          errorMessage = "Please enter a question.";
+        } else if (error.message.includes("too long")) {
+          errorMessage =
+            "Your question is too long. Please keep it under 1000 characters.";
+        }
+      }
 
       // Update message with error state
       setMessages((prev) =>
@@ -305,8 +390,8 @@ export default function PdfChatbotPage() {
 
       addToast({
         type: "error",
-        title: "Message Failed",
-        message: "Failed to send message. Please try again.",
+        title: errorTitle,
+        message: errorMessage,
       });
     } finally {
       setIsLoading(false);
@@ -337,9 +422,11 @@ export default function PdfChatbotPage() {
       setPdfFile(null);
       setPdfUrl("");
       setSessionId("");
+      setCloudinaryPublicId("");
       setMessages([]);
       setLastMessageCount(0);
       setShouldAutoScroll(true);
+      setMessagesRemaining(null);
 
       // Refresh chat history
       fetchChatHistory();
@@ -589,6 +676,11 @@ export default function PdfChatbotPage() {
 
               {/* Input */}
               <div className="p-4 border-t border-smoke-light flex-shrink-0">
+                {messagesRemaining !== null && messagesRemaining <= 10 && (
+                  <div className="mb-2 text-xs text-yellow-400 text-center">
+                    {messagesRemaining} messages remaining in this session
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -603,6 +695,7 @@ export default function PdfChatbotPage() {
                         : "Upload a PDF first"
                     }
                     disabled={!sessionId || isLoading}
+                    maxLength={1000}
                     className="flex-1 px-4 py-2 bg-smoke-light border border-smoke-light rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-alien-green disabled:opacity-50"
                   />
                   <button
@@ -613,6 +706,11 @@ export default function PdfChatbotPage() {
                     <Send size={20} />
                   </button>
                 </div>
+                {currentMessage.length > 900 && (
+                  <div className="mt-1 text-xs text-gray-400 text-right">
+                    {currentMessage.length}/1000 characters
+                  </div>
+                )}
               </div>
             </div>
           </div>
