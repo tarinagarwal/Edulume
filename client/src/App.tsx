@@ -13,6 +13,7 @@ import LandingPage from "./components/layout/LandingPage";
 import AuthForm from "./components/auth/AuthForm";
 import AuthCallback from "./components/auth/AuthCallback";
 import CompleteProfile from "./components/auth/CompleteProfile";
+import ChangeUsernameForm from "./components/auth/ChangeUsernameForm";
 import PDFsPage from "./components/resources/PDFsPage";
 import EbooksPage from "./components/resources/EbooksPage";
 import InterviewResourcesPage from "./components/resources/InterviewResourcesPage";
@@ -115,6 +116,14 @@ const App: React.FC<AppProps> = () => {
             element={<InterviewResourcesPage />}
           />
           <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+          <Route
+            path="/change-username"
+            element={
+              <ProtectedRoute authenticated={isLoggedIn}>
+                <ChangeUsernameForm />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/discussions" element={<DiscussionsPage />} />
           <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
           <Route path="/courses" element={<CoursesPage />} />

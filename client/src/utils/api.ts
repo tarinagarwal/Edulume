@@ -226,6 +226,23 @@ export const getUserProfile = async (): Promise<{ user: User }> => {
   return response.data;
 };
 
+export const changeUsername = async (
+  username: string
+): Promise<AuthResponse> => {
+  const response = await api.post("/auth/change-username", { username });
+
+  // Store the new token
+  if (response.data.token) {
+    const { setAuthToken } = await import("./auth");
+    setAuthToken(response.data.token);
+  }
+
+  return {
+    token: response.data.token,
+    user: response.data.user,
+  };
+};
+
 // PDFs API
 export const getPDFs = async (): Promise<PDFItem[]> => {
   const response = await api.get("/pdfs");

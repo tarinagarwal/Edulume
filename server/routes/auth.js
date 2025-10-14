@@ -574,4 +574,83 @@ router.post("/set-username", async (req, res) => {
   }
 });
 
+// Change username for any authenticated user
+router.post("/change-username", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    console.log(
+      "🔄 Change username request - Auth header:",
+      authHeader ? "Present" : "Missing"
+    );
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Access token required" });
+    }
+
+    const token = authHeader.substring(7);
+
+    if (!token || token === "null" || token === "undefined") {
+      console.log("❌ Invalid token value:", token);
+      return res.status(401).json({ error: "Invalid access token" });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log("✅ Token verified for user:", decoded.userId);
+    } catch (jwtError) {
+      console.error("❌ JWT verification failed:", jwtError.message);
+      return res.status(401).json({ error: "Invalid or expired token" });
+    }
+
+    const { username } = req.body;
+
+    if (!username) {
+      return res.status(400).json({ error: "Username is required" });
+    }
+
+    if (username.length < 3) {
+      return res
+        .status(400)
+        .json({ error: "Username must be at least 3 characters" });
+    }
+
+    // Check if username is taken by another user
+    const existingUser = await prisma.user.findUnique({
+      where: { username },
+    });
+
+    if (existingUser && existingUser.id !== decoded.userId) {
+      return res.status(400).json({ error: "Username already taken" });
+    }
+
+    // Update user with new username
+    const user = await prisma.user.update({
+      where: { id: decoded.userId },
+      data: { username },
+    });
+
+    // Generate new token with updated info
+    const newToken = generateToken(user);
+
+    console.log("✅ Username changed successfully:", {
+      userId: user.id,
+      newUsername: username,
+    });
+
+    res.json({
+      token: newToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Change username error:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

@@ -406,6 +406,27 @@ export default function ResponsiveNavbar({
                         isDropdown={true}
                       />
                       <Link
+                        to="/change-username"
+                        onClick={() => setIsProfileDropdownOpen(false)}
+                        className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-smoke-light hover:text-alien-green transition-colors duration-200"
+                      >
+                        <svg
+                          className="mr-3"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                        Change Username
+                      </Link>
+                      <Link
                         to="/forgot-password"
                         onClick={() => setIsProfileDropdownOpen(false)}
                         className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-smoke-light hover:text-alien-green transition-colors duration-200"

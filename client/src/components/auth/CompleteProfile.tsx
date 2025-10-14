@@ -29,7 +29,8 @@ export default function CompleteProfile() {
     }
 
     try {
-      const response = await fetch("/api/auth/set-username", {
+      const apiUrl = import.meta.env.VITE_API_URL || "/api";
+      const response = await fetch(`${apiUrl}/auth/set-username`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -38,11 +39,19 @@ export default function CompleteProfile() {
         body: JSON.stringify({ username }),
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        throw new Error(data.error || "Failed to set username");
+        let errorMessage = "Failed to set username";
+        try {
+          const data = await response.json();
+          errorMessage = data.error || errorMessage;
+        } catch {
+          // Response is not JSON
+          errorMessage = `Server error: ${response.status}`;
+        }
+        throw new Error(errorMessage);
       }
+
+      const data = await response.json();
 
       // Store new token
       setAuthToken(data.token);
@@ -50,6 +59,7 @@ export default function CompleteProfile() {
       // Redirect to home
       navigate("/");
     } catch (err: any) {
+      console.error("Set username error:", err);
       setError(err.message || "An error occurred");
     } finally {
       setLoading(false);
