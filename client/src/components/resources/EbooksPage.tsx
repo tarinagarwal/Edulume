@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   BookOpen,
@@ -6,24 +6,88 @@ import {
   Calendar,
   User,
   FileText,
-  Upload,
   Search,
   Filter,
   SortAsc,
   SortDesc,
   X,
   Plus,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { getEbooks } from "../../utils/api";
 import { EbookItem } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
+import { useDebounce } from "../../hooks/useDebounce";
+
+// Memoized Ebook Card Component
+const EbookCard = React.memo(({ ebook }: { ebook: EbookItem }) => (
+  <div className="smoke-card p-6 relative smoke-effect hover:shadow-alien-glow transition-all duration-300 flex flex-col h-full">
+    <div className="flex items-start justify-between mb-4">
+      <div className="w-12 h-12 bg-alien-green rounded-lg flex items-center justify-center shadow-alien-glow">
+        <BookOpen className="text-royal-black" size={24} />
+      </div>
+      <span className="text-xs bg-smoke-light px-2 py-1 rounded-full text-alien-green">
+        Sem {ebook.semester}
+      </span>
+    </div>
+
+    <h3 className="text-lg font-alien font-bold text-white mb-2 line-clamp-2">
+      {ebook.title}
+    </h3>
+
+    <p className="text-gray-400 text-sm mb-4 line-clamp-3 flex-grow">
+      {ebook.description}
+    </p>
+
+    <div className="space-y-2 mb-4 text-xs text-gray-500 min-h-[60px]">
+      {ebook.course && (
+        <div className="flex items-center">
+          <FileText size={14} className="mr-2" />
+          <span>{ebook.course}</span>
+        </div>
+      )}
+      {ebook.department && (
+        <div className="flex items-center">
+          <User size={14} className="mr-2" />
+          <span>{ebook.department}</span>
+        </div>
+      )}
+      <div className="flex items-center">
+        <Calendar size={14} className="mr-2" />
+        <span>{new Date(ebook.upload_date).toLocaleDateString()}</span>
+      </div>
+    </div>
+
+    <div className="mt-auto">
+      <a
+        href={ebook.blob_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="alien-button w-full text-center block"
+      >
+        <Download className="inline mr-2" size={16} />
+        Download E-book
+      </a>
+    </div>
+  </div>
+));
+
+EbookCard.displayName = "EbookCard";
 
 const EbooksPage: React.FC = () => {
   const [ebooks, setEbooks] = useState<EbookItem[]>([]);
-  const [filteredEbooks, setFilteredEbooks] = useState<EbookItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState("");
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,121 +99,74 @@ const EbooksPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Get unique values for filter dropdowns
+  // Available filter options from server
   const [availableCourses, setAvailableCourses] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>(
     []
   );
 
+  // Debounce search term
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
   useEffect(() => {
     const checkAuth = async () => {
       const authenticated = await isAuthenticated();
       setIsAuth(authenticated);
+
+      if (authenticated) {
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || "/api";
+          const token = localStorage.getItem("auth_token");
+          const response = await fetch(`${apiUrl}/auth/profile`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setIsAdmin(data.user?.is_admin || false);
+          }
+        } catch (error) {
+          console.error("Failed to check admin status:", error);
+        }
+      }
     };
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    const fetchEbooks = async () => {
-      try {
-        const data = await getEbooks();
-        setEbooks(data);
+  // Fetch E-books with server-side filtering and pagination
+  const fetchEbooks = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getEbooks({
+        page: currentPage,
+        limit: 50,
+        search: debouncedSearchTerm,
+        semester: selectedSemester,
+        course: selectedCourse,
+        department: selectedDepartment,
+        year_of_study: selectedYear,
+        sortBy,
+        sortOrder,
+      });
 
-        // Extract unique values for filters
-        const courses = [
-          ...new Set(
-            data.filter((ebook) => ebook.course).map((ebook) => ebook.course!)
-          ),
-        ].sort();
-        const departments = [
-          ...new Set(
-            data
-              .filter((ebook) => ebook.department)
-              .map((ebook) => ebook.department!)
-          ),
-        ].sort();
-
-        setAvailableCourses(courses);
-        setAvailableDepartments(departments);
-      } catch (err: any) {
-        setError("Failed to load E-books");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchEbooks();
-  }, []);
-
-  // Filter and sort E-books
-  useEffect(() => {
-    let filtered = [...ebooks];
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (ebook) =>
-          ebook.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          ebook.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (ebook.course &&
-            ebook.course.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (ebook.department &&
-            ebook.department.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+      setEbooks(data.ebooks);
+      setTotalPages(data.pagination.totalPages);
+      setTotalCount(data.pagination.total);
+      setHasMore(data.pagination.hasMore);
+      setAvailableCourses(data.filters.availableCourses);
+      setAvailableDepartments(data.filters.availableDepartments);
+      setIsInitialLoad(false);
+    } catch (err: any) {
+      setError("Failed to load E-books");
+      console.error("Error fetching E-books:", err);
+    } finally {
+      setLoading(false);
     }
-
-    // Apply semester filter
-    if (selectedSemester) {
-      filtered = filtered.filter(
-        (ebook) => ebook.semester === selectedSemester
-      );
-    }
-
-    // Apply course filter
-    if (selectedCourse) {
-      filtered = filtered.filter((ebook) => ebook.course === selectedCourse);
-    }
-
-    // Apply department filter
-    if (selectedDepartment) {
-      filtered = filtered.filter(
-        (ebook) => ebook.department === selectedDepartment
-      );
-    }
-
-    // Apply year filter
-    if (selectedYear) {
-      filtered = filtered.filter(
-        (ebook) => ebook.year_of_study === selectedYear
-      );
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case "title":
-          comparison = a.title.localeCompare(b.title);
-          break;
-        case "semester":
-          comparison = parseInt(a.semester) - parseInt(b.semester);
-          break;
-        case "date":
-        default:
-          comparison =
-            new Date(a.upload_date).getTime() -
-            new Date(b.upload_date).getTime();
-          break;
-      }
-
-      return sortOrder === "asc" ? comparison : -comparison;
-    });
-
-    setFilteredEbooks(filtered);
   }, [
-    ebooks,
-    searchTerm,
+    currentPage,
+    debouncedSearchTerm,
     selectedSemester,
     selectedCourse,
     selectedDepartment,
@@ -158,7 +175,25 @@ const EbooksPage: React.FC = () => {
     sortOrder,
   ]);
 
-  const clearFilters = () => {
+  useEffect(() => {
+    fetchEbooks();
+  }, [fetchEbooks]);
+
+  // Reset to page 1 when filters change (but not on initial mount)
+  useEffect(() => {
+    setCurrentPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    debouncedSearchTerm,
+    selectedSemester,
+    selectedCourse,
+    selectedDepartment,
+    selectedYear,
+    sortBy,
+    sortOrder,
+  ]);
+
+  const clearFilters = useCallback(() => {
     setSearchTerm("");
     setSelectedSemester("");
     setSelectedCourse("");
@@ -166,16 +201,31 @@ const EbooksPage: React.FC = () => {
     setSelectedYear("");
     setSortBy("date");
     setSortOrder("desc");
-  };
+    setCurrentPage(1);
+  }, []);
 
-  const hasActiveFilters =
-    searchTerm ||
-    selectedSemester ||
-    selectedCourse ||
-    selectedDepartment ||
-    selectedYear;
+  const hasActiveFilters = useMemo(
+    () =>
+      searchTerm ||
+      selectedSemester ||
+      selectedCourse ||
+      selectedDepartment ||
+      selectedYear,
+    [
+      searchTerm,
+      selectedSemester,
+      selectedCourse,
+      selectedDepartment,
+      selectedYear,
+    ]
+  );
 
-  if (loading) {
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  if (isInitialLoad && loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -198,7 +248,7 @@ const EbooksPage: React.FC = () => {
               Explore digital books and references
             </p>
           </div>
-          {isAuth && (
+          {isAuth && isAdmin && (
             <Link
               to="/upload?type=ebook"
               className="bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 flex items-center space-x-2 shadow-alien-glow whitespace-nowrap"
@@ -377,11 +427,12 @@ const EbooksPage: React.FC = () => {
 
           {/* Results Count */}
           <div className="mt-4 text-sm text-gray-400">
-            Showing {filteredEbooks.length} of {ebooks.length} E-books
+            Showing {ebooks.length} of {totalCount} E-books
+            {/* {loading && <span className="ml-2 animate-pulse">Loading...</span>} */}
           </div>
         </div>
 
-        {filteredEbooks.length === 0 ? (
+        {ebooks.length === 0 && !loading ? (
           <div className="text-center py-16">
             <BookOpen className="mx-auto mb-4 text-gray-500" size={64} />
             <h3 className="text-xl font-alien text-gray-400 mb-2">
@@ -398,75 +449,81 @@ const EbooksPage: React.FC = () => {
               <button onClick={clearFilters} className="alien-button">
                 Clear All Filters
               </button>
-            ) : isAuth ? (
+            ) : isAuth && isAdmin ? (
               <Link to="/upload?type=ebook" className="alien-button">
                 Upload First E-book
               </Link>
+            ) : isAuth ? (
+              <p className="text-gray-400 text-sm">
+                Only admins can upload E-books
+              </p>
             ) : (
               <Link to="/auth" className="alien-button">
-                Login to Upload E-books
+                Login to View E-books
               </Link>
             )}
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEbooks.map((ebook) => (
-              <div
-                key={ebook.id}
-                className="smoke-card p-6 relative smoke-effect hover:shadow-alien-glow transition-all duration-300 flex flex-col h-full"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-alien-green rounded-lg flex items-center justify-center shadow-alien-glow">
-                    <BookOpen className="text-royal-black" size={24} />
-                  </div>
-                  <span className="text-xs bg-smoke-light px-2 py-1 rounded-full text-alien-green">
-                    Sem {ebook.semester}
-                  </span>
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {ebooks.map((ebook) => (
+                <EbookCard key={ebook.id} ebook={ebook} />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || loading}
+                  className="px-4 py-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <ChevronLeft size={16} />
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        disabled={loading}
+                        className={`px-4 py-2 rounded-lg border transition-all duration-300 ${
+                          currentPage === pageNum
+                            ? "border-alien-green bg-alien-green/10 text-alien-green"
+                            : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <h3 className="text-lg font-alien font-bold text-white mb-2 line-clamp-2">
-                  {ebook.title}
-                </h3>
-
-                <p className="text-gray-400 text-sm mb-4 line-clamp-3 flex-grow">
-                  {ebook.description}
-                </p>
-
-                <div className="space-y-2 mb-4 text-xs text-gray-500 min-h-[60px]">
-                  {ebook.course && (
-                    <div className="flex items-center">
-                      <FileText size={14} className="mr-2" />
-                      <span>{ebook.course}</span>
-                    </div>
-                  )}
-                  {ebook.department && (
-                    <div className="flex items-center">
-                      <User size={14} className="mr-2" />
-                      <span>{ebook.department}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center">
-                    <Calendar size={14} className="mr-2" />
-                    <span>
-                      {new Date(ebook.upload_date).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-auto">
-                  <a
-                    href={ebook.blob_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="alien-button w-full text-center block"
-                  >
-                    <Download className="inline mr-2" size={16} />
-                    Download E-book
-                  </a>
-                </div>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={!hasMore || loading}
+                  className="px-4 py-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  Next
+                  <ChevronRight size={16} />
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

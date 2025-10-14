@@ -1,6 +1,29 @@
 import jwt from "jsonwebtoken";
 import prisma from "../db.js";
 
+// Middleware to check if user is admin
+export const isAdmin = async (req, res, next) => {
+  try {
+    const adminEmails =
+      process.env.ADMIN_EMAILS?.split(",").map((email) => email.trim()) || [];
+
+    if (!req.user) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    if (!adminEmails.includes(req.user.email)) {
+      console.log("❌ User is not admin:", req.user.email);
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    console.log("✅ User is admin:", req.user.email);
+    next();
+  } catch (error) {
+    console.error("Admin check error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;

@@ -22,6 +22,7 @@ const AdminNavLink: React.FC<AdminNavLinkProps> = ({
   useEffect(() => {
     const checkAdminAccess = async () => {
       if (!authenticated) {
+        console.log("🔍 AdminNavLink: Not authenticated");
         setIsAdmin(false);
         setLoading(false);
         return;
@@ -29,15 +30,38 @@ const AdminNavLink: React.FC<AdminNavLinkProps> = ({
 
       try {
         const token = localStorage.getItem("auth_token");
-        const response = await fetch("/api/feedback/admin/stats", {
+        if (!token) {
+          console.log("🔍 AdminNavLink: No token found");
+          setIsAdmin(false);
+          setLoading(false);
+          return;
+        }
+
+        console.log("🔍 AdminNavLink: Checking admin access via profile...");
+        const apiUrl = import.meta.env.VITE_API_URL || "/api";
+        const response = await fetch(`${apiUrl}/auth/profile`, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         });
 
-        setIsAdmin(response.ok);
+        console.log("🔍 AdminNavLink: Response status:", response.status);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("🔍 AdminNavLink: Profile data:", {
+            email: data.user?.email,
+            isAdmin: data.user?.is_admin,
+          });
+          setIsAdmin(data.user?.is_admin || false);
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          console.log("❌ AdminNavLink: Profile fetch failed -", errorData);
+          setIsAdmin(false);
+        }
       } catch (error) {
+        console.error("❌ AdminNavLink: Error checking admin access:", error);
         setIsAdmin(false);
       } finally {
         setLoading(false);

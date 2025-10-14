@@ -14,6 +14,7 @@ import {
   Map,
   GitGraphIcon,
   Briefcase,
+  User,
 } from "lucide-react";
 import AdminNavLink from "../admin/AdminNavLink";
 import { getUserProfile, logout } from "../../utils/api";
@@ -690,6 +691,14 @@ export default function ResponsiveNavbar({
                 onMobileMenuClose={() => setIsMobileMenuOpen(false)}
                 isMobile={true}
               />
+              <Link
+                to="/change-username"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center space-x-2 px-3 py-2 text-gray-300 hover:text-alien-green transition-colors duration-300"
+              >
+                <User size={20} />
+                <span>Change Username</span>
+              </Link>
               <Link
                 to="/forgot-password"
                 onClick={() => setIsMobileMenuOpen(false)}

@@ -17,6 +17,7 @@ import roadmapRoutes from "./routes/roadmaps.js";
 import feedbackRoutes from "./routes/feedback.js";
 import pdfChatRoutes from "./routes/pdfChat.js";
 import { setupSocketHandlers } from "./socket/socketHandlers.js";
+import initRedis from "./utils/redis.js";
 
 BigInt.prototype.toJSON = function () {
   return this.toString();
@@ -24,6 +25,14 @@ BigInt.prototype.toJSON = function () {
 
 // Load environment variables
 dotenv.config();
+
+// Initialize Redis (optional - will work without it)
+initRedis().catch((err) => {
+  console.log(
+    "⚠️  Redis not available, continuing without cache:",
+    err.message
+  );
+});
 
 const app = express();
 const server = createServer(app);

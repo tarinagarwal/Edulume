@@ -461,6 +461,18 @@ router.get("/profile", async (req, res) => {
     console.log("✅ Profile retrieved successfully:", {
       userId: user.id,
       username: user.username,
+      email: user.email,
+    });
+
+    // Check if user is admin
+    const adminEmails =
+      process.env.ADMIN_EMAILS?.split(",").map((email) => email.trim()) || [];
+    const isAdmin = adminEmails.includes(user.email);
+
+    console.log("🔍 Admin check in profile:", {
+      userEmail: user.email,
+      adminEmails: adminEmails,
+      isAdmin: isAdmin,
     });
 
     res.json({
@@ -469,12 +481,23 @@ router.get("/profile", async (req, res) => {
         username: user.username,
         email: user.email,
         created_at: user.createdAt,
+        is_admin: isAdmin,
       },
     });
   } catch (error) {
     console.error("❌ Profile error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
+});
+
+// Debug endpoint to check admin emails (remove in production)
+router.get("/debug/admin-emails", (req, res) => {
+  const adminEmails =
+    process.env.ADMIN_EMAILS?.split(",").map((email) => email.trim()) || [];
+  res.json({
+    adminEmails: adminEmails,
+    rawEnv: process.env.ADMIN_EMAILS,
+  });
 });
 
 // Google OAuth routes

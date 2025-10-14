@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   FileText,
@@ -6,24 +6,88 @@ import {
   Calendar,
   User,
   BookOpen,
-  Upload,
   Search,
   Filter,
   SortAsc,
   SortDesc,
   X,
   Plus,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { getPDFs } from "../../utils/api";
 import { PDFItem } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
+import { useDebounce } from "../../hooks/useDebounce";
+
+// Memoized PDF Card Component
+const PDFCard = React.memo(({ pdf }: { pdf: PDFItem }) => (
+  <div className="smoke-card p-6 relative smoke-effect hover:shadow-alien-glow transition-all duration-300 flex flex-col h-full">
+    <div className="flex items-start justify-between mb-4">
+      <div className="w-12 h-12 bg-alien-green rounded-lg flex items-center justify-center shadow-alien-glow">
+        <FileText className="text-royal-black" size={24} />
+      </div>
+      <span className="text-xs bg-smoke-light px-2 py-1 rounded-full text-alien-green">
+        Sem {pdf.semester}
+      </span>
+    </div>
+
+    <h3 className="text-lg font-alien font-bold text-white mb-2 line-clamp-2">
+      {pdf.title}
+    </h3>
+
+    <p className="text-gray-400 text-sm mb-4 line-clamp-3 flex-grow">
+      {pdf.description}
+    </p>
+
+    <div className="space-y-2 mb-4 text-xs text-gray-500 min-h-[60px]">
+      {pdf.course && (
+        <div className="flex items-center">
+          <BookOpen size={14} className="mr-2" />
+          <span>{pdf.course}</span>
+        </div>
+      )}
+      {pdf.department && (
+        <div className="flex items-center">
+          <User size={14} className="mr-2" />
+          <span>{pdf.department}</span>
+        </div>
+      )}
+      <div className="flex items-center">
+        <Calendar size={14} className="mr-2" />
+        <span>{new Date(pdf.upload_date).toLocaleDateString()}</span>
+      </div>
+    </div>
+
+    <div className="mt-auto">
+      <a
+        href={pdf.blob_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="alien-button w-full text-center block"
+      >
+        <Download className="inline mr-2" size={16} />
+        Download PDF
+      </a>
+    </div>
+  </div>
+));
+
+PDFCard.displayName = "PDFCard";
 
 const PDFsPage: React.FC = () => {
   const [pdfs, setPdfs] = useState<PDFItem[]>([]);
-  const [filteredPdfs, setFilteredPdfs] = useState<PDFItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [error, setError] = useState("");
   const [isAuth, setIsAuth] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState("");
@@ -35,115 +99,74 @@ const PDFsPage: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [showFilters, setShowFilters] = useState(false);
 
-  // Get unique values for filter dropdowns
+  // Available filter options from server
   const [availableCourses, setAvailableCourses] = useState<string[]>([]);
   const [availableDepartments, setAvailableDepartments] = useState<string[]>(
     []
   );
 
+  // Debounce search term
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
   useEffect(() => {
     const checkAuth = async () => {
       const authenticated = await isAuthenticated();
       setIsAuth(authenticated);
+
+      if (authenticated) {
+        try {
+          const apiUrl = import.meta.env.VITE_API_URL || "/api";
+          const token = localStorage.getItem("auth_token");
+          const response = await fetch(`${apiUrl}/auth/profile`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            setIsAdmin(data.user?.is_admin || false);
+          }
+        } catch (error) {
+          console.error("Failed to check admin status:", error);
+        }
+      }
     };
     checkAuth();
   }, []);
 
-  useEffect(() => {
-    const fetchPDFs = async () => {
-      try {
-        const data = await getPDFs();
-        setPdfs(data);
+  // Fetch PDFs with server-side filtering and pagination
+  const fetchPDFs = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await getPDFs({
+        page: currentPage,
+        limit: 50,
+        search: debouncedSearchTerm,
+        semester: selectedSemester,
+        course: selectedCourse,
+        department: selectedDepartment,
+        year_of_study: selectedYear,
+        sortBy,
+        sortOrder,
+      });
 
-        // Extract unique values for filters
-        const courses = [
-          ...new Set(
-            data.filter((pdf) => pdf.course).map((pdf) => pdf.course!)
-          ),
-        ].sort();
-        const departments = [
-          ...new Set(
-            data.filter((pdf) => pdf.department).map((pdf) => pdf.department!)
-          ),
-        ].sort();
-
-        setAvailableCourses(courses);
-        setAvailableDepartments(departments);
-      } catch (err: any) {
-        setError("Failed to load PDFs");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPDFs();
-  }, []);
-
-  // Filter and sort PDFs
-  useEffect(() => {
-    let filtered = [...pdfs];
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (pdf) =>
-          pdf.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          pdf.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (pdf.course &&
-            pdf.course.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (pdf.department &&
-            pdf.department.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+      setPdfs(data.pdfs);
+      setTotalPages(data.pagination.totalPages);
+      setTotalCount(data.pagination.total);
+      setHasMore(data.pagination.hasMore);
+      setAvailableCourses(data.filters.availableCourses);
+      setAvailableDepartments(data.filters.availableDepartments);
+      setIsInitialLoad(false);
+    } catch (err: any) {
+      setError("Failed to load PDFs");
+      console.error("Error fetching PDFs:", err);
+    } finally {
+      setLoading(false);
     }
-
-    // Apply semester filter
-    if (selectedSemester) {
-      filtered = filtered.filter((pdf) => pdf.semester === selectedSemester);
-    }
-
-    // Apply course filter
-    if (selectedCourse) {
-      filtered = filtered.filter((pdf) => pdf.course === selectedCourse);
-    }
-
-    // Apply department filter
-    if (selectedDepartment) {
-      filtered = filtered.filter(
-        (pdf) => pdf.department === selectedDepartment
-      );
-    }
-
-    // Apply year filter
-    if (selectedYear) {
-      filtered = filtered.filter((pdf) => pdf.year_of_study === selectedYear);
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      let comparison = 0;
-
-      switch (sortBy) {
-        case "title":
-          comparison = a.title.localeCompare(b.title);
-          break;
-        case "semester":
-          comparison = parseInt(a.semester) - parseInt(b.semester);
-          break;
-        case "date":
-        default:
-          comparison =
-            new Date(a.upload_date).getTime() -
-            new Date(b.upload_date).getTime();
-          break;
-      }
-
-      return sortOrder === "asc" ? comparison : -comparison;
-    });
-
-    setFilteredPdfs(filtered);
   }, [
-    pdfs,
-    searchTerm,
+    currentPage,
+    debouncedSearchTerm,
     selectedSemester,
     selectedCourse,
     selectedDepartment,
@@ -152,7 +175,25 @@ const PDFsPage: React.FC = () => {
     sortOrder,
   ]);
 
-  const clearFilters = () => {
+  useEffect(() => {
+    fetchPDFs();
+  }, [fetchPDFs]);
+
+  // Reset to page 1 when filters change (but not on initial mount)
+  useEffect(() => {
+    setCurrentPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    debouncedSearchTerm,
+    selectedSemester,
+    selectedCourse,
+    selectedDepartment,
+    selectedYear,
+    sortBy,
+    sortOrder,
+  ]);
+
+  const clearFilters = useCallback(() => {
     setSearchTerm("");
     setSelectedSemester("");
     setSelectedCourse("");
@@ -160,16 +201,31 @@ const PDFsPage: React.FC = () => {
     setSelectedYear("");
     setSortBy("date");
     setSortOrder("desc");
-  };
+    setCurrentPage(1);
+  }, []);
 
-  const hasActiveFilters =
-    searchTerm ||
-    selectedSemester ||
-    selectedCourse ||
-    selectedDepartment ||
-    selectedYear;
+  const hasActiveFilters = useMemo(
+    () =>
+      searchTerm ||
+      selectedSemester ||
+      selectedCourse ||
+      selectedDepartment ||
+      selectedYear,
+    [
+      searchTerm,
+      selectedSemester,
+      selectedCourse,
+      selectedDepartment,
+      selectedYear,
+    ]
+  );
 
-  if (loading) {
+  const handlePageChange = useCallback((newPage: number) => {
+    setCurrentPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  if (isInitialLoad && loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -192,7 +248,7 @@ const PDFsPage: React.FC = () => {
               Discover and download academic resources
             </p>
           </div>
-          {isAuth && (
+          {isAuth && isAdmin && (
             <Link
               to="/upload?type=pdf"
               className="bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 flex items-center space-x-2 shadow-alien-glow whitespace-nowrap"
@@ -371,11 +427,12 @@ const PDFsPage: React.FC = () => {
 
           {/* Results Count */}
           <div className="mt-4 text-sm text-gray-400">
-            Showing {filteredPdfs.length} of {pdfs.length} PDFs
+            Showing {pdfs.length} of {totalCount} PDFs
+            {/* {loading && <span className="ml-2 animate-pulse">Loading...</span>} */}
           </div>
         </div>
 
-        {filteredPdfs.length === 0 ? (
+        {pdfs.length === 0 && !loading ? (
           <div className="text-center py-16">
             <FileText className="mx-auto mb-4 text-gray-500" size={64} />
             <h3 className="text-xl font-alien text-gray-400 mb-2">
@@ -392,75 +449,81 @@ const PDFsPage: React.FC = () => {
               <button onClick={clearFilters} className="alien-button">
                 Clear All Filters
               </button>
-            ) : isAuth ? (
+            ) : isAuth && isAdmin ? (
               <Link to="/upload?type=pdf" className="alien-button">
                 Upload First PDF
               </Link>
+            ) : isAuth ? (
+              <p className="text-gray-400 text-sm">
+                Only admins can upload PDFs
+              </p>
             ) : (
               <Link to="/auth" className="alien-button">
-                Login to Upload PDFs
+                Login to View PDFs
               </Link>
             )}
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPdfs.map((pdf) => (
-              <div
-                key={pdf.id}
-                className="smoke-card p-6 relative smoke-effect hover:shadow-alien-glow transition-all duration-300 flex flex-col h-full"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-alien-green rounded-lg flex items-center justify-center shadow-alien-glow">
-                    <FileText className="text-royal-black" size={24} />
-                  </div>
-                  <span className="text-xs bg-smoke-light px-2 py-1 rounded-full text-alien-green">
-                    Sem {pdf.semester}
-                  </span>
+          <>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {pdfs.map((pdf) => (
+                <PDFCard key={pdf.id} pdf={pdf} />
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || loading}
+                  className="px-4 py-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <ChevronLeft size={16} />
+                  Previous
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        disabled={loading}
+                        className={`px-4 py-2 rounded-lg border transition-all duration-300 ${
+                          currentPage === pageNum
+                            ? "border-alien-green bg-alien-green/10 text-alien-green"
+                            : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
+                        } disabled:opacity-50 disabled:cursor-not-allowed`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
                 </div>
 
-                <h3 className="text-lg font-alien font-bold text-white mb-2 line-clamp-2">
-                  {pdf.title}
-                </h3>
-
-                <p className="text-gray-400 text-sm mb-4 line-clamp-3 flex-grow">
-                  {pdf.description}
-                </p>
-
-                <div className="space-y-2 mb-4 text-xs text-gray-500 min-h-[60px]">
-                  {pdf.course && (
-                    <div className="flex items-center">
-                      <BookOpen size={14} className="mr-2" />
-                      <span>{pdf.course}</span>
-                    </div>
-                  )}
-                  {pdf.department && (
-                    <div className="flex items-center">
-                      <User size={14} className="mr-2" />
-                      <span>{pdf.department}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center">
-                    <Calendar size={14} className="mr-2" />
-                    <span>
-                      {new Date(pdf.upload_date).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-auto">
-                  <a
-                    href={pdf.blob_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="alien-button w-full text-center block"
-                  >
-                    <Download className="inline mr-2" size={16} />
-                    Download PDF
-                  </a>
-                </div>
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={!hasMore || loading}
+                  className="px-4 py-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  Next
+                  <ChevronRight size={16} />
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
     </div>

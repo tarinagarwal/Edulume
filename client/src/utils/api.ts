@@ -244,8 +244,31 @@ export const changeUsername = async (
 };
 
 // PDFs API
-export const getPDFs = async (): Promise<PDFItem[]> => {
-  const response = await api.get("/pdfs");
+export const getPDFs = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  semester?: string;
+  course?: string;
+  department?: string;
+  year_of_study?: string;
+  sortBy?: string;
+  sortOrder?: string;
+}): Promise<{
+  pdfs: PDFItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+  filters: {
+    availableCourses: string[];
+    availableDepartments: string[];
+  };
+}> => {
+  const response = await api.get("/pdfs", { params });
   return response.data;
 };
 
@@ -273,8 +296,31 @@ export const storePDFMetadata = async (metadata: {
 };
 
 // E-books API
-export const getEbooks = async (): Promise<EbookItem[]> => {
-  const response = await api.get("/ebooks");
+export const getEbooks = async (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  semester?: string;
+  course?: string;
+  department?: string;
+  year_of_study?: string;
+  sortBy?: string;
+  sortOrder?: string;
+}): Promise<{
+  ebooks: EbookItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
+  filters: {
+    availableCourses: string[];
+    availableDepartments: string[];
+  };
+}> => {
+  const response = await api.get("/ebooks", { params });
   return response.data;
 };
 
