@@ -16,6 +16,9 @@ import { ProgressBar } from "../ui/ProgressBar";
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
 import { PdfViewer } from "../ui/PdfViewer";
 
+// Get API base URL
+const API_BASE_URL = "https://server-late-sun-2066.fly.dev/api";
+
 interface ChatMessage {
   id: string;
   message: string;
@@ -167,7 +170,7 @@ export default function PdfChatbotPage() {
         });
 
         // Cleanup old session
-        await fetch(`/api/pdf-chat/sessions/${sessionId}/end`, {
+        await fetch(`${API_BASE_URL}/pdf-chat/sessions/${sessionId}/end`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${getAuthToken()}`,
@@ -220,7 +223,7 @@ export default function PdfChatbotPage() {
       setShouldAutoScroll(true);
 
       // Save session to backend
-      const sessionResponse = await fetch("/api/pdf-chat/sessions", {
+      const sessionResponse = await fetch(`${API_BASE_URL}/pdf-chat/sessions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -335,7 +338,7 @@ export default function PdfChatbotPage() {
       }
 
       // Save message to backend
-      const saveResponse = await fetch("/api/pdf-chat/messages", {
+      const saveResponse = await fetch(`${API_BASE_URL}/pdf-chat/messages`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -411,7 +414,7 @@ export default function PdfChatbotPage() {
       });
 
       // End session and cleanup embeddings
-      await fetch(`/api/pdf-chat/sessions/${sessionId}/end`, {
+      await fetch(`${API_BASE_URL}/pdf-chat/sessions/${sessionId}/end`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
@@ -450,7 +453,7 @@ export default function PdfChatbotPage() {
 
   const fetchChatHistory = async () => {
     try {
-      const response = await fetch("/api/pdf-chat/history", {
+      const response = await fetch(`${API_BASE_URL}/pdf-chat/history`, {
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
         },
@@ -467,7 +470,7 @@ export default function PdfChatbotPage() {
 
   const deleteHistorySession = async (historySessionId: string) => {
     try {
-      await fetch(`/api/pdf-chat/sessions/${historySessionId}`, {
+      await fetch(`${API_BASE_URL}/pdf-chat/sessions/${historySessionId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${getAuthToken()}`,
