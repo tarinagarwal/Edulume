@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, memo, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -32,7 +32,7 @@ import type { Discussion, DiscussionAnswer } from "../../types/discussions";
 import { DISCUSSION_CATEGORIES } from "../../types/discussions";
 import { getUserProfile } from "../../utils/api";
 import MentionInput from "./MentionInput";
-import useSocket from "../../hooks/useSocket";
+import { useSocket } from "../../contexts/SocketContext";
 
 const DiscussionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -70,7 +70,6 @@ const DiscussionDetailPage: React.FC = () => {
   const [replyToUsername, setReplyToUsername] = useState<string>("");
 
   // Typing indicator timeout
-  //@ts-ignore
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -207,6 +206,12 @@ const DiscussionDetailPage: React.FC = () => {
       socket.off("vote_count_updated");
       socket.off("user_typing");
       socket.off("user_stop_typing");
+
+      // Fix #11: Clear typing timeout on unmount
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
     };
   }, [socket, id]);
   const fetchDiscussion = async () => {
@@ -571,7 +576,7 @@ const DiscussionDetailPage: React.FC = () => {
         )}
 
         {/* Debug: Test Socket Connection */}
-        {socket && (
+        {/* {socket && (
           <div className="bg-blue-900/50 border border-blue-500 text-blue-200 px-4 py-3 rounded-lg mb-6">
             <button
               onClick={() => {
@@ -586,7 +591,7 @@ const DiscussionDetailPage: React.FC = () => {
               Socket: {socket.connected ? "✅ Connected" : "❌ Disconnected"}
             </span>
           </div>
-        )}
+        )} */}
 
         {/* Discussion */}
         <div className="smoke-card p-8 mb-8 relative smoke-effect">
@@ -629,7 +634,7 @@ const DiscussionDetailPage: React.FC = () => {
                 </p>
               </div>
 
-              {/* Images */}
+              {/* Images - Lazy loading (Fix #12) */}
               {discussionImages.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                   {discussionImages.map((imageUrl, index) => (
@@ -637,6 +642,7 @@ const DiscussionDetailPage: React.FC = () => {
                       key={index}
                       src={imageUrl || "/placeholder.svg"}
                       alt={`Discussion image ${index + 1}`}
+                      loading="lazy"
                       className="w-full h-32 object-cover rounded-lg border border-smoke-light cursor-pointer hover:opacity-80 transition-opacity duration-300"
                       onClick={() => window.open(imageUrl, "_blank")}
                     />
@@ -821,6 +827,7 @@ const DiscussionDetailPage: React.FC = () => {
                       </div>
 
                       {/* Images */}
+                      {/* Images - Lazy loading (Fix #12) */}
                       {answerImages.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                           {answerImages.map((imageUrl, index) => (
@@ -828,6 +835,7 @@ const DiscussionDetailPage: React.FC = () => {
                               key={index}
                               src={imageUrl || "/placeholder.svg"}
                               alt={`Answer image ${index + 1}`}
+                              loading="lazy"
                               className="w-full h-32 object-cover rounded-lg border border-smoke-light cursor-pointer hover:opacity-80 transition-opacity duration-300"
                               onClick={() => window.open(imageUrl, "_blank")}
                             />
@@ -1006,7 +1014,7 @@ const DiscussionDetailPage: React.FC = () => {
                                   accept="image/*"
                                   className="hidden"
                                 />
-                                <button
+                                {/* <button
                                   type="button"
                                   onClick={() => fileInputRef.current?.click()}
                                   disabled={
@@ -1027,7 +1035,7 @@ const DiscussionDetailPage: React.FC = () => {
                                       </span>
                                     </>
                                   )}
-                                </button>
+                                </button> */}
                               </div>
 
                               {/* Form Actions */}

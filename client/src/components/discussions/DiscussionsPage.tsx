@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   MessageSquare,
@@ -20,6 +20,7 @@ import {
 import { getDiscussions, getPopularTags } from "../../utils/api";
 import type { Discussion } from "../../types/discussions";
 import { DISCUSSION_CATEGORIES } from "../../types/discussions";
+import { useDebounce } from "../../hooks/useDebounce";
 
 const DiscussionsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,10 +50,21 @@ const DiscussionsPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalDiscussions, setTotalDiscussions] = useState(0);
 
+  // Debounce search term (Fix #2)
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
+
+  // AbortController for request cancellation (Fix #7)
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Fetch popular tags only once on mount (Fix #1)
+  useEffect(() => {
+    fetchPopularTags();
+  }, []);
+
+  // Fetch discussions with debounced search (Fix #2, #7)
   useEffect(() => {
     fetchDiscussions();
-    fetchPopularTags();
-  }, [searchTerm, selectedCategory, selectedTag, sortBy, currentPage]);
+  }, [debouncedSearchTerm, selectedCategory, selectedTag, sortBy, currentPage]);
 
   useEffect(() => {
     // Update URL params
@@ -66,13 +78,21 @@ const DiscussionsPage: React.FC = () => {
     setSearchParams(params);
   }, [searchTerm, selectedCategory, selectedTag, sortBy, currentPage]);
 
-  const fetchDiscussions = async () => {
+  const fetchDiscussions = useCallback(async () => {
     try {
+      // Cancel previous request (Fix #7)
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller
+      abortControllerRef.current = new AbortController();
+
       setLoading(true);
       const response = await getDiscussions({
         category: selectedCategory === "all" ? undefined : selectedCategory,
         tag: selectedTag || undefined,
-        search: searchTerm || undefined,
+        search: debouncedSearchTerm || undefined,
         sort: sortBy,
         page: currentPage,
         limit: 10,
@@ -81,12 +101,15 @@ const DiscussionsPage: React.FC = () => {
       setDiscussions(response.discussions);
       setTotalPages(response.pagination.pages);
       setTotalDiscussions(response.pagination.total);
+      setError("");
     } catch (err: any) {
-      setError("Failed to load discussions");
+      if (err.name !== "AbortError") {
+        setError("Failed to load discussions");
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCategory, selectedTag, debouncedSearchTerm, sortBy, currentPage]);
 
   const fetchPopularTags = async () => {
     try {
@@ -132,14 +155,23 @@ const DiscussionsPage: React.FC = () => {
     );
   };
 
-  const parseTags = (tagsString?: string): string[] => {
+  // Memoize tag parsing (Fix #4)
+  const parseTags = useCallback((tagsString?: string): string[] => {
     if (!tagsString) return [];
     try {
       return JSON.parse(tagsString);
     } catch {
       return [];
     }
-  };
+  }, []);
+
+  // Memoize discussions with parsed tags (Fix #4)
+  const discussionsWithParsedTags = useMemo(() => {
+    return discussions.map((discussion) => ({
+      ...discussion,
+      parsedTags: parseTags(discussion.tags),
+    }));
+  }, [discussions, parseTags]);
 
   if (loading && discussions.length === 0) {
     return (
@@ -371,9 +403,8 @@ const DiscussionsPage: React.FC = () => {
             ) : (
               <div>
                 <div className="max-h-[800px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-alien-green/30 scrollbar-track-smoke-light/20">
-                  {discussions.map((discussion) => {
+                  {discussionsWithParsedTags.map((discussion) => {
                     const categoryInfo = getCategoryInfo(discussion.category);
-                    const tags = parseTags(discussion.tags);
 
                     return (
                       <div
@@ -403,20 +434,22 @@ const DiscussionsPage: React.FC = () => {
                             </p>
 
                             {/* Tags */}
-                            {tags.length > 0 && (
+                            {discussion.parsedTags.length > 0 && (
                               <div className="flex flex-wrap gap-2 mb-3">
-                                {tags.slice(0, 3).map((tag) => (
-                                  <button
-                                    key={tag}
-                                    onClick={() => setSelectedTag(tag)}
-                                    className="text-xs bg-smoke-light text-alien-green px-2 py-1 rounded-full hover:bg-alien-green/20 transition-colors duration-300"
-                                  >
-                                    #{tag}
-                                  </button>
-                                ))}
-                                {tags.length > 3 && (
+                                {discussion.parsedTags
+                                  .slice(0, 3)
+                                  .map((tag) => (
+                                    <button
+                                      key={tag}
+                                      onClick={() => setSelectedTag(tag)}
+                                      className="text-xs bg-smoke-light text-alien-green px-2 py-1 rounded-full hover:bg-alien-green/20 transition-colors duration-300"
+                                    >
+                                      #{tag}
+                                    </button>
+                                  ))}
+                                {discussion.parsedTags.length > 3 && (
                                   <span className="text-xs text-gray-500">
-                                    +{tags.length - 3} more
+                                    +{discussion.parsedTags.length - 3} more
                                   </span>
                                 )}
                               </div>
@@ -452,7 +485,7 @@ const DiscussionsPage: React.FC = () => {
                   })}
                 </div>
 
-                {/* Pagination */}
+                {/* Pagination - Smart pagination (Fix #5) */}
                 {totalPages > 1 && (
                   <div className="flex justify-center items-center space-x-2 mt-8">
                     <button
@@ -465,9 +498,28 @@ const DiscussionsPage: React.FC = () => {
                       Previous
                     </button>
 
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      const page = i + 1;
-                      return (
+                    {/* Smart pagination: show current page ± 2 pages */}
+                    {currentPage > 3 && (
+                      <>
+                        <button
+                          onClick={() => setCurrentPage(1)}
+                          className="px-3 py-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300"
+                        >
+                          1
+                        </button>
+                        {currentPage > 4 && (
+                          <span className="px-2 text-gray-500">...</span>
+                        )}
+                      </>
+                    )}
+
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((page) => {
+                        return (
+                          page >= currentPage - 2 && page <= currentPage + 2
+                        );
+                      })
+                      .map((page) => (
                         <button
                           key={page}
                           onClick={() => setCurrentPage(page)}
@@ -479,8 +531,21 @@ const DiscussionsPage: React.FC = () => {
                         >
                           {page}
                         </button>
-                      );
-                    })}
+                      ))}
+
+                    {currentPage < totalPages - 2 && (
+                      <>
+                        {currentPage < totalPages - 3 && (
+                          <span className="px-2 text-gray-500">...</span>
+                        )}
+                        <button
+                          onClick={() => setCurrentPage(totalPages)}
+                          className="px-3 py-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300"
+                        >
+                          {totalPages}
+                        </button>
+                      </>
+                    )}
 
                     <button
                       onClick={() =>

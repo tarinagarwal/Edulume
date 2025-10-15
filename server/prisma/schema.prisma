@@ -101,6 +101,10 @@ model Discussion {
   answers DiscussionAnswer[]
   votes   DiscussionVote[]
 
+  // Performance indexes (Fix #10)
+  @@index([category, createdAt])
+  @@index([authorId, createdAt])
+  @@index([createdAt])
   @@map("discussions")
 }
 
@@ -120,6 +124,9 @@ model DiscussionAnswer {
   replies    DiscussionReply[]
   votes      AnswerVote[]
 
+  // Performance indexes (Fix #10)
+  @@index([discussionId, createdAt])
+  @@index([isBestAnswer])
   @@map("discussion_answers")
 }
 

@@ -131,11 +131,16 @@ router.get("/", async (req, res) => {
           author: {
             select: { username: true },
           },
-          answers: {
-            select: { id: true, isBestAnswer: true },
+          _count: {
+            select: {
+              answers: true,
+              votes: true,
+            },
           },
-          votes: {
-            select: { id: true },
+          answers: {
+            select: { isBestAnswer: true },
+            where: { isBestAnswer: true },
+            take: 1,
           },
         },
         orderBy,
@@ -152,11 +157,9 @@ router.get("/", async (req, res) => {
       author_id: discussion.authorId,
       created_at: discussion.createdAt,
       updated_at: discussion.updatedAt,
-      answer_count: discussion.answers.length,
-      vote_count: discussion.votes.length,
-      has_best_answer: discussion.answers.some((answer) => answer.isBestAnswer)
-        ? 1
-        : 0,
+      answer_count: discussion._count.answers,
+      vote_count: discussion._count.votes,
+      has_best_answer: discussion.answers.length > 0 ? 1 : 0,
     }));
 
     res.json({
@@ -852,6 +855,80 @@ router.put("/notifications/:id/read", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error("Error marking notification as read:", error);
     res.status(500).json({ error: "Failed to mark notification as read" });
+  }
+});
+
+// ---------------- Get popular tags ----------------
+router.get("/tags/popular", async (req, res) => {
+  try {
+    const { limit = 10 } = req.query;
+
+    // Get all discussions with tags
+    const discussions = await prisma.discussion.findMany({
+      where: {
+        tags: {
+          not: null,
+        },
+      },
+      select: {
+        tags: true,
+      },
+    });
+
+    // Count tag occurrences
+    const tagCounts = {};
+    discussions.forEach((discussion) => {
+      if (discussion.tags) {
+        try {
+          const tags = JSON.parse(discussion.tags);
+          tags.forEach((tag) => {
+            tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+          });
+        } catch (error) {
+          console.error("Error parsing tags:", error);
+        }
+      }
+    });
+
+    // Convert to array and sort by count
+    const popularTags = Object.entries(tagCounts)
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, parseInt(limit));
+
+    res.json(popularTags);
+  } catch (error) {
+    console.error("Error fetching popular tags:", error);
+    res.status(500).json({ error: "Failed to fetch popular tags" });
+  }
+});
+
+// ---------------- Search users for mentions ----------------
+router.get("/users/search", authenticateToken, async (req, res) => {
+  try {
+    const { q } = req.query;
+
+    if (!q || q.length < 2) {
+      return res.json([]);
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        username: {
+          contains: q,
+          mode: "insensitive",
+        },
+      },
+      select: {
+        username: true,
+      },
+      take: 10,
+    });
+
+    res.json(users.map((u) => u.username));
+  } catch (error) {
+    console.error("Error searching users:", error);
+    res.status(500).json({ error: "Failed to search users" });
   }
 });
 
