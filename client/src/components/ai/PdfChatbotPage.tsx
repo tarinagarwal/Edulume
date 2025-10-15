@@ -16,8 +16,15 @@ import { ProgressBar } from "../ui/ProgressBar";
 import { MarkdownRenderer } from "../ui/MarkdownRenderer";
 import { PdfViewer } from "../ui/PdfViewer";
 
-// Get API base URL
-const API_BASE_URL = "https://server-late-sun-2066.fly.dev/api";
+// Get API base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
+
+// Debug: Log API configuration
+console.log("🔧 PDF Chatbot Config:", {
+  API_BASE_URL,
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  MODE: import.meta.env.MODE,
+});
 
 interface ChatMessage {
   id: string;
