@@ -112,6 +112,9 @@ app.get("/api/health", async (req, res) => {
     const { default: prisma } = await import("./db.js");
     await prisma.$connect();
 
+    // Test a simple query
+    const userCount = await prisma.user.count();
+
     res.json({
       status: "OK",
       message: "Edulume server is running",
@@ -119,10 +122,13 @@ app.get("/api/health", async (req, res) => {
       environment: process.env.NODE_ENV || "development",
       allowedOrigins: getAllowedOrigins(),
       database: "Connected",
+      userCount,
       envVars: {
         DATABASE_URL: process.env.DATABASE_URL ? "SET" : "NOT SET",
         JWT_SECRET: process.env.JWT_SECRET ? "SET" : "NOT SET",
         GROQ_API_KEY: process.env.GROQ_API_KEY ? "SET" : "NOT SET",
+        PYTHON_API_URL: process.env.PYTHON_API_URL ? "SET" : "NOT SET",
+        CLIENT_ORIGIN: process.env.CLIENT_ORIGIN ? "SET" : "NOT SET",
       },
     });
   } catch (error) {
@@ -131,6 +137,7 @@ app.get("/api/health", async (req, res) => {
       status: "ERROR",
       message: "Server health check failed",
       error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
       database: "Disconnected",
     });
   }

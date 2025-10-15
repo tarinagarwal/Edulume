@@ -14,6 +14,30 @@ router.post("/sessions", authenticateToken, async (req, res) => {
     const { sessionId, pdfUrl, pdfName, cloudinaryPublicId } = req.body;
     const userId = req.user.id;
 
+    console.log("📝 Creating PDF chat session:", {
+      userId,
+      sessionId,
+      pdfName,
+      hasCloudinaryId: !!cloudinaryPublicId,
+    });
+
+    // Validate required fields
+    if (!sessionId || !pdfUrl || !pdfName) {
+      console.error("❌ Missing required fields:", {
+        hasSessionId: !!sessionId,
+        hasPdfUrl: !!pdfUrl,
+        hasPdfName: !!pdfName,
+      });
+      return res.status(400).json({
+        error: "Missing required fields",
+        details: {
+          sessionId: !sessionId ? "missing" : "present",
+          pdfUrl: !pdfUrl ? "missing" : "present",
+          pdfName: !pdfName ? "missing" : "present",
+        },
+      });
+    }
+
     const session = await prisma.pdfChatSession.create({
       data: {
         userId,
@@ -24,10 +48,19 @@ router.post("/sessions", authenticateToken, async (req, res) => {
       },
     });
 
+    console.log("✅ PDF chat session created successfully:", session.id);
     res.json(session);
   } catch (error) {
-    console.error("Error creating PDF chat session:", error);
-    res.status(500).json({ error: "Failed to create session" });
+    console.error("❌ Error creating PDF chat session:", {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      stack: error.stack,
+    });
+    res.status(500).json({
+      error: "Failed to create session",
+      details: error.message,
+    });
   }
 });
 
