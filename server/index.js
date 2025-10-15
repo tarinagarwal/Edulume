@@ -43,7 +43,8 @@ const getAllowedOrigins = () => {
 
   // Always allow localhost for development
   origins.push("http://localhost:5173");
-  origins.push("https://edulume.vercel.app");
+  origins.push("https://edulumeai.vercel.app");
+  origins.push("https://edulume.site");
   // Add production client origin if specified
   if (process.env.CLIENT_ORIGIN) {
     origins.push(process.env.CLIENT_ORIGIN);
