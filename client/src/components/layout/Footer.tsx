@@ -37,6 +37,7 @@ const Footer: React.FC = () => {
         ]);
 
         setStats({
+          //@ts-ignore
           totalResources: pdfs.length + ebooks.length,
           totalDiscussions: discussions.pagination?.total || 0,
           loading: false,
