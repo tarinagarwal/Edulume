@@ -16,6 +16,7 @@ import courseRoutes from "./routes/courses.js";
 import roadmapRoutes from "./routes/roadmaps.js";
 import feedbackRoutes from "./routes/feedback.js";
 import pdfChatRoutes from "./routes/pdfChat.js";
+import sitemapRoutes from "./routes/sitemap.js";
 import { setupSocketHandlers } from "./socket/socketHandlers.js";
 import initRedis from "./utils/redis.js";
 
@@ -101,6 +102,7 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/pdf-chat", pdfChatRoutes);
+app.use("/", sitemapRoutes);
 
 // Setup Socket.IO handlers
 setupSocketHandlers(io);

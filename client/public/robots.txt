@@ -1,0 +1,17 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow private/protected routes
+Disallow: /admin
+Disallow: /upload
+Disallow: /auth/callback
+Disallow: /auth/complete-profile
+Disallow: /change-username
+Disallow: /discussions/new
+Disallow: /courses/create
+Disallow: /roadmaps/create
+Disallow: /courses/*/test/*
+
+# Sitemap location
+Sitemap: https://edulume.site/sitemap.xml
