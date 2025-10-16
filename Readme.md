@@ -577,57 +577,6 @@ npm run test:coverage
 
 ---
 
-## 🌐 Deployment Options
-
-### ☁️ Cloud Deployment
-
-#### Vercel (Recommended for Frontend)
-
-```bash
-# Deploy frontend to Vercel
-cd client
-npm run build
-vercel --prod
-```
-
-#### Railway (Backend)
-
-```bash
-# Deploy backend to Railway
-cd server
-railway deploy
-```
-
-#### AWS (Full Stack)
-
-- **EC2**: Server deployment
-- **RDS**: Database hosting
-- **S3**: File storage
-- **CloudFront**: CDN distribution
-
-### 🐳 Docker Deployment
-
-```dockerfile
-# Dockerfile example
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-EXPOSE 3001
-CMD ["npm", "start"]
-```
-
-### 🏠 Self-Hosted
-
-- **Server Requirements**: 2GB RAM, 20GB storage
-- **Node.js**: Version 18 or higher
-- **MongoDB**: Local or cloud instance
-- **Python**: For AI services
-- **Nginx**: Reverse proxy configuration
-
----
-
 ## 🛠️ Maintenance & Updates
 
 ### 🔄 Regular Updates
