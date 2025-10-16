@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet-async";
+import { useEffect } from "react";
 
 interface SEOProps {
   title: string;
@@ -23,29 +23,71 @@ const SEO: React.FC<SEOProps> = ({
   const fullTitle = `${title} | Edulume`;
   const currentUrl = canonicalUrl || `${siteUrl}${window.location.pathname}`;
 
-  return (
-    <Helmet>
-      {/* Basic Meta Tags */}
-      <title>{fullTitle}</title>
-      <meta name="description" content={description} />
-      {keywords && <meta name="keywords" content={keywords} />}
-      <link rel="canonical" href={currentUrl} />
+  useEffect(() => {
+    // Update title
+    document.title = fullTitle;
 
-      {/* Open Graph Tags */}
-      <meta property="og:title" content={fullTitle} />
-      <meta property="og:description" content={description} />
-      <meta property="og:image" content={ogImage} />
-      <meta property="og:url" content={currentUrl} />
-      <meta property="og:type" content={ogType} />
-      <meta property="og:site_name" content="Edulume" />
+    // Helper to update or create meta tag
+    const updateMetaTag = (
+      selector: string,
+      attribute: string,
+      content: string
+    ) => {
+      let element = document.querySelector(selector);
+      if (!element) {
+        element = document.createElement("meta");
+        if (selector.includes("property=")) {
+          element.setAttribute("property", selector.split('"')[1]);
+        } else if (selector.includes("name=")) {
+          element.setAttribute("name", selector.split('"')[1]);
+        }
+        document.head.appendChild(element);
+      }
+      element.setAttribute(attribute, content);
+    };
 
-      {/* Twitter Card Tags */}
-      <meta name="twitter:card" content={twitterCard} />
-      <meta name="twitter:title" content={fullTitle} />
-      <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={ogImage} />
-    </Helmet>
-  );
+    // Basic meta tags
+    updateMetaTag('meta[name="description"]', "content", description);
+    if (keywords) {
+      updateMetaTag('meta[name="keywords"]', "content", keywords);
+    }
+
+    // Open Graph tags
+    updateMetaTag('meta[property="og:title"]', "content", fullTitle);
+    updateMetaTag('meta[property="og:description"]', "content", description);
+    updateMetaTag('meta[property="og:image"]', "content", ogImage);
+    updateMetaTag('meta[property="og:url"]', "content", currentUrl);
+    updateMetaTag('meta[property="og:type"]', "content", ogType);
+    updateMetaTag('meta[property="og:site_name"]', "content", "Edulume");
+
+    // Twitter Card tags
+    updateMetaTag('meta[name="twitter:card"]', "content", twitterCard);
+    updateMetaTag('meta[name="twitter:title"]', "content", fullTitle);
+    updateMetaTag('meta[name="twitter:description"]', "content", description);
+    updateMetaTag('meta[name="twitter:image"]', "content", ogImage);
+
+    // Canonical URL
+    let canonical = document.querySelector(
+      'link[rel="canonical"]'
+    ) as HTMLLinkElement;
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+    }
+    canonical.setAttribute("href", currentUrl);
+  }, [
+    title,
+    description,
+    keywords,
+    ogImage,
+    ogType,
+    twitterCard,
+    currentUrl,
+    fullTitle,
+  ]);
+
+  return null;
 };
 
 export default SEO;

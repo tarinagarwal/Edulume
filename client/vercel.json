@@ -1,6 +1,4 @@
 {
-  "buildCommand": "npm install --legacy-peer-deps && npm run build",
-  "installCommand": "npm install --legacy-peer-deps",
   "rewrites": [
     {
       "source": "/sitemap.xml",
