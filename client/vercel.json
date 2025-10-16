@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/sitemap.xml",
-      "destination": "https://server-late-sun-2066.fly.dev/sitemap.xml"
+      "destination": "/api/sitemap.xml.js"
     },
     {
       "source": "/(.*)",
