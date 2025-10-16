@@ -11,10 +11,16 @@ import {
   Bug,
   Lightbulb,
 } from "lucide-react";
+import SEO from "../seo/SEO";
 
 const LandingPage: React.FC = () => {
   return (
     <>
+      <SEO
+        title="Your Ultimate Learning Hub"
+        description="Master tech skills with AI-powered courses, roadmaps, and community discussions. Free PDFs, ebooks, and interview resources for developers."
+        keywords="online learning, programming courses, tech roadmaps, developer community, free coding resources, interview prep"
+      />
       <div className="min-h-screen">
         {/* Hero Section */}
         <section className="relative py-20 px-4 text-center">

@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
+import SEO from "../seo/SEO";
 import { getPDFs } from "../../utils/api";
 import { PDFItem } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
@@ -237,296 +238,303 @@ const PDFsPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-4xl font-alien font-bold glow-text mb-2">
-              PDF Collection
-            </h1>
-            <p className="text-gray-400">
-              Discover and download academic resources
-            </p>
+    <>
+      <SEO
+        title="Free Programming PDFs"
+        description="Download free programming PDFs, tutorials, and technical documentation. Resources for developers, students, and tech enthusiasts."
+        keywords="free programming pdfs, coding tutorials, tech documentation, developer resources"
+      />
+      <div className="min-h-screen py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            <div>
+              <h1 className="text-4xl font-alien font-bold glow-text mb-2">
+                PDF Collection
+              </h1>
+              <p className="text-gray-400">
+                Discover and download academic resources
+              </p>
+            </div>
+            {isAuth && isAdmin && (
+              <Link
+                to="/upload?type=pdf"
+                className="bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 flex items-center space-x-2 shadow-alien-glow whitespace-nowrap"
+              >
+                <Plus size={20} />
+                <span className="hidden sm:inline">Upload PDF</span>
+                <span className="sm:hidden">Upload</span>
+              </Link>
+            )}
           </div>
-          {isAuth && isAdmin && (
-            <Link
-              to="/upload?type=pdf"
-              className="bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 flex items-center space-x-2 shadow-alien-glow whitespace-nowrap"
-            >
-              <Plus size={20} />
-              <span className="hidden sm:inline">Upload PDF</span>
-              <span className="sm:hidden">Upload</span>
-            </Link>
+
+          {error && (
+            <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg mb-6">
+              {error}
+            </div>
           )}
-        </div>
 
-        {error && (
-          <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
+          {/* Search and Filter Controls */}
+          <div className="smoke-card p-6 mb-8 relative smoke-effect">
+            {/* Search Bar */}
+            <div className="relative mb-4">
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                size={20}
+              />
+              <input
+                type="text"
+                placeholder="Search PDFs by title, description, course, or department..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="alien-input w-full pl-10 pr-4"
+              />
+            </div>
 
-        {/* Search and Filter Controls */}
-        <div className="smoke-card p-6 mb-8 relative smoke-effect">
-          {/* Search Bar */}
-          <div className="relative mb-4">
-            <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="Search PDFs by title, description, course, or department..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="alien-input w-full pl-10 pr-4"
-            />
-          </div>
-
-          {/* Filter Toggle and Sort Controls */}
-          <div className="flex flex-wrap items-center gap-4 mb-4">
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${
-                showFilters || hasActiveFilters
-                  ? "border-alien-green bg-alien-green/10 text-alien-green"
-                  : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
-              }`}
-            >
-              <Filter size={16} />
-              <span>Filters</span>
-              {hasActiveFilters && (
-                <span className="bg-alien-green text-royal-black text-xs px-2 py-1 rounded-full">
-                  {
-                    [
-                      searchTerm,
-                      selectedSemester,
-                      selectedCourse,
-                      selectedDepartment,
-                      selectedYear,
-                    ].filter(Boolean).length
-                  }
-                </span>
-              )}
-            </button>
-
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-400">Sort by:</span>
-              <select
-                value={sortBy}
-                onChange={(e) =>
-                  setSortBy(e.target.value as "date" | "title" | "semester")
-                }
-                className="alien-input text-sm"
-              >
-                <option value="date">Upload Date</option>
-                <option value="title">Title</option>
-                <option value="semester">Semester</option>
-              </select>
+            {/* Filter Toggle and Sort Controls */}
+            <div className="flex flex-wrap items-center gap-4 mb-4">
               <button
-                onClick={() =>
-                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                }
-                className="p-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${
+                  showFilters || hasActiveFilters
+                    ? "border-alien-green bg-alien-green/10 text-alien-green"
+                    : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
+                }`}
               >
-                {sortOrder === "asc" ? (
-                  <SortAsc size={16} />
-                ) : (
-                  <SortDesc size={16} />
+                <Filter size={16} />
+                <span>Filters</span>
+                {hasActiveFilters && (
+                  <span className="bg-alien-green text-royal-black text-xs px-2 py-1 rounded-full">
+                    {
+                      [
+                        searchTerm,
+                        selectedSemester,
+                        selectedCourse,
+                        selectedDepartment,
+                        selectedYear,
+                      ].filter(Boolean).length
+                    }
+                  </span>
                 )}
               </button>
-            </div>
 
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center space-x-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 transition-colors duration-300"
-              >
-                <X size={16} />
-                <span>Clear Filters</span>
-              </button>
-            )}
-          </div>
-
-          {/* Advanced Filters */}
-          {showFilters && (
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-smoke-light">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Semester
-                </label>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-400">Sort by:</span>
                 <select
-                  value={selectedSemester}
-                  onChange={(e) => setSelectedSemester(e.target.value)}
-                  className="alien-input w-full text-sm"
+                  value={sortBy}
+                  onChange={(e) =>
+                    setSortBy(e.target.value as "date" | "title" | "semester")
+                  }
+                  className="alien-input text-sm"
                 >
-                  <option value="">All Semesters</option>
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
-                    <option key={sem} value={sem.toString()}>
-                      Semester {sem}
-                    </option>
-                  ))}
+                  <option value="date">Upload Date</option>
+                  <option value="title">Title</option>
+                  <option value="semester">Semester</option>
                 </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Course
-                </label>
-                <select
-                  value={selectedCourse}
-                  onChange={(e) => setSelectedCourse(e.target.value)}
-                  className="alien-input w-full text-sm"
-                >
-                  <option value="">All Courses</option>
-                  {availableCourses.map((course) => (
-                    <option key={course} value={course}>
-                      {course}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Department
-                </label>
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => setSelectedDepartment(e.target.value)}
-                  className="alien-input w-full text-sm"
-                >
-                  <option value="">All Departments</option>
-                  {availableDepartments.map((dept) => (
-                    <option key={dept} value={dept}>
-                      {dept}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Year of Study
-                </label>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(e.target.value)}
-                  className="alien-input w-full text-sm"
-                >
-                  <option value="">All Years</option>
-                  <option value="1">1st Year</option>
-                  <option value="2">2nd Year</option>
-                  <option value="3">3rd Year</option>
-                  <option value="4">4th Year</option>
-                  <option value="5">5th Year</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Results Count */}
-          <div className="mt-4 text-sm text-gray-400">
-            Showing {pdfs.length} of {totalCount} PDFs
-            {/* {loading && <span className="ml-2 animate-pulse">Loading...</span>} */}
-          </div>
-        </div>
-
-        {pdfs.length === 0 && !loading ? (
-          <div className="text-center py-16">
-            <FileText className="mx-auto mb-4 text-gray-500" size={64} />
-            <h3 className="text-xl font-alien text-gray-400 mb-2">
-              {hasActiveFilters
-                ? "No PDFs match your filters"
-                : "No PDFs Available"}
-            </h3>
-            <p className="text-gray-500 mb-6">
-              {hasActiveFilters
-                ? "Try adjusting your search criteria or clearing filters"
-                : "Be the first to upload a PDF to the vault!"}
-            </p>
-            {hasActiveFilters ? (
-              <button onClick={clearFilters} className="alien-button">
-                Clear All Filters
-              </button>
-            ) : isAuth && isAdmin ? (
-              <Link to="/upload?type=pdf" className="alien-button">
-                Upload First PDF
-              </Link>
-            ) : isAuth ? (
-              <p className="text-gray-400 text-sm">
-                Only admins can upload PDFs
-              </p>
-            ) : (
-              <Link to="/auth" className="alien-button">
-                Login to View PDFs
-              </Link>
-            )}
-          </div>
-        ) : (
-          <>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {pdfs.map((pdf) => (
-                <PDFCard key={pdf.id} pdf={pdf} />
-              ))}
-            </div>
-
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="mt-8 flex items-center justify-center gap-2">
                 <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1 || loading}
-                  className="px-4 py-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  onClick={() =>
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                  }
+                  className="p-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300"
                 >
-                  <ChevronLeft size={16} />
-                  Previous
+                  {sortOrder === "asc" ? (
+                    <SortAsc size={16} />
+                  ) : (
+                    <SortDesc size={16} />
+                  )}
                 </button>
+              </div>
 
-                <div className="flex items-center gap-2">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center space-x-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 transition-colors duration-300"
+                >
+                  <X size={16} />
+                  <span>Clear Filters</span>
+                </button>
+              )}
+            </div>
 
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        disabled={loading}
-                        className={`px-4 py-2 rounded-lg border transition-all duration-300 ${
-                          currentPage === pageNum
-                            ? "border-alien-green bg-alien-green/10 text-alien-green"
-                            : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
-                        } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+            {/* Advanced Filters */}
+            {showFilters && (
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-smoke-light">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Semester
+                  </label>
+                  <select
+                    value={selectedSemester}
+                    onChange={(e) => setSelectedSemester(e.target.value)}
+                    className="alien-input w-full text-sm"
+                  >
+                    <option value="">All Semesters</option>
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((sem) => (
+                      <option key={sem} value={sem.toString()}>
+                        Semester {sem}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={!hasMore || loading}
-                  className="px-4 py-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                >
-                  Next
-                  <ChevronRight size={16} />
-                </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Course
+                  </label>
+                  <select
+                    value={selectedCourse}
+                    onChange={(e) => setSelectedCourse(e.target.value)}
+                    className="alien-input w-full text-sm"
+                  >
+                    <option value="">All Courses</option>
+                    {availableCourses.map((course) => (
+                      <option key={course} value={course}>
+                        {course}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Department
+                  </label>
+                  <select
+                    value={selectedDepartment}
+                    onChange={(e) => setSelectedDepartment(e.target.value)}
+                    className="alien-input w-full text-sm"
+                  >
+                    <option value="">All Departments</option>
+                    {availableDepartments.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Year of Study
+                  </label>
+                  <select
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    className="alien-input w-full text-sm"
+                  >
+                    <option value="">All Years</option>
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                    <option value="5">5th Year</option>
+                  </select>
+                </div>
               </div>
             )}
-          </>
-        )}
+
+            {/* Results Count */}
+            <div className="mt-4 text-sm text-gray-400">
+              Showing {pdfs.length} of {totalCount} PDFs
+              {/* {loading && <span className="ml-2 animate-pulse">Loading...</span>} */}
+            </div>
+          </div>
+
+          {pdfs.length === 0 && !loading ? (
+            <div className="text-center py-16">
+              <FileText className="mx-auto mb-4 text-gray-500" size={64} />
+              <h3 className="text-xl font-alien text-gray-400 mb-2">
+                {hasActiveFilters
+                  ? "No PDFs match your filters"
+                  : "No PDFs Available"}
+              </h3>
+              <p className="text-gray-500 mb-6">
+                {hasActiveFilters
+                  ? "Try adjusting your search criteria or clearing filters"
+                  : "Be the first to upload a PDF to the vault!"}
+              </p>
+              {hasActiveFilters ? (
+                <button onClick={clearFilters} className="alien-button">
+                  Clear All Filters
+                </button>
+              ) : isAuth && isAdmin ? (
+                <Link to="/upload?type=pdf" className="alien-button">
+                  Upload First PDF
+                </Link>
+              ) : isAuth ? (
+                <p className="text-gray-400 text-sm">
+                  Only admins can upload PDFs
+                </p>
+              ) : (
+                <Link to="/auth" className="alien-button">
+                  Login to View PDFs
+                </Link>
+              )}
+            </div>
+          ) : (
+            <>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {pdfs.map((pdf) => (
+                  <PDFCard key={pdf.id} pdf={pdf} />
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="mt-8 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1 || loading}
+                    className="px-4 py-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <ChevronLeft size={16} />
+                    Previous
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          disabled={loading}
+                          className={`px-4 py-2 rounded-lg border transition-all duration-300 ${
+                            currentPage === pageNum
+                              ? "border-alien-green bg-alien-green/10 text-alien-green"
+                              : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={!hasMore || loading}
+                    className="px-4 py-2 rounded-lg border border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    Next
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
