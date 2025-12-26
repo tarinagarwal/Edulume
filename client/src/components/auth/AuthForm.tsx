@@ -37,7 +37,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
       setSuccess(response.message);
       setOtpSent(true);
       setShowOTPField(true);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const f = getFriendlyError(err);
       setError(f.message);
     } finally {
@@ -73,7 +73,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
         },
         isLogin ? 100 : 1000
       ); // Shorter delay for signup
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("❌ Authentication failed:", err);
       const f = getFriendlyError(err);
       setError(f.message);

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { CheckCircle, XCircle, AlertCircle, Info, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CheckCircle, XCircle, AlertCircle, Info, X, type LucideIcon } from "lucide-react";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -14,14 +14,14 @@ interface ToastProps {
 
 export const DEFAULT_TOAST_DURATION = 5000;
 
-const toastIcons = {
+const toastIcons: Record<ToastType, LucideIcon> = {
   success: CheckCircle,
   error: XCircle,
   warning: AlertCircle,
   info: Info,
 };
 
-const toastStyles = {
+const toastStyles: Record<ToastType, string> = {
   success: "bg-green-600 border-green-500",
   error: "bg-red-600 border-red-500",
   warning: "bg-yellow-600 border-yellow-500",

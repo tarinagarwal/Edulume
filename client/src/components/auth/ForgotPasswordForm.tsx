@@ -24,7 +24,7 @@ const ForgotPasswordForm: React.FC = () => {
       const response = await forgotPassword(email);
       setSuccess(response.message);
       setStep("otp");
-    } catch (err: any) {
+    } catch (err: unknown) {
       const f = getFriendlyError(err);
       setError(f.message);
     } finally {
@@ -55,7 +55,7 @@ const ForgotPasswordForm: React.FC = () => {
       setTimeout(() => {
         navigate("/auth");
       }, 2000);
-    } catch (err: any) {
+    } catch (err: unknown) {
       const f = getFriendlyError(err);
       setError(f.message);
     } finally {

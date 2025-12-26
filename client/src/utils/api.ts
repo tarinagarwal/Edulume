@@ -15,9 +15,6 @@ import {
   RoadmapsResponse,
 } from "../types/index";
 import {
-  Discussion,
-  DiscussionAnswer,
-  DiscussionReply,
   Notification,
   CreateDiscussionData,
   DiscussionsResponse,
@@ -62,38 +59,54 @@ export type FriendlyError = {
 // Keep toast duration consistent with UI default
 export const DEFAULT_TOAST_DURATION = 5000;
 
-function extractServerMessage(error: any): string | undefined {
-  const data = error?.response?.data;
+type AxiosErrorLike = {
+  message?: string;
+  code?: string;
+  request?: unknown;
+  config?: { url?: string; method?: string; baseURL?: string };
+  response?: { status?: number; data?: unknown };
+};
+
+function extractServerMessage(error: unknown): string | undefined {
+  const e = error as AxiosErrorLike | undefined;
+  const data = e?.response?.data;
   if (!data) return undefined;
   if (typeof data === "string") return data;
-  return (
-    data.message ||
-    data.error ||
-    data.detail ||
-    (Array.isArray(data.errors) ? data.errors[0] : undefined)
-  );
+  if (typeof data === "object" && data) {
+    const obj = data as Record<string, unknown>;
+    if (typeof obj.message === "string") return obj.message;
+    if (typeof obj.error === "string") return obj.error;
+    if (typeof obj.detail === "string") return obj.detail;
+    if (Array.isArray(obj.errors) && typeof obj.errors[0] === "string") {
+      return obj.errors[0] as string;
+    }
+  }
+  return undefined;
 }
 
-function isNetworkError(error: any): boolean {
-  const msg = String(error?.message || "");
+function isNetworkError(error: unknown): boolean {
+  const e = error as AxiosErrorLike | undefined;
+  const msg = String(e?.message || "");
   // Axios "Network Error" or fetch "Failed to fetch"
   return (
     msg.toLowerCase().includes("network error") ||
     msg.toLowerCase().includes("failed to fetch") ||
-    (!error?.response && !!error?.request)
+    (!e?.response && !!e?.request)
   );
 }
 
-function isTimeoutError(error: any): boolean {
+function isTimeoutError(error: unknown): boolean {
+  const e = error as AxiosErrorLike | undefined;
   return (
-    error?.code === "ECONNABORTED" ||
-    error?.response?.status === 408 ||
-    String(error?.message || "").toLowerCase().includes("timeout")
+    e?.code === "ECONNABORTED" ||
+    e?.response?.status === 408 ||
+    String(e?.message || "").toLowerCase().includes("timeout")
   );
 }
 
-export function getRetrySuggestion(error: any): string | undefined {
-  const status = error?.response?.status;
+export function getRetrySuggestion(error: unknown): string | undefined {
+  const e = error as AxiosErrorLike | undefined;
+  const status = e?.response?.status;
   if (isNetworkError(error)) {
     return "Check your internet connection, then try again.";
   }
@@ -112,15 +125,15 @@ export function getRetrySuggestion(error: any): string | undefined {
   return "Please try again in a moment.";
 }
 
-export function getFriendlyError(error: any): FriendlyError {
-  const status = error?.response?.status;
+export function getFriendlyError(error: unknown): FriendlyError {
+  const e = error as AxiosErrorLike | undefined;
+  const status = e?.response?.status;
   const serverMessage = extractServerMessage(error);
-  const rawMessage = String(error?.message || serverMessage || "");
+  const rawMessage = String(e?.message || serverMessage || "");
 
   let title = "Something went wrong";
   let message =
     serverMessage || rawMessage || "An unexpected error occurred. Please try again.";
-  let type: FriendlyError["type"] = "error";
 
   if (isNetworkError(error)) {
     title = "Connection Problem";
@@ -150,17 +163,18 @@ export function getFriendlyError(error: any): FriendlyError {
     message = serverMessage;
   }
 
+  const finalType: FriendlyError["type"] = status === 429 ? "warning" : "error";
   return {
     title,
     message,
-    type,
+    type: finalType,
     status,
     retrySuggestion: getRetrySuggestion(error),
     rawMessage,
   };
 }
 
-export function formatErrorAsToast(error: any): {
+export function formatErrorAsToast(error: unknown): {
   type: "success" | "error" | "warning" | "info";
   title: string;
   message?: string;
@@ -228,9 +242,10 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    type WithFriendlyError = AxiosErrorLike & { friendlyError?: FriendlyError };
     // Attach friendly error metadata for consistent handling in UI
     const friendly = getFriendlyError(error);
-    (error as any).friendlyError = friendly;
+    (error as WithFriendlyError).friendlyError = friendly;
 
     if (!isDev) {
       console.error("❌ API Error:", {
@@ -491,7 +506,7 @@ export const uploadToVercelBlob = async (
     const response = await fetch(`${API_BASE_URL}/upload`, {
       method: "POST",
       body: file,
-      //@ts-ignore
+      //@ts-expect-error
       headers: {
         "Content-Type": file.type,
         "x-filename": filename,
@@ -508,7 +523,7 @@ export const uploadToVercelBlob = async (
 
     const result = await response.json();
     return result.url;
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (isNetworkError(err)) {
       throw new Error(
         "Couldn't connect to server. Check your internet connection."
@@ -762,7 +777,7 @@ export const deleteCourse = async (
 // Course enrollment functions
 export const enrollInCourse = async (
   courseId: string
-): Promise<{ message: string; enrollment: any }> => {
+): Promise<{ message: string; enrollment: unknown }> => {
   const response = await api.post(`/courses/${courseId}/enroll`);
   return response.data;
 };
@@ -779,7 +794,7 @@ export const updateChapterProgress = async (
   courseId: string,
   chapterId: string,
   isCompleted: boolean
-): Promise<{ message: string; progress: any }> => {
+): Promise<{ message: string; progress: unknown }> => {
   const response = await api.post(
     `/courses/${courseId}/chapters/${chapterId}/progress`,
     { isCompleted }
@@ -791,7 +806,7 @@ export const updateChapterProgress = async (
 export const getUserEnrollments = async (
   page = 1,
   limit = 12
-): Promise<{ enrollments: any[]; pagination: any }> => {
+): Promise<{ enrollments: unknown[]; pagination: unknown }> => {
   const response = await api.get(
     `/courses/user/enrollments?page=${page}&limit=${limit}`
   );
@@ -806,8 +821,8 @@ export const generateCertificateTest = async (
   message: string;
   test?: {
     id: string;
-    questions: any[];
-    testInstructions: any;
+    questions: unknown[];
+    testInstructions: unknown;
     timeLimit: number;
     passingScore: number;
     totalMarks: number;
@@ -837,12 +852,18 @@ export const generateCertificateTest = async (
   try {
     const response = await api.post(`/courses/${courseId}/test/generate`);
     return { success: true, ...response.data };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Handle cooldown error (429) specially
-    if (error.response?.status === 429) {
+    const e = error as { response?: { status?: number; data?: unknown } };
+    if (e.response?.status === 429) {
+      const data = e.response.data as Record<string, unknown> | undefined;
+      const msg = typeof data?.message === "string"
+        ? data.message
+        : "Cooldown active. Please try later.";
       return {
         success: false,
-        ...error.response.data,
+        message: msg,
+        ...(data || {}),
       };
     }
     throw error;
@@ -852,7 +873,7 @@ export const generateCertificateTest = async (
 export const submitCertificateTest = async (
   courseId: string,
   testId: string,
-  answers: any[]
+  answers: unknown[]
 ): Promise<{
   message: string;
   testId: string;
@@ -907,7 +928,7 @@ export const getCertificateVerification = async (certificateId: string) => {
     }
 
     return response.json();
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (isNetworkError(err)) {
       throw new Error(
         "Couldn't connect to server. Check your internet connection."
@@ -977,7 +998,7 @@ export const getCertificateTestResult = async (
     totalMarks: number;
     hasPassed: boolean;
     passingScore: number;
-    evaluationResults: any[];
+    evaluationResults: unknown[];
     submittedAt: string;
     timeLimit: number;
   };
@@ -992,7 +1013,7 @@ export const getCertificateTestResult = async (
   }
 
   // Parse evaluation results if they exist
-  let evaluationResults = [];
+  let evaluationResults: unknown[] = [];
   if (response.data.evaluationResults) {
     try {
       const parsedResults =
@@ -1001,9 +1022,24 @@ export const getCertificateTestResult = async (
           : response.data.evaluationResults;
 
       // The server stores results with a breakdown array, extract it
-      if (parsedResults.breakdown && Array.isArray(parsedResults.breakdown)) {
-        evaluationResults = parsedResults.breakdown.map(
-          (item: any, index: number) => ({
+      type RawEvalItem = {
+        questionType?: string;
+        type?: string;
+        question?: string;
+        userAnswer?: unknown;
+        correctAnswer?: unknown;
+        points?: number;
+        maxPoints?: number;
+        isCorrect?: boolean;
+        aiEvaluation?: { feedback?: string };
+      };
+
+      if (
+        (parsedResults as { breakdown?: unknown[] }).breakdown &&
+        Array.isArray((parsedResults as { breakdown?: unknown[] }).breakdown)
+      ) {
+        const breakdown = (parsedResults as { breakdown: RawEvalItem[] }).breakdown;
+        evaluationResults = breakdown.map((item: RawEvalItem, index: number) => ({
             questionId: `q_${index}`,
             type: item.questionType || item.type || "unknown",
             question: item.question || "",
@@ -1131,7 +1167,7 @@ export const uploadPdfToPython = async (
     }
 
     return response.json();
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (isNetworkError(err)) {
       throw new Error(
         "Couldn't connect to server. Check your internet connection."
@@ -1166,7 +1202,7 @@ export const queryPdfChat = async (
     }
 
     return response.json();
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (isNetworkError(err)) {
       throw new Error(
         "Couldn't connect to server. Check your internet connection."
@@ -1204,7 +1240,7 @@ export const cleanupPdfSession = async (
     }
 
     return response.json();
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (isNetworkError(err)) {
       throw new Error(
         "Couldn't connect to server. Check your internet connection."
@@ -1237,7 +1273,7 @@ export const getPdfSessionInfo = async (
     }
 
     return response.json();
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (isNetworkError(err)) {
       throw new Error(
         "Couldn't connect to server. Check your internet connection."
