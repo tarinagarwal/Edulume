@@ -46,6 +46,137 @@ const api = axios.create({
   },
 });
 
+// ---------------------------------------------
+// Friendly error handling utilities
+// ---------------------------------------------
+
+export type FriendlyError = {
+  title: string;
+  message: string;
+  type: "error" | "warning" | "info";
+  status?: number;
+  retrySuggestion?: string;
+  rawMessage?: string;
+};
+
+// Keep toast duration consistent with UI default
+export const DEFAULT_TOAST_DURATION = 5000;
+
+function extractServerMessage(error: any): string | undefined {
+  const data = error?.response?.data;
+  if (!data) return undefined;
+  if (typeof data === "string") return data;
+  return (
+    data.message ||
+    data.error ||
+    data.detail ||
+    (Array.isArray(data.errors) ? data.errors[0] : undefined)
+  );
+}
+
+function isNetworkError(error: any): boolean {
+  const msg = String(error?.message || "");
+  // Axios "Network Error" or fetch "Failed to fetch"
+  return (
+    msg.toLowerCase().includes("network error") ||
+    msg.toLowerCase().includes("failed to fetch") ||
+    (!error?.response && !!error?.request)
+  );
+}
+
+function isTimeoutError(error: any): boolean {
+  return (
+    error?.code === "ECONNABORTED" ||
+    error?.response?.status === 408 ||
+    String(error?.message || "").toLowerCase().includes("timeout")
+  );
+}
+
+export function getRetrySuggestion(error: any): string | undefined {
+  const status = error?.response?.status;
+  if (isNetworkError(error)) {
+    return "Check your internet connection, then try again.";
+  }
+  if (isTimeoutError(error)) {
+    return "The request timed out. Retry in a moment.";
+  }
+  if (status === 429) {
+    return "You’re doing this too often. Please wait and retry.";
+  }
+  if (status && status >= 500) {
+    return "Server issue. Please retry shortly or contact support.";
+  }
+  if (status === 401) {
+    return "Log in and then retry the action.";
+  }
+  return "Please try again in a moment.";
+}
+
+export function getFriendlyError(error: any): FriendlyError {
+  const status = error?.response?.status;
+  const serverMessage = extractServerMessage(error);
+  const rawMessage = String(error?.message || serverMessage || "");
+
+  let title = "Something went wrong";
+  let message =
+    serverMessage || rawMessage || "An unexpected error occurred. Please try again.";
+  let type: FriendlyError["type"] = "error";
+
+  if (isNetworkError(error)) {
+    title = "Connection Problem";
+    message = "Couldn't connect to server. Check your internet connection.";
+  } else if (isTimeoutError(error)) {
+    title = "Request Timed Out";
+    message = "The request took too long. Please try again.";
+  } else if (status === 401) {
+    title = "Unauthorized";
+    message = "Please log in to continue.";
+  } else if (status === 403) {
+    title = "Access Denied";
+    message = "You don’t have permission to perform this action.";
+  } else if (status === 404) {
+    title = "Not Found";
+    message = "The requested resource wasn’t found.";
+  } else if (status === 429) {
+    title = "Too Many Requests";
+    message =
+      serverMessage || "You’re doing this too often. Please wait and retry.";
+  } else if (status && status >= 500) {
+    title = "Server Error";
+    message = "The server hit a snag. Please try again.";
+  } else if (!status && serverMessage) {
+    // Generic server-sent message for non-HTTP cases
+    title = "Error";
+    message = serverMessage;
+  }
+
+  return {
+    title,
+    message,
+    type,
+    status,
+    retrySuggestion: getRetrySuggestion(error),
+    rawMessage,
+  };
+}
+
+export function formatErrorAsToast(error: any): {
+  type: "success" | "error" | "warning" | "info";
+  title: string;
+  message?: string;
+  duration: number;
+} {
+  const friendly = getFriendlyError(error);
+  return {
+    type: friendly.type,
+    title: friendly.title,
+    message: [friendly.message, friendly.retrySuggestion]
+      .filter(Boolean)
+      .join(" "),
+    duration: DEFAULT_TOAST_DURATION,
+  };
+}
+
 // Request interceptor for debugging
 api.interceptors.request.use(
   (config) => {
@@ -97,12 +228,16 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
+    // Attach friendly error metadata for consistent handling in UI
+    const friendly = getFriendlyError(error);
+    (error as any).friendlyError = friendly;
+
     if (!isDev) {
       console.error("❌ API Error:", {
         status: error.response?.status,
         url: error.config?.url,
         method: error.config?.method?.toUpperCase(),
-        message: error.message,
+        message: friendly.message,
         baseURL: error.config?.baseURL,
       });
     }
@@ -352,24 +487,35 @@ export const uploadToVercelBlob = async (
   filename: string,
   file: File
 ): Promise<string> => {
-  const response = await fetch(`${API_BASE_URL}/upload`, {
-    method: "POST",
-    body: file,
-    //@ts-ignore
-    headers: {
-      "Content-Type": file.type,
-      "x-filename": filename,
-      ...getAuthHeaders(),
-    },
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}/upload`, {
+      method: "POST",
+      body: file,
+      //@ts-ignore
+      headers: {
+        "Content-Type": file.type,
+        "x-filename": filename,
+        ...getAuthHeaders(),
+      },
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || "Upload failed");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.error || "Failed to upload. Please try again."
+      );
+    }
+
+    const result = await response.json();
+    return result.url;
+  } catch (err: any) {
+    if (isNetworkError(err)) {
+      throw new Error(
+        "Couldn't connect to server. Check your internet connection."
+      );
+    }
+    throw err;
   }
-
-  const result = await response.json();
-  return result.url;
 };
 
 // Discussion API
@@ -745,21 +891,30 @@ export const getCertificateData = async (
 
 // Get certificate verification data
 export const getCertificateVerification = async (certificateId: string) => {
-  const response = await fetch(
-    `${API_BASE_URL}/courses/verify-certificate/${certificateId}`,
-    {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/courses/verify-certificate/${certificateId}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Verification failed. Please try again.`);
     }
-  );
 
-  if (!response.ok) {
-    throw new Error(`Error: ${response.status}`);
+    return response.json();
+  } catch (err: any) {
+    if (isNetworkError(err)) {
+      throw new Error(
+        "Couldn't connect to server. Check your internet connection."
+      );
+    }
+    throw err;
   }
-
-  return response.json();
 };
 
 export const validateTestAccess = async (
@@ -962,45 +1117,63 @@ export const uploadPdfToPython = async (
   formData.append("file", file);
   formData.append("session_id", sessionId);
 
-  const response = await fetch(`${PYTHON_API_URL}/upload-pdf/`, {
-    method: "POST",
-    body: formData,
-  });
+  try {
+    const response = await fetch(`${PYTHON_API_URL}/upload-pdf/`, {
+      method: "POST",
+      body: formData,
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage =
-      errorData.detail || "Failed to upload PDF to Python backend";
-    throw new Error(errorMessage);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage =
+        errorData.detail || "Failed to upload PDF. Please try again.";
+      throw new Error(errorMessage);
+    }
+
+    return response.json();
+  } catch (err: any) {
+    if (isNetworkError(err)) {
+      throw new Error(
+        "Couldn't connect to server. Check your internet connection."
+      );
+    }
+    throw err;
   }
-
-  return response.json();
 };
 
 export const queryPdfChat = async (
   sessionId: string,
   userQuery: string
 ): Promise<{ rag_response: string }> => {
-  const response = await fetch(
-    `${PYTHON_API_URL}/query?session_id=${sessionId}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        user_query: userQuery,
-      }),
+  try {
+    const response = await fetch(
+      `${PYTHON_API_URL}/query?session_id=${sessionId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_query: userQuery,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.detail || "Failed to send message.";
+      throw new Error(errorMessage);
     }
-  );
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.detail || "Failed to query PDF chat";
-    throw new Error(errorMessage);
+    return response.json();
+  } catch (err: any) {
+    if (isNetworkError(err)) {
+      throw new Error(
+        "Couldn't connect to server. Check your internet connection."
+      );
+    }
+    throw err;
   }
-
-  return response.json();
 };
 
 export const cleanupPdfSession = async (
@@ -1016,20 +1189,29 @@ export const cleanupPdfSession = async (
     params.append("cloudinary_public_id", cloudinaryPublicId);
   }
 
-  const response = await fetch(
-    `${PYTHON_API_URL}/cleanup-session?${params.toString()}`,
-    {
-      method: "POST",
+  try {
+    const response = await fetch(
+      `${PYTHON_API_URL}/cleanup-session?${params.toString()}`,
+      {
+        method: "POST",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.detail || "Failed to end session.";
+      throw new Error(errorMessage);
     }
-  );
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.detail || "Failed to cleanup session";
-    throw new Error(errorMessage);
+    return response.json();
+  } catch (err: any) {
+    if (isNetworkError(err)) {
+      throw new Error(
+        "Couldn't connect to server. Check your internet connection."
+      );
+    }
+    throw err;
   }
-
-  return response.json();
 };
 
 export const getPdfSessionInfo = async (
@@ -1040,18 +1222,27 @@ export const getPdfSessionInfo = async (
   last_accessed: string;
   messages_remaining: number;
 }> => {
-  const response = await fetch(
-    `${PYTHON_API_URL}/session-info?session_id=${sessionId}`,
-    {
-      method: "GET",
+  try {
+    const response = await fetch(
+      `${PYTHON_API_URL}/session-info?session_id=${sessionId}`,
+      {
+        method: "GET",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      const errorMessage = errorData.detail || "Failed to get session info.";
+      throw new Error(errorMessage);
     }
-  );
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const errorMessage = errorData.detail || "Failed to get session info";
-    throw new Error(errorMessage);
+    return response.json();
+  } catch (err: any) {
+    if (isNetworkError(err)) {
+      throw new Error(
+        "Couldn't connect to server. Check your internet connection."
+      );
+    }
+    throw err;
   }
-
-  return response.json();
 };

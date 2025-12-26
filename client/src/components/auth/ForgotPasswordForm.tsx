@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Shield, Lock, ArrowLeft } from "lucide-react";
-import { forgotPassword, resetPassword } from "../../utils/api";
+import { forgotPassword, resetPassword, getFriendlyError } from "../../utils/api";
 
 const ForgotPasswordForm: React.FC = () => {
   const [step, setStep] = useState<"email" | "otp" | "password">("email");
@@ -25,7 +25,8 @@ const ForgotPasswordForm: React.FC = () => {
       setSuccess(response.message);
       setStep("otp");
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to send reset code");
+      const f = getFriendlyError(err);
+      setError(f.message);
     } finally {
       setLoading(false);
     }
@@ -55,7 +56,8 @@ const ForgotPasswordForm: React.FC = () => {
         navigate("/auth");
       }, 2000);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to reset password");
+      const f = getFriendlyError(err);
+      setError(f.message);
     } finally {
       setLoading(false);
     }

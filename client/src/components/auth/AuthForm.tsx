@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, UserPlus, LogIn, Mail, Shield } from "lucide-react";
-import { login, signup, sendOTP } from "../../utils/api";
+import { login, signup, sendOTP, getFriendlyError } from "../../utils/api";
 
 interface AuthFormProps {
   onAuthChange: () => void;
@@ -38,7 +38,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
       setOtpSent(true);
       setShowOTPField(true);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to send OTP");
+      const f = getFriendlyError(err);
+      setError(f.message);
     } finally {
       setOtpLoading(false);
     }
@@ -74,7 +75,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
       ); // Shorter delay for signup
     } catch (err: any) {
       console.error("❌ Authentication failed:", err);
-      setError(err.response?.data?.error || err.message || "An error occurred");
+      const f = getFriendlyError(err);
+      setError(f.message);
     } finally {
       setLoading(false);
     }

@@ -12,6 +12,8 @@ interface ToastProps {
   onClose: (id: string) => void;
 }
 
+export const DEFAULT_TOAST_DURATION = 5000;
+
 const toastIcons = {
   success: CheckCircle,
   error: XCircle,
@@ -31,7 +33,7 @@ export function Toast({
   type,
   title,
   message,
-  duration = 5000,
+  duration = DEFAULT_TOAST_DURATION,
   onClose,
 }: ToastProps) {
   const [isVisible, setIsVisible] = useState(true);
