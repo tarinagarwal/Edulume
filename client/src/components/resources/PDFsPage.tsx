@@ -20,6 +20,7 @@ import { getPDFs } from "../../utils/api";
 import { PDFItem } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
 import { useDebounce } from "../../hooks/useDebounce";
+import { CardsGridSkeleton } from "../skeletons/CardsGridSkeleton";
 
 // Memoized PDF Card Component
 const PDFCard = React.memo(({ pdf }: { pdf: PDFItem }) => (
@@ -228,10 +229,9 @@ const PDFsPage: React.FC = () => {
 
   if (isInitialLoad && loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-alien-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-alien-green font-alien">Loading PDFs...</p>
+      <div className="min-h-screen px-4 py-10">
+        <div className="max-w-6xl mx-auto">
+          <CardsGridSkeleton count={9} />
         </div>
       </div>
     );

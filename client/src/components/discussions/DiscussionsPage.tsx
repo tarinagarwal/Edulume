@@ -22,6 +22,7 @@ import { getDiscussions, getPopularTags } from "../../utils/api";
 import type { Discussion } from "../../types/discussions";
 import { DISCUSSION_CATEGORIES } from "../../types/discussions";
 import { useDebounce } from "../../hooks/useDebounce";
+import { ListSkeleton } from "../skeletons/ListSkeleton";
 
 const DiscussionsPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -176,10 +177,9 @@ const DiscussionsPage: React.FC = () => {
 
   if (loading && discussions.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-alien-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-alien-green font-alien">Loading discussions...</p>
+      <div className="min-h-screen px-4 py-10">
+        <div className="max-w-5xl mx-auto">
+          <ListSkeleton count={10} />
         </div>
       </div>
     );
