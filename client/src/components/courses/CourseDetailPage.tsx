@@ -559,6 +559,14 @@ const CourseDetailPage: React.FC = () => {
     });
   };
 
+  //Extimated Reading Time function
+  const getReadingTime = (content?: string) => {
+    if (!content) return null;
+    const words = content.trim().split(/\s+/).length;
+    const minutes = Math.ceil(words / 200);
+    return `${minutes} min read`;
+  };
+
   // Fix the ownership check - isAuth is boolean, not user object
   const [currentUser, setCurrentUser] = useState<any>(null);
 
@@ -1200,6 +1208,13 @@ const CourseDetailPage: React.FC = () => {
                         <div className="border-t border-smoke-light p-3 sm:p-4 bg-royal-black/30">
                           {chapter.content ? (
                             <div className="space-y-3 sm:space-y-4">
+                              
+                            {/* Estimated Reading time  */}
+                              <div className="flex items-center text-xs text-gray-400 space-x-1">
+                                <Clock size={12} />
+                                <span>{getReadingTime(chapter.content)}</span>
+                              </div>
+
                               {/* Progress Button for Enrolled Users */}
                               {isAuth && course.is_enrolled && (
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3 sm:mb-4 p-3 bg-smoke-gray rounded-lg">
