@@ -177,8 +177,25 @@ const DiscussionsPage: React.FC = () => {
 
   if (loading && discussions.length === 0) {
     return (
-      <div className="min-h-screen px-4 py-10">
+      <div className="min-h-screen py-8 px-4">
         <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div>
+              <h1 className="text-4xl font-alien font-bold glow-text mb-2">
+                Discussion Forum
+              </h1>
+              <p className="text-gray-400">
+                Ask questions, share knowledge, and help your peers
+              </p>
+            </div>
+            <Link
+              to="/discussions/new"
+              className="alien-button flex items-center space-x-2 px-6 py-3"
+            >
+              <Plus size={20} />
+              <span>Ask Question</span>
+            </Link>
+          </div>
           <ListSkeleton count={10} />
         </div>
       </div>

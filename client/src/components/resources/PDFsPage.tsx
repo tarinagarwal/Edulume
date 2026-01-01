@@ -229,8 +229,28 @@ const PDFsPage: React.FC = () => {
 
   if (isInitialLoad && loading) {
     return (
-      <div className="min-h-screen px-4 py-10">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            <div>
+              <h1 className="text-4xl font-alien font-bold glow-text mb-2">
+                PDF Collection
+              </h1>
+              <p className="text-gray-400">
+                Discover and download academic resources
+              </p>
+            </div>
+            {isAuth && isAdmin && (
+              <Link
+                to="/upload?type=pdf"
+                className="bg-alien-green text-royal-black px-6 py-3 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 flex items-center space-x-2 shadow-alien-glow whitespace-nowrap"
+              >
+                <Plus size={20} />
+                <span className="hidden sm:inline">Upload PDF</span>
+                <span className="sm:hidden">Upload</span>
+              </Link>
+            )}
+          </div>
           <CardsGridSkeleton count={9} />
         </div>
       </div>
