@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
+
 import Navbar from "./components/layout/Navbar";
 import LandingPage from "./components/layout/LandingPage";
 import AuthForm from "./components/auth/AuthForm";
@@ -43,6 +44,7 @@ import ScrollToTop from "./components/ui/ScrollToTop";
 import ScrollToTopOnRouteChange from "./components/ui/ScrollToTopOnRouteChange";
 import { isAuthenticated } from "./utils/auth";
 import { SocketProvider } from "./contexts/SocketContext";
+import Dashboard from "./pages/Dashboard";
 
 interface AppProps {}
 
@@ -99,8 +101,13 @@ const App: React.FC<AppProps> = () => {
         <div className="min-h-screen bg-royal-black">
           <ScrollToTopOnRouteChange />
           <Navbar authenticated={isLoggedIn} onAuthChange={checkAuthStatus} />
+
           <Routes>
             <Route path="/" element={<LandingPage />} />
+
+            {/* ✅ TEMP: Dashboard WITHOUT login */}
+            <Route path="/dashboard" element={<Dashboard />} />
+
             <Route
               path="/auth"
               element={
@@ -109,6 +116,7 @@ const App: React.FC<AppProps> = () => {
                 </AuthRoute>
               }
             />
+
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route
               path="/auth/complete-profile"
@@ -121,6 +129,7 @@ const App: React.FC<AppProps> = () => {
               element={<InterviewResourcesPage />}
             />
             <Route path="/forgot-password" element={<ForgotPasswordForm />} />
+
             <Route
               path="/change-username"
               element={
@@ -129,10 +138,16 @@ const App: React.FC<AppProps> = () => {
                 </ProtectedRoute>
               }
             />
+
             <Route path="/discussions" element={<DiscussionsPage />} />
-            <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
+            <Route
+              path="/discussions/:id"
+              element={<DiscussionDetailPage />}
+            />
+
             <Route path="/courses" element={<CoursesPage />} />
             <Route path="/courses/:id" element={<CourseDetailPage />} />
+
             <Route
               path="/courses/:courseId/test/:testId"
               element={
@@ -141,6 +156,7 @@ const App: React.FC<AppProps> = () => {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/courses/:courseId/test/:testId/processing"
               element={
@@ -149,6 +165,7 @@ const App: React.FC<AppProps> = () => {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/courses/:courseId/test/:testId/results"
               element={
@@ -157,14 +174,18 @@ const App: React.FC<AppProps> = () => {
                 </ProtectedRoute>
               }
             />
+
             <Route path="/roadmaps" element={<RoadmapsPage />} />
             <Route path="/roadmaps/:id" element={<RoadmapDetailPage />} />
+
             <Route path="/pdf-chatbot" element={<PdfChatbotPage />} />
+
             <Route
               path="/suggest-feature"
               element={<FeatureSuggestionPage />}
             />
             <Route path="/report-bug" element={<BugReportPage />} />
+
             <Route
               path="/admin"
               element={
@@ -173,6 +194,7 @@ const App: React.FC<AppProps> = () => {
                 </AdminRoute>
               }
             />
+
             <Route
               path="/discussions/new"
               element={
@@ -181,6 +203,7 @@ const App: React.FC<AppProps> = () => {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/courses/create"
               element={
@@ -189,6 +212,7 @@ const App: React.FC<AppProps> = () => {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/roadmaps/create"
               element={
@@ -197,6 +221,7 @@ const App: React.FC<AppProps> = () => {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/upload"
               element={
@@ -205,12 +230,15 @@ const App: React.FC<AppProps> = () => {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/verify-certificate"
               element={<CertificateVerificationPage />}
             />
+
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
+
           <Footer />
           <ScrollToTop />
           <Analytics />
