@@ -82,7 +82,6 @@ const TestPageStandalone: React.FC = () => {
         console.error("❌ Test access denied:", error);
 
         // Clear any stored test data for security
-        localStorage.removeItem(`test_${testId}`);
         localStorage.removeItem(`test_answers_${testId}`);
 
         setAccessDenied(true);
@@ -102,15 +101,6 @@ const TestPageStandalone: React.FC = () => {
 
       if (location.state?.testData) {
         data = location.state.testData;
-      } else if (testId) {
-        const stored = localStorage.getItem(`test_${testId}`);
-        if (stored) {
-          try {
-            data = JSON.parse(stored);
-          } catch (error) {
-            console.error("Failed to parse stored test data:", error);
-          }
-        }
       }
 
       if (data) {

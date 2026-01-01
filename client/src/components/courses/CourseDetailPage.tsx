@@ -531,8 +531,6 @@ const CourseDetailPage: React.FC = () => {
     navigate(`/courses/${course.id}/test/${currentTest.id}`, {
       state: { testData: currentTest },
     });
-    // Also save to localStorage as fallback
-    localStorage.setItem(`test_${currentTest.id}`, JSON.stringify(currentTest));
   };
 
   const handleTestComplete = (result: any) => {
