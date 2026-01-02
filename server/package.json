@@ -29,7 +29,7 @@
     "nodemailer": "^7.0.5",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "qs": "^6.14.1",
+    "qs": "6.14.1",
     "redis": "^5.8.3",
     "socket.io": "^4.8.1"
   },
