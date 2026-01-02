@@ -20,6 +20,7 @@ import { getEbooks } from "../../utils/api";
 import { EbookItem } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
 import { useDebounce } from "../../hooks/useDebounce";
+import { CardsGridSkeleton } from "../skeletons/CardsGridSkeleton";
 
 // Memoized Ebook Card Component
 const EbookCard = React.memo(({ ebook }: { ebook: EbookItem }) => (
@@ -228,10 +229,18 @@ const EbooksPage: React.FC = () => {
 
   if (isInitialLoad && loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-alien-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-alien-green font-alien">Loading E-books...</p>
+      <div className="min-h-screen py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            <div>
+              <h1 className="text-4xl font-alien font-bold glow-text mb-2">
+                E-book Library
+              </h1>
+              <p className="text-gray-400">Explore digital books and references</p>
+            </div>
+          </div>
+
+          <CardsGridSkeleton count={9} />
         </div>
       </div>
     );

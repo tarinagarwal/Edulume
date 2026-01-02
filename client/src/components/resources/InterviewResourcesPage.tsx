@@ -361,7 +361,7 @@ const InterviewResourcesPage: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
           <div>
-            <h1 className="text-4xl font-alien font-bold glow-text mb-2">
+            <h1 className="text-4xl font-alien font-semibold glow-text mb-2">
               Interview Resources
             </h1>
             <p className="text-gray-400">
@@ -518,7 +518,7 @@ const InterviewResourcesPage: React.FC = () => {
         {/* Category Navigation - Only show when not filtered by category */}
         {!selectedCategory && filteredResources.length > 0 && (
           <div className="smoke-card p-6 mb-8 relative smoke-effect">
-            <h3 className="text-lg font-alien font-bold text-white mb-4 flex items-center">
+            <h3 className="text-lg font-alien font-semibold text-white mb-4 flex items-center">
               <BookOpen className="mr-2 text-alien-green" size={20} />
               Quick Navigation
             </h3>
@@ -614,7 +614,7 @@ const InterviewResourcesPage: React.FC = () => {
                   <div className="flex items-center space-x-4 mb-6">
                     <div className="flex items-center space-x-3">
                       {getCategoryIcon(category)}
-                      <h2 className="text-2xl font-alien font-bold text-white glow-text">
+                      <h2 className="text-2xl font-alien font-semibold text-white glow-text">
                         {category}
                       </h2>
                     </div>
@@ -663,7 +663,7 @@ const InterviewResourcesPage: React.FC = () => {
                           </div>
                         </div>
 
-                        <h3 className="text-lg font-alien font-bold text-white mb-3 line-clamp-2 flex-grow">
+                        <h3 className="text-lg font-alien font-medium text-white mb-3 line-clamp-2 flex-grow">
                           {resource.title}
                         </h3>
 

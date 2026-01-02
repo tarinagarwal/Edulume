@@ -34,6 +34,7 @@ import { DISCUSSION_CATEGORIES } from "../../types/discussions";
 import { getUserProfile } from "../../utils/api";
 import MentionInput from "./MentionInput";
 import { useSocket } from "../../contexts/SocketContext";
+import { Skeleton } from "../ui/Skeleton";
 
 const DiscussionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -527,10 +528,78 @@ const DiscussionDetailPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-alien-green border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-alien-green font-alien">Loading discussion...</p>
+      <div className="min-h-screen py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center mb-8">
+            <div className="flex items-center space-x-2 text-gray-400 mr-6">
+              <Skeleton className="h-5 w-5 bg-white/[0.06]" />
+              <Skeleton className="h-4 w-40 bg-white/[0.06]" />
+            </div>
+          </div>
+    
+          <div className="smoke-card p-8 mb-8 relative smoke-effect">
+            <div className="flex items-start space-x-6">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between mb-4 gap-4">
+                  <Skeleton className="h-7 w-2/3 bg-white/[0.07]" />
+                  <Skeleton className="h-6 w-20 rounded-full bg-white/[0.06]" />
+                </div>
+    
+                <div className="flex flex-wrap items-center gap-4 mb-6">
+                  <Skeleton className="h-4 w-32 bg-white/[0.06]" />
+                  <Skeleton className="h-4 w-24 bg-white/[0.06]" />
+                  <Skeleton className="h-4 w-24 bg-white/[0.06]" />
+                </div>
+    
+                <div className="space-y-3 mb-6">
+                  <Skeleton className="h-4 w-full bg-white/[0.06]" />
+                  <Skeleton className="h-4 w-11/12 bg-white/[0.06]" />
+                  <Skeleton className="h-4 w-4/5 bg-white/[0.06]" />
+                </div>
+    
+                <div className="flex flex-wrap gap-2">
+                  <Skeleton className="h-6 w-20 rounded-full bg-white/[0.06]" />
+                  <Skeleton className="h-6 w-24 rounded-full bg-white/[0.06]" />
+                  <Skeleton className="h-6 w-16 rounded-full bg-white/[0.06]" />
+                </div>
+              </div>
+            </div>
+          </div>
+    
+          <div className="smoke-card p-6 mt-10 mb-5 smoke-effect">
+            <Skeleton className="h-5 w-28 bg-white/[0.07] mb-4" />
+            <div className="space-y-4">
+              <Skeleton className="h-32 w-full rounded-lg bg-white/[0.05]" />
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-10 w-44 rounded bg-white/[0.05]" />
+                <Skeleton className="h-10 w-32 rounded bg-white/[0.06]" />
+              </div>
+            </div>
+          </div>
+    
+          <div className="space-y-6">
+            <Skeleton className="h-6 w-40 bg-white/[0.07]" />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className="smoke-card p-6 relative smoke-effect space-y-4"
+              >
+                <div className="space-y-3">
+                  <Skeleton className="h-4 w-full bg-white/[0.06]" />
+                  <Skeleton className="h-4 w-5/6 bg-white/[0.06]" />
+                  <Skeleton className="h-4 w-2/3 bg-white/[0.05]" />
+                </div>
+            
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-4 w-28 bg-white/[0.05]" />
+                  <div className="flex items-center space-x-3">
+                    <Skeleton className="h-4 w-20 bg-white/[0.05]" />
+                    <Skeleton className="h-4 w-16 bg-white/[0.05]" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

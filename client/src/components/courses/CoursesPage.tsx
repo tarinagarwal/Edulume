@@ -22,6 +22,7 @@ import {
 } from "../../utils/api";
 import { Course, CoursesResponse } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
+import { CardsGridSkeleton } from "../skeletons/CardsGridSkeleton";
 
 const CoursesPage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -277,8 +278,8 @@ const CoursesPage: React.FC = () => {
 
           {/* Loading State */}
           {loading && (
-            <div className="flex justify-center items-center py-12">
-              <div className="w-8 h-8 border-4 border-alien-green border-t-transparent rounded-full animate-spin"></div>
+            <div className="py-6">
+              <CardsGridSkeleton count={9} />
             </div>
           )}
 

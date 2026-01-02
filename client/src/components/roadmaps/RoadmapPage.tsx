@@ -15,6 +15,7 @@ import { getRoadmaps, toggleRoadmapBookmark } from "../../utils/api";
 import { Roadmap, RoadmapsResponse } from "../../types";
 import SEO from "../seo/SEO";
 import { isAuthenticated } from "../../utils/auth";
+import { RoadmapSkeleton } from "../skeletons/RoadmapSkeleton";
 
 const RoadmapsPage: React.FC = () => {
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
@@ -197,11 +198,11 @@ const RoadmapsPage: React.FC = () => {
 
           {/* Loading State */}
           {loading && (
-            <div className="flex justify-center items-center py-12">
-              <div className="w-8 h-8 border-4 border-alien-green border-t-transparent rounded-full animate-spin"></div>
+            <div className="py-6">
+              <RoadmapSkeleton count={6} />
             </div>
           )}
-
+          
           {/* Roadmaps Grid */}
           {!loading && (
             <>
