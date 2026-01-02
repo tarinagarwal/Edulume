@@ -19,6 +19,14 @@ import pdfChatRoutes from "./routes/pdfChat.js";
 import sitemapRoutes from "./routes/sitemap.js";
 import { setupSocketHandlers } from "./socket/socketHandlers.js";
 import initRedis from "./utils/redis.js";
+import {
+  generalLimiter,
+  authLimiter,
+  uploadLimiter,
+  discussionLimiter,
+  chatLimiter,
+  strictAuthLimiter,
+} from "./middleware/rateLimiter.js";
 
 BigInt.prototype.toJSON = function () {
   return this.toString();
@@ -78,6 +86,21 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // Initialize Passport
 app.use(passport.initialize());
 
+// Rate Limiting Middleware
+app.use("/api/", generalLimiter);
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/send-otp", authLimiter);
+app.use("/api/auth/forgot-password", strictAuthLimiter);
+app.use("/api/auth/reset-password", strictAuthLimiter);
+app.use("/api/upload", uploadLimiter);
+app.use("/api/discussions", (req, res, next) => {
+  if (["POST"].includes(req.method)) {
+    return discussionLimiter(req, res, next);
+  }
+  next();
+});
+app.use("/api/pdf-chat", chatLimiter);
+
 // Debug middleware to log all requests
 app.use((req, res, next) => {
   console.log(`🔍 ${req.method} ${req.path}`);
@@ -107,7 +130,7 @@ app.use("/", sitemapRoutes);
 // Setup Socket.IO handlers
 setupSocketHandlers(io);
 
-// Health check endpoint
+// Health check endpoint (not rate limited)
 app.get("/api/health", async (req, res) => {
   try {
     // Test database connection
