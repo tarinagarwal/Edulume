@@ -19,7 +19,7 @@ import {
   getLanguageDisplayName,
 } from "../../utils/languageDetection";
 import { toast } from "react-hot-toast";
-import TestCountdown from "../ui/TestCountdown";
+import TestTimeRemaining  from "../ui/TestTimeRemaining ";
 
 interface Question {
   id: string;
@@ -54,12 +54,7 @@ const TestPageStandalone: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const tabSwitchCount = useRef(0);
-  const alreadySubmitted = useRef(false);
-  console.log('🎨 TestPageStandalone RENDER', {
-    testId,
-    courseId,
-    timestamp: new Date().toISOString()
-  });
+
 
   const [testData, setTestData] = useState<TestData | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
@@ -687,7 +682,7 @@ const TestPageStandalone: React.FC = () => {
               </div>
             </div>
 
-            <TestCountdown
+            <TestTimeRemaining 
               answeredQuestions={answeredQuestions}
               testData={testData}
               handleSubmitTest={handleSubmitTest}

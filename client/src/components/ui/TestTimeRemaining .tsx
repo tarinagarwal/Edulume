@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { Clock } from "lucide-react";
 import { TestData } from "../courses/TestPageStandalone";
 
-const TestCountdown: React.FC<{
+const TestTimeRemaining : React.FC<{
   answeredQuestions: number;
   testData: TestData;
   handleSubmitTest: (isSubmitted: boolean) => void;
@@ -64,4 +64,4 @@ const TestCountdown: React.FC<{
   );
 };
 
-export default TestCountdown;
+export default TestTimeRemaining ;
