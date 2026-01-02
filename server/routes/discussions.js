@@ -33,6 +33,10 @@ const createNotification = async (
   io = null
 ) => {
   try {
+    console.log(
+      `📝 Creating ${type} notification for user ${userId} from ${fromUsername}`
+    );
+
     const notification = await prisma.notification.create({
       data: {
         userId,
@@ -45,6 +49,8 @@ const createNotification = async (
         fromUsername,
       },
     });
+
+    console.log(`✅ Notification created successfully, ID: ${notification.id}`);
 
     // Emit real-time notification if io is available
     if (io) {
@@ -61,10 +67,17 @@ const createNotification = async (
         is_read: false,
         created_at: notification.createdAt.toISOString(),
       };
+      console.log(
+        `🔗 IO object available, emitting notification via socket...`
+      );
       emitNotification(io, userId, notificationData);
+    } else {
+      console.warn(
+        `⚠️  IO object not available for real-time notification. User will rely on polling.`
+      );
     }
   } catch (error) {
-    console.error("Error creating notification:", error);
+    console.error("❌ Error creating notification:", error);
   }
 };
 
@@ -342,23 +355,41 @@ router.post("/:id/answers", authenticateToken, async (req, res) => {
 
     // Handle mentions
     const mentions = extractMentions(content);
+    console.log(`🔍 Mentions found in content:`, mentions);
+
     for (const mentionedUsername of mentions) {
+      console.log(`🔎 Processing mention: @${mentionedUsername}`);
+
       const mentionedUser = await prisma.user.findUnique({
         where: { username: mentionedUsername },
       });
 
-      if (mentionedUser && mentionedUser.id !== req.user.id) {
-        await createNotification(
-          mentionedUser.id,
-          "mention",
-          "You were mentioned",
-          `${req.user.username} mentioned you in an answer`,
-          answer.id,
-          "answer",
-          req.user.id,
-          req.user.username,
-          req.io
+      if (mentionedUser) {
+        console.log(
+          `✅ User @${mentionedUsername} found (ID: ${mentionedUser.id})`
         );
+
+        if (mentionedUser.id !== req.user.id) {
+          console.log(
+            `📬 Creating mention notification for ${mentionedUsername}`
+          );
+
+          await createNotification(
+            mentionedUser.id,
+            "mention",
+            "You were mentioned",
+            `${req.user.username} mentioned you in an answer`,
+            answer.id,
+            "answer",
+            req.user.id,
+            req.user.username,
+            req.io
+          );
+        } else {
+          console.log(`↩️  Skipping self-mention`);
+        }
+      } else {
+        console.warn(`⚠️  User @${mentionedUsername} not found in database`);
       }
     }
 
@@ -443,23 +474,41 @@ router.post(
 
       // Handle mentions
       const mentions = extractMentions(content);
+      console.log(`🔍 Mentions found in reply:`, mentions);
+
       for (const mentionedUsername of mentions) {
+        console.log(`🔎 Processing mention in reply: @${mentionedUsername}`);
+
         const mentionedUser = await prisma.user.findUnique({
           where: { username: mentionedUsername },
         });
 
-        if (mentionedUser && mentionedUser.id !== req.user.id) {
-          await createNotification(
-            mentionedUser.id,
-            "mention",
-            "You were mentioned",
-            `${req.user.username} mentioned you in a reply`,
-            reply.id,
-            "reply",
-            req.user.id,
-            req.user.username,
-            req.io
+        if (mentionedUser) {
+          console.log(
+            `✅ User @${mentionedUsername} found (ID: ${mentionedUser.id})`
           );
+
+          if (mentionedUser.id !== req.user.id) {
+            console.log(
+              `📬 Creating mention notification for ${mentionedUsername} in reply`
+            );
+
+            await createNotification(
+              mentionedUser.id,
+              "mention",
+              "You were mentioned",
+              `${req.user.username} mentioned you in a reply`,
+              reply.id,
+              "reply",
+              req.user.id,
+              req.user.username,
+              req.io
+            );
+          } else {
+            console.log(`↩️  Skipping self-mention in reply`);
+          }
+        } else {
+          console.warn(`⚠️  User @${mentionedUsername} not found in database`);
         }
       }
 

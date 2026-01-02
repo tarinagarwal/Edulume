@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import {
   Bell,
   X,
-  Check,
   CheckCheck,
   MessageSquare,
   Award,
@@ -16,7 +15,7 @@ import {
   markAllNotificationsAsRead,
 } from "../../utils/api";
 import { Notification } from "../../types/discussions";
-import useSocket from "../../hooks/useSocket";
+import { useSocket } from "../../contexts/SocketContext";
 
 const NotificationDropdown: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -37,9 +36,15 @@ const NotificationDropdown: React.FC = () => {
 
   // Listen for real-time notifications
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      console.log("⚠️ Socket not connected for notifications");
+      return;
+    }
+
+    console.log("✅ Setting up socket listener for 'new_notification' event");
 
     socket.on("new_notification", (notification: Notification) => {
+      console.log("🔔 New notification received via socket:", notification);
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount((prev) => prev + 1);
 
@@ -53,6 +58,7 @@ const NotificationDropdown: React.FC = () => {
     });
 
     return () => {
+      console.log("🗑️ Cleaning up socket listener for notifications");
       socket.off("new_notification");
     };
   }, [socket]);

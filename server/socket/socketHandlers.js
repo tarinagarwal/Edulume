@@ -62,7 +62,18 @@ export const setupSocketHandlers = (io) => {
     );
 
     // Join user to their personal room for notifications
-    socket.join(`user_${socket.user.id}`);
+    const userRoom = `user_${socket.user.id}`;
+    socket.join(userRoom);
+
+    // Verify user room join
+    const userRoomClients = io.sockets.adapter.rooms.get(userRoom);
+    console.log(
+      `📋 User ${
+        socket.user.username
+      } joined room: ${userRoom}, total clients in room: ${
+        userRoomClients ? userRoomClients.size : 0
+      }`
+    );
 
     // Join discussion room
     socket.on("join_discussion", (discussionId) => {
@@ -198,5 +209,14 @@ export const emitVoteUpdate = (
 };
 
 export const emitNotification = (io, userId, notification) => {
-  io.to(`user_${userId}`).emit("new_notification", notification);
+  const userRoom = `user_${userId}`;
+  const room = io.sockets.adapter.rooms.get(userRoom);
+  const clientCount = room ? room.size : 0;
+
+  console.log(
+    `📬 Emitting notification to room: ${userRoom}, clients in room: ${clientCount}, notification type: ${notification.type}`
+  );
+  console.log(`📋 Notification data:`, notification);
+
+  io.to(userRoom).emit("new_notification", notification);
 };
