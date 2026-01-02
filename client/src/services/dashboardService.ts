@@ -1,4 +1,6 @@
-import api from "./api";
+import api from "../utils/api";
+
+
 
 // PR-1: Dashboard Profile
 export const getDashboardProfile = async () => {

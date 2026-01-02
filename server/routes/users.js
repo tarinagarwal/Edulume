@@ -1,33 +1,31 @@
-import express from "express";
+import jwt from "jsonwebtoken";
 import prisma from "../db.js";
 
-const router = express.Router();
-
-// GET current logged-in user (basic profile)
-router.get("/me", async (req, res) => {
+const requireAuth = async (req, res, next) => {
   try {
-    // ⚠️ TEMP: auth ke bina (PR-1 scope)
-    // Later PR me req.user use hoga
+    const authHeader = req.headers.authorization;
 
-    const user = await prisma.user.findFirst({
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        avatar: true,
-        createdAt: true,
-      },
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    const user = await prisma.user.findUnique({
+      where: { id: decoded.id },
     });
 
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(401).json({ message: "User not found" });
     }
 
-    res.json(user);
+    req.user = user;
+    next();
   } catch (error) {
-    console.error("GET /users/me error:", error);
-    res.status(500).json({ message: "Failed to fetch user profile" });
+    return res.status(401).json({ message: "Invalid token" });
   }
-});
+};
 
-export default router;
+export default requireAuth;

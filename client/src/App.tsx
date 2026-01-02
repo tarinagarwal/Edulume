@@ -44,7 +44,7 @@ import ScrollToTop from "./components/ui/ScrollToTop";
 import ScrollToTopOnRouteChange from "./components/ui/ScrollToTopOnRouteChange";
 import { isAuthenticated } from "./utils/auth";
 import { SocketProvider } from "./contexts/SocketContext";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/Dashboard"; 
 
 interface AppProps {}
 
@@ -105,8 +105,15 @@ const App: React.FC<AppProps> = () => {
           <Routes>
             <Route path="/" element={<LandingPage />} />
 
-            {/* ✅ TEMP: Dashboard WITHOUT login */}
-            <Route path="/dashboard" element={<Dashboard />} />
+            {/* ✅ Dashboard PROTECTED */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute authenticated={isLoggedIn}>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
 
             <Route
               path="/auth"
@@ -118,10 +125,7 @@ const App: React.FC<AppProps> = () => {
             />
 
             <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route
-              path="/auth/complete-profile"
-              element={<CompleteProfile />}
-            />
+            <Route path="/auth/complete-profile" element={<CompleteProfile />} />
             <Route path="/pdfs" element={<PDFsPage />} />
             <Route path="/ebooks" element={<EbooksPage />} />
             <Route
@@ -140,10 +144,7 @@ const App: React.FC<AppProps> = () => {
             />
 
             <Route path="/discussions" element={<DiscussionsPage />} />
-            <Route
-              path="/discussions/:id"
-              element={<DiscussionDetailPage />}
-            />
+            <Route path="/discussions/:id" element={<DiscussionDetailPage />} />
 
             <Route path="/courses" element={<CoursesPage />} />
             <Route path="/courses/:id" element={<CourseDetailPage />} />
@@ -177,13 +178,8 @@ const App: React.FC<AppProps> = () => {
 
             <Route path="/roadmaps" element={<RoadmapsPage />} />
             <Route path="/roadmaps/:id" element={<RoadmapDetailPage />} />
-
             <Route path="/pdf-chatbot" element={<PdfChatbotPage />} />
-
-            <Route
-              path="/suggest-feature"
-              element={<FeatureSuggestionPage />}
-            />
+            <Route path="/suggest-feature" element={<FeatureSuggestionPage />} />
             <Route path="/report-bug" element={<BugReportPage />} />
 
             <Route
