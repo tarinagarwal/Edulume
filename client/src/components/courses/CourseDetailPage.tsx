@@ -189,12 +189,12 @@ const CourseDetailPage: React.FC = () => {
       setCourse((prev) =>
         prev
           ? {
-              ...prev,
-              is_bookmarked: response.bookmarked,
-              bookmark_count: response.bookmarked
-                ? prev.bookmark_count + 1
-                : prev.bookmark_count - 1,
-            }
+            ...prev,
+            is_bookmarked: response.bookmarked,
+            bookmark_count: response.bookmarked
+              ? prev.bookmark_count + 1
+              : prev.bookmark_count - 1,
+          }
           : null
       );
     } catch (error) {
@@ -221,13 +221,13 @@ const CourseDetailPage: React.FC = () => {
       setCourse((prev) =>
         prev
           ? {
-              ...prev,
-              chapters: prev.chapters?.map((chapter) =>
-                chapter.id === chapterId
-                  ? { ...chapter, content: response.content }
-                  : chapter
-              ),
-            }
+            ...prev,
+            chapters: prev.chapters?.map((chapter) =>
+              chapter.id === chapterId
+                ? { ...chapter, content: response.content }
+                : chapter
+            ),
+          }
           : null
       );
 
@@ -238,8 +238,8 @@ const CourseDetailPage: React.FC = () => {
       console.error("❌ Error generating content:", error);
       alert(
         `Failed to generate chapter content: ${
-          //@ts-ignore
-          error.message || "Please try again."
+        //@ts-ignore
+        error.message || "Please try again."
         }`
       );
     } finally {
@@ -272,8 +272,7 @@ const CourseDetailPage: React.FC = () => {
         setCurrentGeneratingIndex(i);
 
         console.log(
-          `📝 Generating content for chapter ${i + 1}/${
-            chaptersToGenerate.length
+          `📝 Generating content for chapter ${i + 1}/${chaptersToGenerate.length
           }: ${chapter.title}`
         );
 
@@ -284,13 +283,13 @@ const CourseDetailPage: React.FC = () => {
           setCourse((prev) =>
             prev
               ? {
-                  ...prev,
-                  chapters: prev.chapters?.map((ch) =>
-                    ch.id === chapter.id
-                      ? { ...ch, content: response.content }
-                      : ch
-                  ),
-                }
+                ...prev,
+                chapters: prev.chapters?.map((ch) =>
+                  ch.id === chapter.id
+                    ? { ...ch, content: response.content }
+                    : ch
+                ),
+              }
               : null
           );
 
@@ -357,15 +356,15 @@ const CourseDetailPage: React.FC = () => {
           setCourse((prev) =>
             prev
               ? {
-                  ...prev,
-                  is_enrolled: false,
-                  enrollment_data: null,
-                  chapters: prev.chapters?.map((ch) => ({
-                    ...ch,
-                    isCompleted: false,
-                    completedAt: null,
-                  })),
-                }
+                ...prev,
+                is_enrolled: false,
+                enrollment_data: null,
+                chapters: prev.chapters?.map((ch) => ({
+                  ...ch,
+                  isCompleted: false,
+                  completedAt: null,
+                })),
+              }
               : null
           );
         }
@@ -375,18 +374,17 @@ const CourseDetailPage: React.FC = () => {
         setCourse((prev) =>
           prev
             ? {
-                ...prev,
-                is_enrolled: true,
-                enrollment_data: response.enrollment,
-              }
+              ...prev,
+              is_enrolled: true,
+              enrollment_data: response.enrollment,
+            }
             : null
         );
       }
     } catch (error) {
       console.error("Error with enrollment:", error);
       alert(
-        `Failed to ${
-          course.is_enrolled ? "unenroll from" : "enroll in"
+        `Failed to ${course.is_enrolled ? "unenroll from" : "enroll in"
         } course. Please try again.`
       );
     } finally {
@@ -414,10 +412,10 @@ const CourseDetailPage: React.FC = () => {
         const updatedChapters = prev.chapters?.map((ch) =>
           ch.id === chapterId
             ? {
-                ...ch,
-                isCompleted: isCompleted,
-                completedAt: isCompleted ? new Date().toISOString() : null,
-              }
+              ...ch,
+              isCompleted: isCompleted,
+              completedAt: isCompleted ? new Date().toISOString() : null,
+            }
             : ch
         );
 
@@ -426,13 +424,13 @@ const CourseDetailPage: React.FC = () => {
           chapters: updatedChapters,
           enrollment_data: prev.enrollment_data
             ? {
-                ...prev.enrollment_data,
-                progressPercentage: response.progress.progressPercentage,
-                isCompleted: response.progress.isCourseCompleted,
-                completedAt: response.progress.isCourseCompleted
-                  ? new Date().toISOString()
-                  : prev.enrollment_data.completedAt,
-              }
+              ...prev.enrollment_data,
+              progressPercentage: response.progress.progressPercentage,
+              isCompleted: response.progress.isCourseCompleted,
+              completedAt: response.progress.isCourseCompleted
+                ? new Date().toISOString()
+                : prev.enrollment_data.completedAt,
+            }
             : null,
         };
       });
@@ -514,8 +512,8 @@ const CourseDetailPage: React.FC = () => {
       console.error("Error generating test:", error);
       alert(
         `Failed to generate test: ${
-          //@ts-ignore
-          error.response?.data?.error || error.message || "Please try again."
+        //@ts-ignore
+        error.response?.data?.error || error.message || "Please try again."
         }`
       );
     } finally {
@@ -524,13 +522,31 @@ const CourseDetailPage: React.FC = () => {
   };
 
   const handleStartTest = () => {
-    if (!course || !currentTest) return;
+    if (!currentTest || !course) return;
 
-    setShowTestInstructions(false);
-    // Navigate to standalone test page with test data
-    navigate(`/courses/${course.id}/test/${currentTest.id}`, {
-      state: { testData: currentTest },
-    });
+    const element = document.documentElement;
+
+    if (element.requestFullscreen) {
+      element.requestFullscreen()
+        .then(() => {
+          // We only navigate if fullscreen was successfully granted
+          navigate(`/courses/${course.id}/test/${currentTest.id}`, {
+            state: {
+              testData: currentTest,
+              fullscreenEnabled: true
+            }
+          });
+        })
+        .catch((err) => {
+          console.error("Fullscreen error:", err);
+          alert("Integrity Check: You must allow fullscreen mode to start this certification test.");
+        });
+    } else {
+      // Navigate to standalone test page with test data
+      navigate(`/courses/${course.id}/test/${currentTest.id}`, {
+        state: { testData: currentTest }
+      });
+    }
   };
 
   const handleTestComplete = (result: any) => {
@@ -548,6 +564,7 @@ const CourseDetailPage: React.FC = () => {
     // Navigate directly to the standalone test results page
     navigate(`/courses/${course.id}/test/${testId}/results`);
   };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -648,11 +665,10 @@ const CourseDetailPage: React.FC = () => {
                 <button
                   onClick={handleEnrollment}
                   disabled={enrolling}
-                  className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3 rounded-lg font-semibold transition-colors duration-300 flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm lg:text-base ${
-                    course.is_enrolled
-                      ? "bg-red-600 hover:bg-red-700 text-white"
-                      : "bg-alien-green text-royal-black hover:bg-alien-green/90 shadow-alien-glow"
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-2.5 lg:py-3 rounded-lg font-semibold transition-colors duration-300 flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm lg:text-base ${course.is_enrolled
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-alien-green text-royal-black hover:bg-alien-green/90 shadow-alien-glow"
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {enrolling ? (
                     <>
@@ -902,16 +918,15 @@ const CourseDetailPage: React.FC = () => {
                               Attempt #{userTests.length - index}
                             </span>
                             <span
-                              className={`text-xs px-2 py-1 rounded font-semibold ${
-                                test.status === "completed" && test.hasPassed
-                                  ? "bg-green-600 text-white"
-                                  : test.status === "completed" &&
-                                    !test.hasPassed
+                              className={`text-xs px-2 py-1 rounded font-semibold ${test.status === "completed" && test.hasPassed
+                                ? "bg-green-600 text-white"
+                                : test.status === "completed" &&
+                                  !test.hasPassed
                                   ? "bg-red-600 text-white"
                                   : test.status === "processing"
-                                  ? "bg-yellow-600 text-black"
-                                  : "bg-gray-600 text-white"
-                              }`}
+                                    ? "bg-yellow-600 text-black"
+                                    : "bg-gray-600 text-white"
+                                }`}
                             >
                               {test.status === "completed" &&
                                 test.hasPassed &&
@@ -925,11 +940,10 @@ const CourseDetailPage: React.FC = () => {
                             {test.status === "completed" &&
                               test.score !== null && (
                                 <span
-                                  className={`font-bold ${
-                                    test.hasPassed
-                                      ? "text-green-400"
-                                      : "text-red-400"
-                                  }`}
+                                  className={`font-bold ${test.hasPassed
+                                    ? "text-green-400"
+                                    : "text-red-400"
+                                    }`}
                                 >
                                   {test.score}%
                                 </span>
@@ -1227,11 +1241,10 @@ const CourseDetailPage: React.FC = () => {
                                       )
                                     }
                                     disabled={updatingProgress === chapter.id}
-                                    className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm ${
-                                      chapter.isCompleted
-                                        ? "bg-gray-600 hover:bg-gray-700 text-white"
-                                        : "bg-alien-green text-royal-black hover:bg-alien-green/90 shadow-alien-glow"
-                                    }`}
+                                    className={`px-3 sm:px-4 py-2 rounded-lg font-semibold transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm ${chapter.isCompleted
+                                      ? "bg-gray-600 hover:bg-gray-700 text-white"
+                                      : "bg-alien-green text-royal-black hover:bg-alien-green/90 shadow-alien-glow"
+                                      }`}
                                   >
                                     {updatingProgress === chapter.id ? (
                                       <>
@@ -1315,7 +1328,7 @@ const CourseDetailPage: React.FC = () => {
           <TestInstructionsModal
             isOpen={showTestInstructions}
             onClose={handleTestExit}
-            onStartTest={handleStartTest}
+            onStartTest={handleStartTest} 
             instructions={currentTest.instructions}
             courseTitle={course.title}
             questions={currentTest.questions}

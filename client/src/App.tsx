@@ -6,6 +6,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import Navbar from "./components/layout/Navbar";
@@ -44,7 +45,7 @@ import ScrollToTopOnRouteChange from "./components/ui/ScrollToTopOnRouteChange";
 import { isAuthenticated } from "./utils/auth";
 import { SocketProvider } from "./contexts/SocketContext";
 
-interface AppProps {}
+interface AppProps { }
 
 const ProtectedRoute: React.FC<{
   children: React.ReactNode;
@@ -217,6 +218,36 @@ const App: React.FC<AppProps> = () => {
           <SpeedInsights />
         </div>
       </SocketProvider>
+      <Toaster
+        position="top-center"
+        gutter={12}
+        containerStyle={{ top: 40 }}
+        toastOptions={{
+          style: {
+            fontSize: "14px",
+            maxWidth: "500px",
+            padding: "12px 20px",
+            backgroundColor: "#1e1e1e", 
+            color: "#fff",
+            border: "2px solid #00cc33",
+            borderRadius: "12px",
+            boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.5)",
+          },
+          success: {
+            style: {
+              border: "2px solid #00cc33",
+              color: "#00cc33",
+            },
+          },
+          error: {
+            style: {
+              border: "2px solid #ef4444",
+              color: "#fff",
+              background: "#1e1e1e",
+            },
+          },
+        }}
+      />
     </Router>
   );
 };

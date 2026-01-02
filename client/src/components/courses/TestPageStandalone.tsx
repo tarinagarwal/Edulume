@@ -1,10 +1,9 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
-  Clock,
   AlertCircle,
   CheckCircle,
   ArrowLeft,
@@ -19,23 +18,25 @@ import {
   getMonacoLanguageId,
   getLanguageDisplayName,
 } from "../../utils/languageDetection";
+import { toast } from "react-hot-toast";
+import TestCountdown from "../ui/TestCountdown";
 
 interface Question {
   id: string;
   type:
-    | "mcq"
-    | "true_false"
-    | "true/false"
-    | "short_answer"
-    | "short answer"
-    | "coding"
-    | "situational";
+  | "mcq"
+  | "true_false"
+  | "true/false"
+  | "short_answer"
+  | "short answer"
+  | "coding"
+  | "situational";
   question: string;
   options?: string[];
   marks: number;
 }
 
-interface TestData {
+export interface TestData {
   id: string;
   questions: Question[];
   instructions: any;
@@ -52,17 +53,120 @@ const TestPageStandalone: React.FC = () => {
   }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const tabSwitchCount = useRef(0);
+  const alreadySubmitted = useRef(false);
+  console.log('🎨 TestPageStandalone RENDER', {
+    testId,
+    courseId,
+    timestamp: new Date().toISOString()
+  });
 
   const [testData, setTestData] = useState<TestData | null>(null);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showQuestionNav, setShowQuestionNav] = useState(false);
   const [accessDenied, setAccessDenied] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
+
+  const handleSubmitTest = useCallback(async (isAutoSubmit = false) => {
+    if (isSubmitting) return;
+
+    if (!isAutoSubmit) {
+      const confirmed = window.confirm(
+        "Are you sure you want to submit your test? This action cannot be undone."
+      );
+      if (!confirmed) return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // exitig from full screen mode
+      if (document.fullscreenElement) {
+        document.exitFullscreen()
+          .then(() => console.log("Exited fullscreen successfully"))
+          .catch((err) => console.error("Error exiting fullscreen:", err));
+      }
+
+
+      if (!courseId || !testId || !testData) {
+        throw new Error("Missing course, test ID, or test data");
+      }
+
+      const answersArray = testData.questions.map((question, index) => {
+        const questionId = question.id || `fallback_${index}_${Date.now()}`;
+        return answers[questionId] || null;
+      });
+
+      await submitCertificateTest(courseId, testId, answersArray);
+      localStorage.removeItem(`test_answers_${testId}`);
+
+      navigate(`/courses/${courseId}/test/${testId}/processing`, {
+        replace: true,
+      });
+    } catch (error) {
+      console.error("Error submitting test:", error);
+      setIsSubmitting(false);
+      alert("Failed to submit test. Please try again.");
+    }
+  }, [isSubmitting, courseId, testId, testData, answers, navigate]);
+
+  // Allowing user to access test in full screen mode and detecting tab switches
+  useEffect(() => {
+    const handleViolation = () => {
+      if (!testData) return;
+
+      tabSwitchCount.current += 1;
+
+      if (tabSwitchCount.current === 1) {
+        toast("⚠️ WARNING: Security Violation! Do not exit fullscreen or leave this tab. Your next violation will submit the test.", {
+          duration: 6000,
+          style: {
+            background: "#1e1e1e",
+            color: "#fbbf24",
+            border: "2px solid #fbbf24",
+            borderRadius: "12px",
+            fontWeight: "bold"
+          },
+        });
+      } else if (tabSwitchCount.current >= 2) {
+        toast.error("Multiple violations detected. Submitting test...", {
+          style: { background: "#7f1d1d", color: "#fff" }
+        });
+        handleSubmitTest(true);
+      }
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) handleViolation();
+    };
+
+    const handleBlur = () => {
+      // Catches DevTools clicks or switching to a second monitor
+      if (!document.hidden) handleViolation();
+    };
+
+    const handleFullscreenChange = () => {
+      // Trigger violation if the user exits fullscreen mode
+      if (!document.fullscreenElement) {
+        handleViolation();
+      }
+    };
+
+    // Listeners
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("blur", handleBlur);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("blur", handleBlur);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, [handleSubmitTest, testData]);
 
   // Security: Validate test access on component mount
   useEffect(() => {
@@ -120,7 +224,6 @@ const TestPageStandalone: React.FC = () => {
         }
 
         setTestData(data);
-        setTimeRemaining(data.timeLimit * 60);
 
         // Debug logging
         console.log("📊 Test data loaded:", {
@@ -154,29 +257,15 @@ const TestPageStandalone: React.FC = () => {
     }
   }, [answers, testId]);
 
-  useEffect(() => {
-    if (timeRemaining <= 0 || !testData) return;
-
-    const timer = setInterval(() => {
-      setTimeRemaining((prev) => {
-        if (prev <= 1) {
-          handleSubmitTest(true);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [timeRemaining, testData]);
 
   // Security: Prevent navigation away from test (back button, etc.)
   useEffect(() => {
     if (!testData || accessDenied) return;
-
+    // If user reloads the page test is submitted automatically
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = "";
+      console.log(e);
+      e.returnValue = "Your test will be submitted";
       handleSubmitTest(true);
       return "";
     };
@@ -213,18 +302,6 @@ const TestPageStandalone: React.FC = () => {
     };
   }, [testData, accessDenied]);
 
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs
-        .toString()
-        .padStart(2, "0")}`;
-    }
-    return `${minutes}:${secs.toString().padStart(2, "0")}`;
-  };
 
   const handleAnswerChange = (questionId: string, answer: any) => {
     setAnswers((prev) => ({
@@ -233,44 +310,6 @@ const TestPageStandalone: React.FC = () => {
     }));
   };
 
-  const handleSubmitTest = async (isAutoSubmit = false) => {
-    if (isSubmitting) return;
-
-    if (!isAutoSubmit) {
-      const confirmed = window.confirm(
-        "Are you sure you want to submit your test? This action cannot be undone."
-      );
-      if (!confirmed) return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      if (!courseId || !testId || !testData) {
-        throw new Error("Missing course, test ID, or test data");
-      }
-
-      // Convert answers object to array format expected by server
-      const answersArray = testData.questions.map((question, index) => {
-        const questionId = question.id || `fallback_${index}_${Date.now()}`;
-        return answers[questionId] || null; // Use null for unanswered questions
-      });
-
-      await submitCertificateTest(courseId, testId, answersArray);
-
-      localStorage.removeItem(`test_${testId}`);
-      localStorage.removeItem(`test_answers_${testId}`);
-
-      // Use replace to prevent back navigation to test page
-      navigate(`/courses/${courseId}/test/${testId}/processing`, {
-        replace: true,
-      });
-    } catch (error) {
-      console.error("Error submitting test:", error);
-      setIsSubmitting(false);
-      alert("Failed to submit test. Please try again.");
-    }
-  };
 
   const handleExitTest = () => {
     setShowExitDialog(true);
@@ -626,6 +665,7 @@ const TestPageStandalone: React.FC = () => {
   const answeredQuestions = Object.keys(answers).length;
 
   return (
+
     <div className="min-h-screen bg-royal-black text-white">
       <div className="sticky top-0 bg-smoke-gray border-b border-smoke-light z-10">
         <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
@@ -647,29 +687,11 @@ const TestPageStandalone: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center space-x-2 sm:space-x-6 flex-shrink-0">
-              <div
-                className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${
-                  timeRemaining < 600
-                    ? "bg-red-600/20 text-red-400"
-                    : "bg-alien-green/20 text-alien-green"
-                }`}
-              >
-                <Clock size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
-                <span className="font-mono font-semibold text-xs sm:text-sm">
-                  {formatTime(timeRemaining)}
-                </span>
-              </div>
-
-              <div className="hidden xs:flex items-center space-x-2">
-                <span className="text-xs sm:text-sm text-gray-400">
-                  Progress:
-                </span>
-                <span className="text-xs sm:text-sm font-semibold">
-                  {answeredQuestions}/{testData.questions.length}
-                </span>
-              </div>
-            </div>
+            <TestCountdown
+              answeredQuestions={answeredQuestions}
+              testData={testData}
+              handleSubmitTest={handleSubmitTest}
+            />
           </div>
 
           <div className="mt-2 sm:mt-3">
@@ -771,16 +793,15 @@ const TestPageStandalone: React.FC = () => {
                 <button
                   key={index}
                   onClick={() => setCurrentQuestion(index)}
-                  className={`w-8 h-8 rounded-full text-sm font-semibold transition-colors flex-shrink-0 ${
-                    index === currentQuestion
-                      ? "bg-alien-green text-royal-black"
-                      : answers[
-                          testData.questions[index].id ||
-                            `fallback_${index}_navigation`
-                        ]
+                  className={`w-8 h-8 rounded-full text-sm font-semibold transition-colors flex-shrink-0 ${index === currentQuestion
+                    ? "bg-alien-green text-royal-black"
+                    : answers[
+                      testData.questions[index].id ||
+                      `fallback_${index}_navigation`
+                    ]
                       ? "bg-green-600 text-white"
                       : "bg-gray-600 hover:bg-gray-500 text-gray-300"
-                  }`}
+                    }`}
                 >
                   {index + 1}
                 </button>
@@ -807,16 +828,15 @@ const TestPageStandalone: React.FC = () => {
                       setCurrentQuestion(index);
                       setShowQuestionNav(false);
                     }}
-                    className={`w-10 h-10 rounded-full text-sm font-semibold transition-colors ${
-                      index === currentQuestion
-                        ? "bg-alien-green text-royal-black"
-                        : answers[
-                            testData.questions[index].id ||
-                              `fallback_${index}_mobile_navigation`
-                          ]
+                    className={`w-10 h-10 rounded-full text-sm font-semibold transition-colors ${index === currentQuestion
+                      ? "bg-alien-green text-royal-black"
+                      : answers[
+                        testData.questions[index].id ||
+                        `fallback_${index}_mobile_navigation`
+                      ]
                         ? "bg-green-600 text-white"
                         : "bg-gray-600 hover:bg-gray-500 text-gray-300"
-                    }`}
+                      }`}
                   >
                     {index + 1}
                   </button>
@@ -882,5 +902,7 @@ const TestPageStandalone: React.FC = () => {
     </div>
   );
 };
+
+
 
 export default TestPageStandalone;
