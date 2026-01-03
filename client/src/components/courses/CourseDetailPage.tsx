@@ -22,6 +22,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import SEO from "../seo/SEO";
+import { LinkedinIcon, XIcon } from "../ui/icons";
+
 import {
   getCourse,
   toggleCourseBookmark,
@@ -636,7 +638,7 @@ const CourseDetailPage: React.FC = () => {
       <div className="min-h-screen bg-royal-black text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
             <div className="flex items-center">
               <button
                 onClick={() => navigate("/courses")}
@@ -648,13 +650,44 @@ const CourseDetailPage: React.FC = () => {
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-1 sm:mb-2 break-words">
                   {course.title}
                 </h1>
-                <div className="flex items-center space-x-2 sm:space-x-4 text-gray-400 text-xs sm:text-sm">
+
+                <div className="flex items-center space-x-2 sm:space-x-4 text-gray-400 text-xs sm:text-sm mb-2">
                   <div className="flex items-center space-x-1">
                     <Clock size={14} className="sm:w-4 sm:h-4" />
                     <span className="truncate">
                       {formatDate(course.created_at)}
                     </span>
                   </div>
+                </div>
+                {/* Social Share Buttons */}
+                <div className="flex items-center">
+                  <span className="mr-2 text-gray-400">Share on:</span>
+                  <button
+                    onClick={() => {
+                      const url = encodeURIComponent(window.location.href);
+                      const text = `Check out this course: ${course.title}`;
+                      const xUrl = `https://x.com/intent/tweet?url=${url}&text=${text}`;
+
+                      window.open(xUrl, '_blank', 'width=600,height=400');
+                    }}
+                    className="px-2 rounded-lg hover:bg-smoke-gray transition-colors duration-200 text-gray-400 hover:text-[#1DA1F2]"
+                    title="Share on X (Twitter)"
+                  >
+                    <XIcon />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const url = window.location.href;
+                      const text = `Check out this course: ${course.title}`;
+                      const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&summary=${encodeURIComponent(text)}`;
+                      window.open(shareUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="px-2 rounded-lg hover:bg-smoke-gray transition-colors duration-200 text-gray-400 hover:text-[#0A66C2]"
+                    title="Share on LinkedIn"
+                  >
+                    <LinkedinIcon />
+                  </button>
                 </div>
               </div>
             </div>
@@ -704,6 +737,7 @@ const CourseDetailPage: React.FC = () => {
                   )}
                 </button>
               )}
+
             </div>
           </div>
 

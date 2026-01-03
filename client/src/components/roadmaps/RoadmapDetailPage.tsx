@@ -29,6 +29,7 @@ import {
 } from "../../utils/api";
 import type { Roadmap, RoadmapContent } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
+import { LinkedinIcon, XIcon } from "../ui/icons";
 
 const RoadmapDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -105,12 +106,12 @@ const RoadmapDetailPage: React.FC = () => {
       setRoadmap((prev) =>
         prev
           ? {
-              ...prev,
-              is_bookmarked: response.bookmarked,
-              bookmark_count: response.bookmarked
-                ? prev.bookmark_count + 1
-                : prev.bookmark_count - 1,
-            }
+            ...prev,
+            is_bookmarked: response.bookmarked,
+            bookmark_count: response.bookmarked
+              ? prev.bookmark_count + 1
+              : prev.bookmark_count - 1,
+          }
           : null
       );
     } catch (error) {
@@ -212,9 +213,41 @@ const RoadmapDetailPage: React.FC = () => {
             </button>
 
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2 truncate">
-                {roadmap.title}
-              </h1>
+              <div className="flex items-center gap-10 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1 sm:mb-2 truncate">
+                  {roadmap.title}
+                </h1>
+                {/* Share button */}
+                <div className="flex items-center">
+                  <span className="text-gray-400">Share on:</span>
+                  <button
+                    onClick={() => {
+                      const url = encodeURIComponent(window.location.href);
+                      const text = `Check out this course: ${roadmap.title}`;
+                      const xUrl = `https://x.com/intent/tweet?url=${url}&text=${text}`;
+
+                      window.open(xUrl, '_blank', 'width=600,height=400');
+                    }}
+                    className="p-2 rounded-lg hover:bg-smoke-gray transition-colors duration-200 text-gray-400 hover:text-[#1DA1F2]"
+                    title="Share on X (Twitter)"
+                  >
+                    <XIcon />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const url = window.location.href;
+                      const text = `Check out this course: ${roadmap.title}`;
+                      const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&summary=${encodeURIComponent(text)}`;
+                      window.open(shareUrl, '_blank', 'noopener,noreferrer');
+                    }}
+                    className="p-2 rounded-lg hover:bg-smoke-gray transition-colors duration-200 text-gray-400 hover:text-[#0A66C2]"
+                    title="Share on LinkedIn"
+                  >
+                    <LinkedinIcon />
+                  </button>
+                </div>
+              </div>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-gray-400 text-sm">
                 <div className="flex items-center gap-1">
                   <Clock size={16} />
@@ -270,11 +303,10 @@ const RoadmapDetailPage: React.FC = () => {
                   onClick={() => setActiveTab("stages")}
                   role="tab"
                   aria-selected={activeTab === "stages"}
-                  className={`px-4 py-3 text-sm sm:px-6 sm:py-4 sm:text-base font-medium transition-colors duration-200 ${
-                    activeTab === "stages"
-                      ? "text-alien-green border-b-2 border-alien-green"
-                      : "text-gray-400 hover:text-white"
-                  }`}
+                  className={`px-4 py-3 text-sm sm:px-6 sm:py-4 sm:text-base font-medium transition-colors duration-200 ${activeTab === "stages"
+                    ? "text-alien-green border-b-2 border-alien-green"
+                    : "text-gray-400 hover:text-white"
+                    }`}
                   type="button"
                 >
                   Learning Stages ({roadmapContent.stages.length})
@@ -283,11 +315,10 @@ const RoadmapDetailPage: React.FC = () => {
                   onClick={() => setActiveTab("tools")}
                   role="tab"
                   aria-selected={activeTab === "tools"}
-                  className={`px-4 py-3 text-sm sm:px-6 sm:py-4 sm:text-base font-medium transition-colors duration-200 ${
-                    activeTab === "tools"
-                      ? "text-alien-green border-b-2 border-alien-green"
-                      : "text-gray-400 hover:text-white"
-                  }`}
+                  className={`px-4 py-3 text-sm sm:px-6 sm:py-4 sm:text-base font-medium transition-colors duration-200 ${activeTab === "tools"
+                    ? "text-alien-green border-b-2 border-alien-green"
+                    : "text-gray-400 hover:text-white"
+                    }`}
                   type="button"
                 >
                   Tools & Setup ({roadmapContent.tools.length})
@@ -296,11 +327,10 @@ const RoadmapDetailPage: React.FC = () => {
                   onClick={() => setActiveTab("certifications")}
                   role="tab"
                   aria-selected={activeTab === "certifications"}
-                  className={`px-4 py-3 text-sm sm:px-6 sm:py-4 sm:text-base font-medium transition-colors duration-200 ${
-                    activeTab === "certifications"
-                      ? "text-alien-green border-b-2 border-alien-green"
-                      : "text-gray-400 hover:text-white"
-                  }`}
+                  className={`px-4 py-3 text-sm sm:px-6 sm:py-4 sm:text-base font-medium transition-colors duration-200 ${activeTab === "certifications"
+                    ? "text-alien-green border-b-2 border-alien-green"
+                    : "text-gray-400 hover:text-white"
+                    }`}
                   type="button"
                 >
                   Certifications ({roadmapContent.certifications.length})
@@ -309,11 +339,10 @@ const RoadmapDetailPage: React.FC = () => {
                   onClick={() => setActiveTab("career")}
                   role="tab"
                   aria-selected={activeTab === "career"}
-                  className={`px-4 py-3 text-sm sm:px-6 sm:py-4 sm:text-base font-medium transition-colors duration-200 ${
-                    activeTab === "career"
-                      ? "text-alien-green border-b-2 border-alien-green"
-                      : "text-gray-400 hover:text-white"
-                  }`}
+                  className={`px-4 py-3 text-sm sm:px-6 sm:py-4 sm:text-base font-medium transition-colors duration-200 ${activeTab === "career"
+                    ? "text-alien-green border-b-2 border-alien-green"
+                    : "text-gray-400 hover:text-white"
+                    }`}
                   type="button"
                 >
                   Career Path
