@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 # Initialize a Pinecone client with your API key
 PINECONE_API = os.getenv("PINECONE_API_KEY")
+PINECONE_TOP_K = int(os.getenv("PINECONE_TOP_K", 5))
+PINECONE_SCORE_THRESHOLD = float(os.getenv("PINECONE_SCORE_THRESHOLD", 0.5))
 index_name = os.getenv("PINECONE_INDEX_NAME")
 region_name = os.getenv("PINECONE_ENVIRONMENT")
 pc = Pinecone(api_key=PINECONE_API)
@@ -36,39 +38,33 @@ embeddings = OpenAIEmbeddings(model="text-embedding-3-small", openai_api_key=ope
 groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 def pinecone_retriver(query, session_id=None):
-    """
-    This function helps to retrieve the documents from the vector database
-    query: This is the query to be processed by the user
-    session_id: Optional session ID to filter documents
-    """
     try:
         vector_store = PineconeVectorStore(index=index, embedding=embeddings)
-        
+
+        search_kwargs = {
+            "k": PINECONE_TOP_K,
+            "score_threshold": PINECONE_SCORE_THRESHOLD,
+        }
+
         if session_id:
-            # Filter by session_id in metadata - reduced to top 5 most relevant
-            retriever = vector_store.as_retriever(
-                search_type="similarity_score_threshold",
-                search_kwargs={
-                    "k": 5, 
-                    "score_threshold": 0.5,
-                    "filter": {"session_id": session_id}
-                },
-            )
-        else:
-            retriever = vector_store.as_retriever(
-                search_type="similarity_score_threshold",
-                search_kwargs={"k": 5, "score_threshold": 0.5},
-            )
-        
+            search_kwargs["filter"] = {"session_id": session_id}
+
+        retriever = vector_store.as_retriever(
+            search_type="similarity_score_threshold",
+            search_kwargs=search_kwargs,
+        )
+
         documents = retriever.invoke(query)
         content_list = [doc.page_content for doc in documents]
         logger.info(f"Retrieved {len(content_list)} documents for query")
         return content_list
+
     except Exception as e:
         logger.error(f"Error retrieving from Pinecone: {str(e)}")
         return []
 
-def finetuning_RAG_LLM(chat_history):
+
+def summarize_chat_history(chat_history):
     try:
         # Convert chat history to Groq format
         messages = [
@@ -194,7 +190,8 @@ def main(query, chat_history, session_id=None):
         
         # Summarize chat history if it gets too long
         if len(chat_history) > 10:
-            finetuning_RAG_LLM(chat_history)
+            summarize_chat_history(chat_history)
+
         
         # Generate response with fresh context
         rag_response = RAG_LLM_integration(content_list, query, chat_history)

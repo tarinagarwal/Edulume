@@ -38,9 +38,13 @@ app.add_middleware(
 
 @app.get("/")
 @limiter.limit("10/minute")
-async def indexPage(request: Request):
-    logger.info("Index page accessed")
-    return {"response": "Hi! there is nothing here"}
+async def health_check(request: Request):
+    logger.info("Health check accessed")
+    return {
+        "status": "ok",
+        "service": "python-backend",
+        "version": os.getenv("APP_VERSION", "unknown")
+    }
 
 app.include_router(router)
 app.include_router(response_router)
