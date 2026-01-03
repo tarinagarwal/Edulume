@@ -10,7 +10,7 @@ const TestTimeRemaining : React.FC<{
   testData: TestData;
   handleSubmitTest: (isSubmitted: boolean) => void;
 }> = ({ answeredQuestions, testData, handleSubmitTest }) => {
-  const [TestCountdownemaining, setTestCountdownemaining] = useState(() => testData.timeLimit * 60);
+  const [timeRemaining, settimeRemaining] = useState(() => testData.timeLimit * 60);
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
@@ -24,31 +24,31 @@ const TestTimeRemaining : React.FC<{
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
   };
   useEffect(() => {
-    if (TestCountdownemaining <= 0) return;
+    if (timeRemaining <= 0) return;
 
     const TestCountdown = setInterval(() => {
-      setTestCountdownemaining((prev) => Math.max(prev - 1, 0));
+      settimeRemaining((prev) => Math.max(prev - 1, 0));
     }, 1000);
 
     return () => clearInterval(TestCountdown);
-  }, [TestCountdownemaining]);
+  }, [timeRemaining]);
 
   useEffect(() => {
-    if (TestCountdownemaining === 0) {
+    if (timeRemaining === 0) {
       handleSubmitTest(true);
     }
-  }, [TestCountdownemaining, handleSubmitTest]);
+  }, [timeRemaining, handleSubmitTest]);
   return (
     <div className="flex items-center space-x-2 sm:space-x-6 flex-shrink-0">
       <div
-        className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${TestCountdownemaining < 600
+        className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 sm:py-2 rounded-lg ${timeRemaining < 600
           ? "bg-red-600/20 text-red-400"
           : "bg-alien-green/20 text-alien-green"
           }`}
       >
         <Clock size={14} className="sm:w-4 sm:h-4 flex-shrink-0" />
         <span className="font-mono font-semibold text-xs sm:text-sm">
-          {formatTime(TestCountdownemaining)}
+          {formatTime(timeRemaining)}
         </span>
       </div>
 

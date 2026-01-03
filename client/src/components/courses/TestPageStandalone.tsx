@@ -19,7 +19,7 @@ import {
   getLanguageDisplayName,
 } from "../../utils/languageDetection";
 import { toast } from "react-hot-toast";
-import TestTimeRemaining  from "../ui/TestTimeRemaining ";
+import TestTimeRemaining  from "../ui/TestTimeRemaining";
 
 interface Question {
   id: string;
