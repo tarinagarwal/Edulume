@@ -363,9 +363,8 @@ export default function ResponsiveNavbar({
             </div>
 
             {/* Notifications */}
-            {/* {authenticated && <NotificationDropdown />}
-             */}
-            <NotificationDropdown/>
+            {authenticated && <NotificationDropdown />} 
+            // <NotificationDropdown/>
             {/* Auth area (preserved) */}
             {authenticated ? (
               <div className="relative" ref={profileRef}>
