@@ -22,7 +22,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import SEO from "../seo/SEO";
-import { LinkedinIcon, XIcon } from "../ui/icons";
+import { LinkedinIcon, XIcon } from "../ui/Icons";
 
 import {
   getCourse,
@@ -1362,7 +1362,7 @@ const CourseDetailPage: React.FC = () => {
           <TestInstructionsModal
             isOpen={showTestInstructions}
             onClose={handleTestExit}
-            onStartTest={handleStartTest} 
+            onStartTest={handleStartTest}
             instructions={currentTest.instructions}
             courseTitle={course.title}
             questions={currentTest.questions}

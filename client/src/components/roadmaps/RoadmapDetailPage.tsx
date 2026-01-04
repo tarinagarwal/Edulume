@@ -29,7 +29,7 @@ import {
 } from "../../utils/api";
 import type { Roadmap, RoadmapContent } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
-import { LinkedinIcon, XIcon } from "../ui/icons";
+import { LinkedinIcon, XIcon } from "../ui/Icons";
 
 const RoadmapDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
