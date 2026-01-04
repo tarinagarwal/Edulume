@@ -223,7 +223,7 @@ const RoadmapDetailPage: React.FC = () => {
                   <button
                     onClick={() => {
                       const url = encodeURIComponent(window.location.href);
-                      const text = `Check out this course: ${roadmap.title}`;
+                      const text = `Check out this roadmap: ${roadmap.title}`;
                       const xUrl = `https://x.com/intent/tweet?url=${url}&text=${text}`;
 
                       window.open(xUrl, '_blank', 'width=600,height=400');
@@ -237,7 +237,7 @@ const RoadmapDetailPage: React.FC = () => {
                   <button
                     onClick={() => {
                       const url = window.location.href;
-                      const text = `Check out this course: ${roadmap.title}`;
+                      const text = `Check out this roadmap: ${roadmap.title}`;
                       const shareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&summary=${encodeURIComponent(text)}`;
                       window.open(shareUrl, '_blank', 'noopener,noreferrer');
                     }}
