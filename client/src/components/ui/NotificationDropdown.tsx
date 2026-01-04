@@ -15,14 +15,179 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from "../../utils/api";
-import { Notification } from "../../types/discussions";
-import useSocket from "../../hooks/useSocket";
+import { Notification as NotificationType } from "../../types/discussions";
+import { useSocket } from "../../contexts/SocketContext";
+
+// 🧪 MOCK DATA - Only for testing without backend
+/*
+const allMockNotifications: NotificationType[] = [
+  {
+    id: 1,
+    user_id: 1,
+    type: "new_answer",
+    title: "New Answer on Your Question",
+    message: "John Doe answered your question about React hooks",
+    related_id: 123,
+    related_type: "discussion",
+    from_user_id: 2,
+    from_username: "johndoe",
+    is_read: 0,
+    created_at: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 2,
+    user_id: 1,
+    type: "mention",
+    title: "You were mentioned",
+    message: "Alice mentioned you in a discussion about TypeScript",
+    related_id: 456,
+    related_type: "discussion",
+    from_user_id: 3,
+    from_username: "alice_dev",
+    is_read: 0,
+    created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 3,
+    user_id: 1,
+    type: "best_answer",
+    title: "Best Answer Selected! 🎉",
+    message: "Your answer was marked as the best answer",
+    related_id: 789,
+    related_type: "discussion",
+    from_user_id: 4,
+    from_username: "mike_smith",
+    is_read: 1,
+    created_at: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 4,
+    user_id: 1,
+    type: "reply",
+    title: "New Reply",
+    message: "Sarah replied to your answer about JavaScript closures",
+    related_id: 321,
+    related_type: "discussion",
+    from_user_id: 5,
+    from_username: "sarah_codes",
+    is_read: 1,
+    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 5,
+    user_id: 1,
+    type: "new_answer",
+    title: "Multiple New Answers",
+    message: "3 people answered your question about Node.js streams",
+    related_id: 654,
+    related_type: "discussion",
+    from_user_id: 6,
+    from_username: "dev_expert",
+    is_read: 0,
+    created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 6,
+    user_id: 1,
+    type: "mention",
+    title: "Tagged in Discussion",
+    message: "David tagged you in a discussion about Python async/await",
+    related_id: 987,
+    related_type: "discussion",
+    from_user_id: 7,
+    from_username: "david_py",
+    is_read: 0,
+    created_at: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 7,
+    user_id: 1,
+    type: "reply",
+    title: "New Reply on Discussion",
+    message: "Emma replied to your comment about database indexing",
+    related_id: 234,
+    related_type: "discussion",
+    from_user_id: 8,
+    from_username: "emma_db",
+    is_read: 1,
+    created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 8,
+    user_id: 1,
+    type: "new_answer",
+    title: "Question Answered",
+    message: "Chris answered your question about Docker containers",
+    related_id: 567,
+    related_type: "discussion",
+    from_user_id: 9,
+    from_username: "chris_devops",
+    is_read: 1,
+    created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 9,
+    user_id: 1,
+    type: "best_answer",
+    title: "Your Answer Was Chosen!",
+    message: "Your answer about Git workflows was marked as best",
+    related_id: 890,
+    related_type: "discussion",
+    from_user_id: 10,
+    from_username: "lisa_git",
+    is_read: 1,
+    created_at: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 10,
+    user_id: 1,
+    type: "reply",
+    title: "Discussion Activity",
+    message: "Tom replied to your answer about REST APIs",
+    related_id: 345,
+    related_type: "discussion",
+    from_user_id: 11,
+    from_username: "tom_api",
+    is_read: 1,
+    created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 11,
+    user_id: 1,
+    type: "mention",
+    title: "You were mentioned",
+    message: "Nina mentioned you in a discussion about MongoDB",
+    related_id: 678,
+    related_type: "discussion",
+    from_user_id: 12,
+    from_username: "nina_mongo",
+    is_read: 1,
+    created_at: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 12,
+    user_id: 1,
+    type: "new_answer",
+    title: "New Answer Posted",
+    message: "Kevin answered your question about GraphQL",
+    related_id: 901,
+    related_type: "discussion",
+    from_user_id: 13,
+    from_username: "kevin_graphql",
+    is_read: 1,
+    created_at: new Date(Date.now() - 25 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+*/
 
 const NotificationDropdown: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<NotificationType[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true); // Set to true to show Load More button
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const socket = useSocket();
@@ -39,7 +204,7 @@ const NotificationDropdown: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("new_notification", (notification: Notification) => {
+    socket.on("new_notification", (notification: NotificationType) => {
       setNotifications((prev) => [notification, ...prev]);
       setUnreadCount((prev) => prev + 1);
 
@@ -72,12 +237,45 @@ const NotificationDropdown: React.FC = () => {
     };
   }, []);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (page = 1, append = false) => {
     try {
-      setLoading(true);
-      const response = await getNotifications();
-      setNotifications(response.notifications);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+      
+      // Real API call
+      const response = await getNotifications(page, 5); // 5 notifications per page
+      
+      if (append) {
+        setNotifications((prev) => [...prev, ...response.notifications]);
+      } else {
+        setNotifications(response.notifications);
+      }
+      
       setUnreadCount(response.unreadCount);
+      setCurrentPage(page);
+      setHasMore(page < response.pagination.pages);
+
+      /* 🧪 MOCK DATA LOGIC - Only for testing without backend
+      const LIMIT = 5;
+      const skip = (page - 1) * LIMIT;
+      const mockPage = allMockNotifications.slice(skip, skip + LIMIT);
+      const totalPages = Math.ceil(allMockNotifications.length / LIMIT);
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      if (append) {
+        setNotifications((prev) => [...prev, ...mockPage]);
+      } else {
+        setNotifications(mockPage);
+      }
+      
+      setUnreadCount(allMockNotifications.filter(n => n.is_read === 0).length);
+      setCurrentPage(page);
+      setHasMore(page < totalPages);
+      */
 
       // Request notification permission if not already granted
       if (Notification.permission === "default") {
@@ -88,10 +286,11 @@ const NotificationDropdown: React.FC = () => {
       // Don't show error to user for notifications, just log it
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = async (notification: NotificationType) => {
     try {
       if (!notification.is_read) {
         await markNotificationAsRead(notification.id.toString());
@@ -124,6 +323,12 @@ const NotificationDropdown: React.FC = () => {
       console.error("Failed to mark all notifications as read:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (!loadingMore && hasMore) {
+      await fetchNotifications(currentPage + 1, true); // Load next page and append
     }
   };
 
@@ -248,6 +453,19 @@ const NotificationDropdown: React.FC = () => {
                   </div>
                 </div>
               ))
+            )}
+            
+            {/* Load More Button */}
+            {hasMore && notifications.length > 0 && (
+              <div className="px-4 py-3 text-center border-t border-smoke-light/50">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="text-sm text-alien-green hover:text-alien-green-dark transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingMore ? "Loading..." : "Load More"}
+                </button>
+              </div>
             )}
           </div>
 
