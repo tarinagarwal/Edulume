@@ -14,7 +14,7 @@ interface PasswordInputProps {
 
 /**
  * Reusable Password Input Component
- * Features: Visibility toggle, Strength meter, and Random password generator.
+ *
  */
 const PasswordInput: React.FC<PasswordInputProps> = ({
   value,
@@ -29,10 +29,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
   // State to track password strength score (0 to 4)
   const [strength, setStrength] = useState(0);
 
-  /**
-   * Calculates a simple heuristic score for password strength.
-   * Score ranges from 0 (Weak) to 4 (Strong).
-   */
+ 
   const calculateStrength = (password: string) => {
     let score = 0;
     if (!password) return 0;
@@ -49,16 +46,16 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
     return score;
   };
 
-  // Wrapper function to handle input changes.
+ 
   // We need this to update the local strength meter alongside the parent's state.
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e); // Propagate change to parent
-    setStrength(calculateStrength(e.target.value)); // Update local strength
+    onChange(e); 
+    setStrength(calculateStrength(e.target.value)); 
   };
 
   /**
    * Generates a secure random 12-character password.
-   * Creates a synthetic event to update the parent form state smoothly.
+   * 
    */
   const generatePassword = () => {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
@@ -67,7 +64,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
       generated += chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
-    // Create a mock event object to mimic a real user typing.
+  
     // This allows us to reuse the existing `handleInputChange` function.
     const event = {
       target: { name, value: generated }
@@ -91,7 +88,6 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
 
   return (
     <div className="w-full">
-      {/* Input Field Container */}
       <div className="relative">
         <input
           type={showPassword ? "text" : "password"}
