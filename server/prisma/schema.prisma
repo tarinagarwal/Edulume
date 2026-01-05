@@ -50,6 +50,7 @@ model User {
   featureSuggestions FeatureSuggestion[]
   bugReports        BugReport[]
   pdfChatSessions   PdfChatSession[]
+  vault             Vault?
 
   @@map("users")
 }
@@ -450,4 +451,64 @@ model CourseTest {
 
   @@unique([courseId, userId, createdAt])
   @@map("course_tests")
+}
+
+model Vault {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String   @map("user_id") @db.ObjectId @unique
+  storageUsed  Int      @default(0) @map("storage_used")
+  storageLimit Int      @default(524288000) @map("storage_limit") // 500 MB in bytes
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folders VaultFolder[]
+
+  @@map("vaults")
+}
+
+model VaultFolder {
+  id            String       @id @default(auto()) @map("_id") @db.ObjectId
+  vaultId       String       @map("vault_id") @db.ObjectId
+  parentId      String?      @map("parent_id") @db.ObjectId
+  name          String
+  isSystemFolder Boolean     @default(false) @map("is_system_folder")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  vault    Vault         @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  parent   VaultFolder?  @relation("FolderChildren", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children VaultFolder[] @relation("FolderChildren")
+  files    VaultFile[]
+
+  @@map("vault_folders")
+}
+
+model VaultFile {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  folderId  String   @map("folder_id") @db.ObjectId
+  name      String
+  type      String
+  size      Int
+  r2Key     String   @map("r2_key")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  folder  VaultFolder  @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  outputs VaultOutput[]
+
+  @@map("vault_files")
+}
+
+model VaultOutput {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  fileId    String   @map("file_id") @db.ObjectId
+  type      String
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  file VaultFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("vault_outputs")
 }
