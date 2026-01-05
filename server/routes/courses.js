@@ -276,10 +276,14 @@ router.get("/", optionalAuth, async (req, res) => {
                 select: { id: true },
                 take: 0,
               },
+          ratings: {
+            select: { rating: true },
+          },
           _count: {
             select: {
               bookmarks: true,
               enrollments: true,
+              ratings: true,
             },
           },
         },
@@ -291,17 +295,26 @@ router.get("/", optionalAuth, async (req, res) => {
     ]);
 
     // Transform the response
-    const transformedCourses = courses.map((course) => ({
-      ...course,
-      author_username: course.author.username,
-      chapter_count: course.chapters.length,
-      bookmark_count: course._count.bookmarks,
-      enrollment_count: course._count.enrollments,
-      is_bookmarked: userId ? course.bookmarks.length > 0 : false,
-      is_enrolled: userId ? course.enrollments.length > 0 : false,
-      created_at: course.createdAt,
-      updated_at: course.updatedAt,
-    }));
+    const transformedCourses = courses.map((course) => {
+      // Calculate average rating
+      const averageRating = course.ratings.length > 0
+        ? course.ratings.reduce((sum, r) => sum + r.rating, 0) / course.ratings.length
+        : 0;
+      
+      return {
+        ...course,
+        author_username: course.author.username,
+        chapter_count: course.chapters.length,
+        bookmark_count: course._count.bookmarks,
+        enrollment_count: course._count.enrollments,
+        average_rating: parseFloat(averageRating.toFixed(1)),
+        rating_count: course._count.ratings,
+        is_bookmarked: userId ? course.bookmarks.length > 0 : false,
+        is_enrolled: userId ? course.enrollments.length > 0 : false,
+        created_at: course.createdAt,
+        updated_at: course.updatedAt,
+      };
+    });
 
     // Debug logging
     if (transformedCourses.length > 0) {
@@ -378,10 +391,14 @@ router.get("/:id", optionalAuth, async (req, res) => {
               select: { id: true },
               take: 0,
             },
+        ratings: {
+          select: { rating: true },
+        },
         _count: {
           select: {
             bookmarks: true,
             enrollments: true,
+            ratings: true,
           },
         },
       },
@@ -424,6 +441,11 @@ router.get("/:id", optionalAuth, async (req, res) => {
         (chapter.progress && chapter.progress[0]?.completedAt) || null,
     }));
 
+    // Calculate average rating
+    const averageRating = course.ratings.length > 0
+      ? course.ratings.reduce((sum, r) => sum + r.rating, 0) / course.ratings.length
+      : 0;
+
     // Transform the response
     const courseDetails = {
       ...course,
@@ -431,6 +453,8 @@ router.get("/:id", optionalAuth, async (req, res) => {
       chapter_count: course.chapters.length,
       bookmark_count: course._count.bookmarks,
       enrollment_count: course._count.enrollments,
+      average_rating: parseFloat(averageRating.toFixed(1)),
+      rating_count: course._count.ratings,
       is_bookmarked: userId ? course.bookmarks.length > 0 : false,
       is_enrolled: userId ? course.enrollments.length > 0 : false,
       enrollment_data:
@@ -712,6 +736,147 @@ router.post("/:id/bookmark", authenticateToken, async (req, res) => {
   }
 });
 
+// Rate a course
+// Get all ratings for a course
+router.get("/:id/rate", optionalAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    console.log("📊 Fetching ratings for course:", { courseId: id, userId });
+
+    // Check if course exists
+    const course = await prisma.course.findUnique({
+      where: { id },
+    });
+
+    if (!course) {
+      console.log("❌ Course not found:", id);
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    // Get all ratings for this course
+    const ratings = await prisma.courseRating.findMany({
+      where: { courseId: id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+          },
+        },
+      },
+      orderBy: {
+        id: "desc",
+      },
+    });
+
+    // Calculate average rating
+    const totalRatings = ratings.length;
+    const averageRating = totalRatings > 0 
+      ? ratings.reduce((sum, r) => sum + r.rating, 0) / totalRatings 
+      : 0;
+
+    // Check if current user has rated
+    const userRating = userId 
+      ? ratings.find((r) => r.userId === userId) 
+      : null;
+
+    res.json({
+      ratings: ratings.map((r) => ({
+        id: r.id,
+        rating: r.rating,
+        user: r.user,
+      })),
+      averageRating,
+      totalRatings,
+      userRating: userRating ? userRating.rating : null,
+      hasRated: !!userRating,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching ratings:", error);
+    console.error("Error details:", error.stack);
+    res
+      .status(500)
+      .json({ error: "Failed to fetch ratings", details: error.message });
+  }
+});
+
+router.post("/:id/rate", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { rating } = req.body;
+
+    console.log("⭐ Rating request:", { courseId: id, userId, rating });
+
+    // Validate rating value
+    if (!rating || typeof rating !== "number" || rating < 1 || rating > 5) {
+      return res.status(400).json({ 
+        error: "Invalid rating. Rating must be a number between 1 and 5" 
+      });
+    }
+
+    // Check if course exists
+    const course = await prisma.course.findUnique({
+      where: { id },
+    });
+
+    if (!course) {
+      console.log("❌ Course not found:", id);
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    // Check if user has already rated this course
+    const existingRating = await prisma.courseRating.findUnique({
+      where: {
+        courseId_userId: {
+          courseId: id,
+          userId: userId,
+        },
+      },
+    });
+
+    let result;
+    if (existingRating) {
+      // Update existing rating
+      result = await prisma.courseRating.update({
+        where: {
+          courseId_userId: {
+            courseId: id,
+            userId: userId,
+          },
+        },
+        data: {
+          rating: rating,
+        },
+      });
+      console.log("✅ Rating updated:", result.id);
+    } else {
+      // Create new rating
+      result = await prisma.courseRating.create({
+        data: {
+          courseId: id,
+          userId: userId,
+          rating: rating,
+        },
+      });
+      console.log("✅ Rating created:", result.id);
+    }
+
+    res.json({
+      message: existingRating ? "Rating updated successfully" : "Rating submitted successfully",
+      rating: result.rating,
+    });
+  } catch (error) {
+    console.error("❌ Error rating course:", error);
+    console.error("Error details:", error.stack);
+    res
+      .status(500)
+      .json({ error: "Failed to rate course", details: error.message });
+  }
+});
+
 // Update course
 router.put("/:id", authenticateToken, async (req, res) => {
   try {
@@ -933,6 +1098,7 @@ router.delete("/:id/enroll", authenticateToken, async (req, res) => {
     res.status(500).json({ error: "Failed to unenroll from course" });
   }
 });
+
 
 // Mark chapter as completed/uncompleted
 router.post(

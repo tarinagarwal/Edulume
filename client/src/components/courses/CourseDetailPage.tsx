@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import {
@@ -35,10 +35,14 @@ import {
   updateChapterProgress,
   generateCertificateTest,
   getUserTests,
+  rateCourse,
+  getCourseRatings,
 } from "../../utils/api";
 import type { Course } from "../../types";
 import { isAuthenticated } from "../../utils/auth";
 import TestInstructionsModal from "./TestInstructionsModal";
+import StarRating from "../ui/StarRating";
+import { ToastContainer, ToastType } from "../ui/Toast";
 
 const CourseDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -66,6 +70,16 @@ const CourseDetailPage: React.FC = () => {
     nextAvailableAt: string;
   } | null>(null);
   const [cooldownTimer, setCooldownTimer] = useState<string>("");
+  const [rating, setRating] = useState<number>(0);
+  const [averageRating, setAverageRating] = useState<number>(0);
+  const [ratingCount, setRatingCount] = useState<number>(0);
+  const [toasts, setToasts] = useState<Array<{
+    id: string;
+    type: ToastType;
+    title: string;
+    message?: string;
+    duration?: number;
+  }>>([]);
 
   useEffect(() => {
     checkAuth();
@@ -81,6 +95,22 @@ const CourseDetailPage: React.FC = () => {
       fetchUserTests();
     }
   }, [isAuth, id, course]);
+
+  // Fetch user's existing rating when authenticated
+  useEffect(() => {
+    if (isAuth === true && id) {
+      console.log("⭐ Fetching user's existing rating...");
+      fetchUserRating();
+    }
+  }, [isAuth, id]);
+
+  // Update rating states when course data is fetched
+  useEffect(() => {
+    if (course) {
+      setAverageRating(course.average_rating || 0);
+      setRatingCount(course.rating_count || 0);
+    }
+  }, [course]);
 
   // Cooldown timer effect
   useEffect(() => {
@@ -119,6 +149,16 @@ const CourseDetailPage: React.FC = () => {
 
     return () => clearInterval(interval);
   }, [testCooldown]);
+
+  // Toast helper functions
+  const addToast = (toast: Omit<typeof toasts[number], "id">) => {
+    const id = Date.now().toString();
+    setToasts((prev) => [...prev, { ...toast, id }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
 
   // Check for navigation state (removed - no longer needed)
   useEffect(() => {
@@ -567,6 +607,59 @@ const CourseDetailPage: React.FC = () => {
     navigate(`/courses/${course.id}/test/${testId}/results`);
   };
 
+  const handleRatingSubmit = async (rating: number) => {
+    if (!course) return;
+
+    // Validate that at least one star is selected
+    if (rating === 0) {
+      addToast({
+        type: "error",
+        title: "Please select a rating",
+        message: "You must select at least one star before submitting.",
+      });
+      return;
+    }
+
+    try {
+      await rateCourse(course.id, rating);
+      setRating(rating);
+      addToast({
+        type: "success",
+        title: "Thank you for your feedback!",
+        message: "Your rating has been submitted successfully.",
+      });
+
+      // Fetch updated ratings from server to get accurate average
+      await fetchUserRating();
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      addToast({
+        type: "error",
+        title: "Failed to submit rating",
+        message: "Please try again later.",
+      });
+    }
+  };
+
+  const fetchUserRating = async () => {
+    try {
+      if (!id) return;
+      const response = await getCourseRatings(id);
+
+      // Update all rating-related states from server response
+      setAverageRating(response.averageRating);
+      setRatingCount(response.totalRatings);
+
+      if (response.hasRated && response.userRating !== null) {
+        setRating(response.userRating);
+        console.log("✅ User's existing rating loaded:", response.userRating);
+      } else {
+        console.log("ℹ️ User hasn't rated this course yet");
+      }
+    } catch (error) {
+      console.error("Error fetching ratings:", error);
+    }
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -689,6 +782,12 @@ const CourseDetailPage: React.FC = () => {
                     <LinkedinIcon />
                   </button>
                 </div>
+                <div className="mt-2 sm:mt-4 flex items-center space-x-2 text-sm text-gray-400">
+                  <StarRating size="size-4" readonly={true} rating={Math.round(averageRating)} onRatingChange={() => { }} />
+                  <span>
+                    {averageRating.toFixed(1)} ({ratingCount} ratings)
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -792,50 +891,64 @@ const CourseDetailPage: React.FC = () => {
 
                   {/* Course Completion Certificate */}
                   {course.enrollment_data.isCompleted && (
-                    <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-alien-green/10 border border-alien-green/30 rounded-lg">
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div className="flex items-center space-x-3">
-                          <Award className="text-alien-green w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
-                          <div>
-                            <h3 className="text-alien-green font-semibold text-sm sm:text-base">
-                              Congratulations!
-                            </h3>
-                            <p className="text-gray-300 text-xs sm:text-sm">
-                              You've completed this course
-                            </p>
-                          </div>
-                        </div>
-
-                        {/* Show cooldown timer if active */}
-                        {testCooldown?.isActive ? (
-                          <div className="bg-orange-500/20 border border-orange-500 rounded-lg px-3 py-2">
-                            <div className="text-center">
-                              <div className="text-orange-400 font-semibold text-sm">
-                                Next test available in:
-                              </div>
-                              <div className="text-orange-300 font-mono text-lg">
-                                {cooldownTimer}
-                              </div>
+                    <div>
+                      <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-alien-green/10 border border-alien-green/30 rounded-lg">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                          <div className="flex items-center space-x-3">
+                            <Award className="text-alien-green w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0" />
+                            <div>
+                              <h3 className="text-alien-green font-semibold text-sm sm:text-base">
+                                Congratulations!
+                              </h3>
+                              <p className="text-gray-300 text-xs sm:text-sm">
+                                You've completed this course
+                              </p>
                             </div>
                           </div>
-                        ) : (
-                          <button
-                            className="bg-alien-green text-royal-black px-3 sm:px-4 py-2 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 shadow-alien-glow text-xs sm:text-sm"
-                            onClick={handleGenerateCertificateTest}
-                            disabled={generatingTest}
-                          >
-                            {generatingTest ? (
-                              <>
-                                <Loader2 className="animate-spin w-4 h-4 inline mr-2" />
-                                Generating Test...
-                              </>
-                            ) : (
-                              "Get Certificate"
-                            )}
+
+                          {/* Show cooldown timer if active */}
+                          {testCooldown?.isActive ? (
+                            <div className="bg-orange-500/20 border border-orange-500 rounded-lg px-3 py-2">
+                              <div className="text-center">
+                                <div className="text-orange-400 font-semibold text-sm">
+                                  Next test available in:
+                                </div>
+                                <div className="text-orange-300 font-mono text-lg">
+                                  {cooldownTimer}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              className="bg-alien-green text-royal-black px-3 sm:px-4 py-2 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300 shadow-alien-glow text-xs sm:text-sm"
+                              onClick={handleGenerateCertificateTest}
+                              disabled={generatingTest}
+                            >
+                              {generatingTest ? (
+                                <>
+                                  <Loader2 className="animate-spin w-4 h-4 inline mr-2" />
+                                  Generating Test...
+                                </>
+                              ) : (
+                                "Get Certificate"
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="mt-4 sm:mt-6 flex items-center space-x-2 gap-2 text-sm sm:text-base">
+                        <span className="text-gray-300">Rate this course:</span>
+                        <StarRating readonly={false} rating={rating} onRatingChange={setRating} />
+                        <div className="ml-4">
+                          <button onClick={() => handleRatingSubmit(rating)} className="bg-alien-green text-royal-black px-3 py-2 rounded-lg font-semibold hover:bg-alien-green/90 transition-colors duration-300">
+                            Submit Rating
                           </button>
-                        )}
+                        </div>
                       </div>
                     </div>
+
+
+
                   )}
 
                   {/* Test Results Section */}
@@ -1368,7 +1481,10 @@ const CourseDetailPage: React.FC = () => {
             questions={currentTest.questions}
           />
         )}
-      </div>
+
+        {/* Toast Notifications */}
+        <ToastContainer toasts={toasts} onClose={removeToast} />
+      </div >
     </>
   );
 };

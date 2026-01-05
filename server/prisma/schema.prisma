@@ -42,6 +42,7 @@ model User {
   sentNotifications Notification[] @relation("NotificationSender")
   courses           Course[]
   bookmarkedCourses CourseBookmark[]
+  ratings           CourseRating[]
   enrolledCourses   CourseEnrollment[]
   chapterProgress   ChapterProgress[]
   courseTests       CourseTest[]
@@ -247,6 +248,7 @@ model Course {
   bookmarks   CourseBookmark[]
   enrollments CourseEnrollment[]
   tests       CourseTest[]
+  ratings     CourseRating[]
 
   @@map("courses")
 }
@@ -450,4 +452,18 @@ model CourseTest {
 
   @@unique([courseId, userId, createdAt])
   @@map("course_tests")
+}
+
+model CourseRating {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  courseId  String   @map("course_id") @db.ObjectId
+  userId    String   @map("user_id") @db.ObjectId
+  rating    Int      // Rating value (1 to 5)
+
+  // Relations
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@unique([courseId, userId])
+  @@map("course_ratings")
 }
