@@ -311,31 +311,6 @@ const NotificationDropdown: React.FC = () => {
               </div>
             )}
           </div>
-
-          {/* {page < totalPages && (
-            <div className="p-3 text-center">
-              <button
-                onClick={() => fetchNotifications(page + 1)}
-                disabled={loadingMore}
-                className="text-xs text-alien-green hover:text-alien-green-dark transition-colors duration-300 disabled:opacity-50"
-              >
-                {loadingMore ? "Loading..." : "Load More"}
-              </button>
-            </div>
-          )} */}
-
-          {/* Footer */}
-          {/* <div className="px-4 py-2 border-t border-smoke-light text-center">
-            <button
-              onClick={() => {
-                navigate("/notifications");
-                setIsOpen(false);
-              }}
-              className="text-xs text-alien-green hover:text-alien-green-dark transition-colors duration-300"
-            >
-              View all notifications
-            </button>
-          </div> */}
         </div>
       )}
     </div>
