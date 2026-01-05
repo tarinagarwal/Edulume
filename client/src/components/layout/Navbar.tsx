@@ -20,6 +20,7 @@ import AdminNavLink from "../admin/AdminNavLink";
 import { getUserProfile, logout } from "../../utils/api";
 import type { User as UserType } from "../../types";
 import { removeAuthToken } from "../../utils/auth";
+import NotificationDropdown from "../ui/NotificationDropdown";
 
 interface NavbarProps {
   authenticated: boolean | null;
@@ -360,6 +361,9 @@ export default function ResponsiveNavbar({
                 </div>
               )}
             </div>
+
+            {/* ✅ Notifications */}
+            {authenticated && <NotificationDropdown />}
 
             {/* Auth area (preserved) */}
             {authenticated ? (

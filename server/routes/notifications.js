@@ -11,17 +11,20 @@ router.get("/", authenticateToken, async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
 
-    const [notifications, total] = await Promise.all([
-      prisma.notification.findMany({
-        where: { userId: req.user.id },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take,
-      }),
-      prisma.notification.count({
-        where: { userId: req.user.id },
-      }),
-    ]);
+    const [notifications, total,unreadCount] = await Promise.all([
+  prisma.notification.findMany({
+      where: { userId: req.user.id },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take,
+    }),
+    prisma.notification.count({
+      where: { userId: req.user.id },
+    }),
+    prisma.notification.count({
+      where: { userId: req.user.id, isRead: false },
+    }),
+  ]);
 
     // Transform to match expected format
     const transformedNotifications = notifications.map((notification) => ({
@@ -37,6 +40,7 @@ router.get("/", authenticateToken, async (req, res) => {
 
     res.json({
       notifications: transformedNotifications,
+      unreadCount,
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
