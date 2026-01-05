@@ -1,7 +1,7 @@
 "use client";
 
 import type React from "react";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import {
@@ -752,8 +752,14 @@ const CourseDetailPage: React.FC = () => {
                     </span>
                   </div>
                 </div>
+                <div className="mt-2 sm:mt-4 flex items-center space-x-2 text-sm text-gray-400">
+                  <StarRating size="size-4" readonly={true} rating={Math.round(averageRating)} onRatingChange={() => { }} />
+                  <span>
+                    {averageRating.toFixed(1)} ({ratingCount} ratings)
+                  </span>
+                </div>
                 {/* Social Share Buttons */}
-                <div className="flex items-center">
+                <div className="flex items-center mt-3">
                   <span className="mr-2 text-gray-400">Share on:</span>
                   <button
                     onClick={() => {
@@ -781,12 +787,6 @@ const CourseDetailPage: React.FC = () => {
                   >
                     <LinkedinIcon />
                   </button>
-                </div>
-                <div className="mt-2 sm:mt-4 flex items-center space-x-2 text-sm text-gray-400">
-                  <StarRating size="size-4" readonly={true} rating={Math.round(averageRating)} onRatingChange={() => { }} />
-                  <span>
-                    {averageRating.toFixed(1)} ({ratingCount} ratings)
-                  </span>
                 </div>
               </div>
             </div>
