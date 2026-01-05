@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, KeyRound } from 'lucide-react';
 
+// Define the shape of props this component expects.
+// This ensures TypeScript warns us if we forget to pass required data.
 interface PasswordInputProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -10,6 +12,10 @@ interface PasswordInputProps {
   className?: string;
 }
 
+/**
+ * Reusable Password Input Component
+ * Features: Visibility toggle, Strength meter, and Random password generator.
+ */
 const PasswordInput: React.FC<PasswordInputProps> = ({
   value,
   onChange,
@@ -18,24 +24,42 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
   id,
   className = ""
 }) => {
+  // State to toggle between "text" (visible) and "password" (masked) types
   const [showPassword, setShowPassword] = useState(false);
+  // State to track password strength score (0 to 4)
   const [strength, setStrength] = useState(0);
 
+  /**
+   * Calculates a simple heuristic score for password strength.
+   * Score ranges from 0 (Weak) to 4 (Strong).
+   */
   const calculateStrength = (password: string) => {
     let score = 0;
     if (!password) return 0;
+
+    // Criteria 1: Length check (longer than 8 chars)
     if (password.length > 8) score++;
+    // Criteria 2: Contains at least one uppercase letter
     if (/[A-Z]/.test(password)) score++;
+    // Criteria 3: Contains at least one number
     if (/[0-9]/.test(password)) score++;
+    // Criteria 4: Contains special characters (symbols)
     if (/[^A-Za-z0-9]/.test(password)) score++;
+
     return score;
   };
 
+  // Wrapper function to handle input changes.
+  // We need this to update the local strength meter alongside the parent's state.
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e);
-    setStrength(calculateStrength(e.target.value));
+    onChange(e); // Propagate change to parent
+    setStrength(calculateStrength(e.target.value)); // Update local strength
   };
 
+  /**
+   * Generates a secure random 12-character password.
+   * Creates a synthetic event to update the parent form state smoothly.
+   */
   const generatePassword = () => {
     const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
     let generated = "";
@@ -43,6 +67,8 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
       generated += chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
+    // Create a mock event object to mimic a real user typing.
+    // This allows us to reuse the existing `handleInputChange` function.
     const event = {
       target: { name, value: generated }
     } as React.ChangeEvent<HTMLInputElement>;
@@ -50,12 +76,14 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
     handleInputChange(event);
   };
 
+  // Helper to determine the color of the strength bar based on score
   const getStrengthColor = (score: number) => {
-    if (score < 2) return 'bg-red-500';
-    if (score < 3) return 'bg-yellow-500';
-    return 'bg-green-500';
+    if (score < 2) return 'bg-red-500';    // Weak
+    if (score < 3) return 'bg-yellow-500'; // Fair/Good
+    return 'bg-green-500';                 // Strong
   };
 
+  // Helper to get the text label for the strength score
   const getStrengthLabel = (score: number) => {
     const labels = ['Weak', 'Fair', 'Good', 'Strong', 'Excellent'];
     return labels[score] || 'Weak';
@@ -63,6 +91,7 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
 
   return (
     <div className="w-full">
+      {/* Input Field Container */}
       <div className="relative">
         <input
           type={showPassword ? "text" : "password"}
@@ -71,8 +100,11 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
           value={value}
           onChange={handleInputChange}
           placeholder={placeholder}
+          // Combine base styles with any custom className passed via props
           className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${className}`}
         />
+        
+        {/* Visibility Toggle Button (Eye Icon) */}
         <button
           type="button"
           onClick={() => setShowPassword(!showPassword)}
@@ -82,16 +114,20 @@ const PasswordInput: React.FC<PasswordInputProps> = ({
         </button>
       </div>
 
+      {/* Strength Meter & Generator Actions */}
       <div className="flex justify-between items-center mt-2 h-6">
+        {/* Only show strength meter if the user has typed something */}
         {value ? (
           <div className="flex items-center gap-2">
+            {/* Visual Progress Bar */}
             <div className={`h-1.5 w-16 rounded-full transition-colors duration-300 ${getStrengthColor(strength)}`} />
             <span className={`text-xs font-medium transition-colors duration-300 ${strength < 2 ? 'text-red-500' : strength < 3 ? 'text-yellow-500' : 'text-green-500'}`}>
               {getStrengthLabel(strength)}
             </span>
           </div>
-        ) : <div />}
+        ) : <div />} {/* Empty div to maintain spacing when hidden */}
 
+        {/* Suggest Password Button */}
         <button
           type="button"
           onClick={generatePassword}
