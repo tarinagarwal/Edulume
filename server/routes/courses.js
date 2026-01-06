@@ -1099,7 +1099,6 @@ router.delete("/:id/enroll", authenticateToken, async (req, res) => {
   }
 });
 
-
 // Mark chapter as completed/uncompleted
 router.post(
   "/:courseId/chapters/:chapterId/progress",

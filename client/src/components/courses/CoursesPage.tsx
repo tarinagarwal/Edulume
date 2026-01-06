@@ -118,12 +118,12 @@ const CoursesPage: React.FC = () => {
         prevCourses.map((course) =>
           course.id === courseId
             ? {
-              ...course,
-              is_bookmarked: response.bookmarked,
-              bookmark_count: response.bookmarked
-                ? course.bookmark_count + 1
-                : course.bookmark_count - 1,
-            }
+                ...course,
+                is_bookmarked: response.bookmarked,
+                bookmark_count: response.bookmarked
+                  ? course.bookmark_count + 1
+                  : course.bookmark_count - 1,
+              }
             : course
         )
       );
@@ -152,9 +152,9 @@ const CoursesPage: React.FC = () => {
         prevCourses.map((course) =>
           course.id === courseId
             ? {
-              ...course,
-              is_enrolled: !isEnrolled,
-            }
+                ...course,
+                is_enrolled: !isEnrolled,
+              }
             : course
         )
       );
@@ -297,12 +297,12 @@ const CoursesPage: React.FC = () => {
                     {filter === "my-courses"
                       ? "You haven't created any courses yet."
                       : filter === "bookmarked"
-                        ? "You haven't bookmarked any courses yet."
-                        : filter === "enrolled"
-                          ? "You haven't enrolled in any courses yet."
-                          : searchTerm
-                            ? "Try adjusting your search terms."
-                            : "Be the first to create a course!"}
+                      ? "You haven't bookmarked any courses yet."
+                      : filter === "enrolled"
+                      ? "You haven't enrolled in any courses yet."
+                      : searchTerm
+                      ? "Try adjusting your search terms."
+                      : "Be the first to create a course!"}
                   </p>
                   {isAuth && (
                     <Link
@@ -403,10 +403,11 @@ const CoursesPage: React.FC = () => {
                                 )
                               }
                               disabled={enrollingCourse === course.id}
-                              className={`px-4 py-2 rounded-lg font-medium transition-colors duration-300 text-sm flex items-center space-x-1 ${course.is_enrolled
-                                ? "bg-red-600 hover:bg-red-700 text-white"
-                                : "bg-alien-green text-royal-black hover:bg-alien-green/90 shadow-alien-glow"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              className={`px-4 py-2 rounded-lg font-medium transition-colors duration-300 text-sm flex items-center space-x-1 ${
+                                course.is_enrolled
+                                  ? "bg-red-600 hover:bg-red-700 text-white"
+                                  : "bg-alien-green text-royal-black hover:bg-alien-green/90 shadow-alien-glow"
+                              } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                               {enrollingCourse === course.id ? (
                                 <>
@@ -464,10 +465,11 @@ const CoursesPage: React.FC = () => {
                             onClick={() =>
                               setPagination((prev) => ({ ...prev, page }))
                             }
-                            className={`px-3 py-2 rounded-lg transition-colors duration-200 ${pagination.page === page
-                              ? "bg-alien-green text-royal-black"
-                              : "bg-smoke-gray border border-smoke-light text-white hover:bg-smoke-light"
-                              }`}
+                            className={`px-3 py-2 rounded-lg transition-colors duration-200 ${
+                              pagination.page === page
+                                ? "bg-alien-green text-royal-black"
+                                : "bg-smoke-gray border border-smoke-light text-white hover:bg-smoke-light"
+                            }`}
                           >
                             {page}
                           </button>
