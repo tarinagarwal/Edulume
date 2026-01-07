@@ -3,7 +3,9 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../db.js";
 import { generateOTP, sendOTPEmail, isOTPEnabled } from "../utils/email.js";
+import { validatePassword, formatPasswordErrors } from "../utils/passwordValidator.js";
 import passport from "../config/passport.js";
+
 
 const router = express.Router();
 
@@ -153,10 +155,12 @@ router.post("/signup", async (req, res) => {
         .json({ error: "Username must be at least 3 characters" });
     }
 
-    if (password.length < 6) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 6 characters long" });
+      // Validate password against strong password policy
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ 
+        error: formatPasswordErrors(passwordValidation.errors)
+      });
     }
 
     // Verify OTP if enabled
@@ -348,10 +352,12 @@ router.post("/reset-password", async (req, res) => {
         .json({ error: "Email, OTP, and new password are required" });
     }
 
-    if (newPassword.length < 6) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 6 characters long" });
+        // Validate password against strong password policy
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ 
+        error: formatPasswordErrors(passwordValidation.errors)
+      });
     }
 
     // Verify OTP
