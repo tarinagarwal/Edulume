@@ -31,7 +31,8 @@
     "passport-google-oauth20": "^2.0.0",
     "qs": "6.14.1",
     "redis": "^5.8.3",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "zod": "^4.3.5"
   },
   "devDependencies": {
     "@flydotio/dockerfile": "^0.7.10",

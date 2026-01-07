@@ -3,7 +3,6 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../db.js";
 import { generateOTP, sendOTPEmail, isOTPEnabled } from "../utils/email.js";
-import { validatePassword, formatPasswordErrors } from "../utils/passwordValidator.js";
 import passport from "../config/passport.js";
 
 
@@ -143,25 +142,14 @@ router.post("/signup", async (req, res) => {
 
     console.log("🔐 Signup attempt:", { username, email });
 
-    if (!username || !email || !password) {
-      return res
-        .status(400)
-        .json({ error: "Username, email, and password are required" });
-    }
-
-    if (username.length < 3) {
-      return res
-        .status(400)
-        .json({ error: "Username must be at least 3 characters" });
-    }
-
-      // Validate password against strong password policy
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-      return res.status(400).json({ 
-        error: formatPasswordErrors(passwordValidation.errors)
-      });
-    }
+    // Validate request body with Zod schema
+try {
+  signupSchema.parse({ username, email, password, otp });
+} catch (zodError) {
+  // Format Zod errors into user-friendly messages
+  const errors = zodError.errors.map(err => err.message).join('; ');
+  return res.status(400).json({ error: errors });
+}
 
     // Verify OTP if enabled
     if (isOTPEnabled()) {
@@ -346,19 +334,14 @@ router.post("/reset-password", async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
 
-    if (!email || !otp || !newPassword) {
-      return res
-        .status(400)
-        .json({ error: "Email, OTP, and new password are required" });
-    }
-
-        // Validate password against strong password policy
-    const passwordValidation = validatePassword(newPassword);
-    if (!passwordValidation.isValid) {
-      return res.status(400).json({ 
-        error: formatPasswordErrors(passwordValidation.errors)
-      });
-    }
+    // Validate request body with Zod schema
+try {
+  resetPasswordSchema.parse({ email, otp, newPassword });
+} catch (zodError) {
+  // Format Zod errors into user-friendly messages
+  const errors = zodError.errors.map(err => err.message).join('; ');
+  return res.status(400).json({ error: errors });
+}
 
     // Verify OTP
     const otpRecord = await prisma.otp.findFirst({
