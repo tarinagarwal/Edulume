@@ -3,6 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../db.js";
 import { generateOTP, sendOTPEmail, isOTPEnabled } from "../utils/email.js";
+import { signupSchema, resetPasswordSchema } from "../schemas/auth.schema. js";
 import passport from "../config/passport.js";
 
 
