@@ -11,12 +11,12 @@
   --font-family-alien: "Fredoka", system-ui, sans-serif;
   --font-family-cyber: "Fredoka", system-ui, sans-serif;
 
-  /* --shadow-alien-glow: 0 0 20px rgba(0, 255, 65, 0.3); */
-  /* --shadow-alien-glow-strong: 0 0 30px rgba(0, 255, 65, 0.5); */
-  /* --shadow-smoke: 0 8px 32px rgba(0, 0, 0, 0.8); */
+  --shadow-alien-glow: 0 0 20px rgba(0, 255, 65, 0.22);
+  --shadow-alien-glow-strong: 0 0 30px rgba(0, 255, 65, 0.38);
+  --shadow-smoke: 0 8px 32px rgba(0, 0, 0, 0.8);
 
-  /* --animate-pulse-alien: pulse-alien 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; */
-  /* --animate-glow: glow 2s ease-in-out infinite alternate; */
+  --animate-pulse-alien: pulse-alien 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
 }
 
 @keyframes pulse-alien {
@@ -280,6 +280,14 @@
         rgba(0, 255, 65, 0.03) 0%,
         transparent 50%
       );
+    transition: transform 300ms cubic-bezier(.2,.9,.2,1), box-shadow 300ms ease, border-color 300ms ease;
+  }
+
+  .smoke-card:hover,
+  .smoke-card:focus-within {
+    transform: translateY(-6px);
+    border-color: var(--color-alien-green);
+    box-shadow: var(--shadow-smoke), var(--shadow-alien-glow);
   }
 
   .alien-button {
@@ -288,13 +296,14 @@
     font-weight: 700;
     padding: 0.5rem 1.5rem;
     border-radius: 0.5rem;
-    transition: all 0.3s;
-    box-shadow: var(--shadow-alien-glow);
+    transition: transform 240ms cubic-bezier(.2,.9,.2,1), box-shadow 240ms ease, background-color 200ms ease;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.45), var(--shadow-alien-glow);
   }
 
   .alien-button:hover {
     background-color: var(--color-alien-green-dark);
-    box-shadow: var(--shadow-alien-glow-strong);
+    box-shadow: 0 6px 28px rgba(0,0,0,0.5), var(--shadow-alien-glow-strong);
+    transform: translateY(-3px);
   }
 
   .alien-input {
