@@ -9,7 +9,6 @@ const router = express.Router();
 
 // Generate JWT token
 const generateToken = (user) => {
-  const secret = process.env.JWT_SECRET || "dev-secret";
   return jwt.sign(
     {
       userId: user.id,
@@ -17,7 +16,7 @@ const generateToken = (user) => {
       email: user.email,
       needsUsername: user.needsUsername || false,
     },
-    secret,
+    process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
 };
