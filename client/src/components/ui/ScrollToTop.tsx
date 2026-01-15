@@ -42,7 +42,7 @@ const ScrollToTop: React.FC = () => {
             <div className="absolute inset-0 bg-alien-green rounded-full opacity-20 animate-pulse scale-110"></div>
 
             {/* Main button */}
-            <div className="relative w-12 h-12 bg-smoke-gray border-2 border-alien-green rounded-full flex items-center justify-center shadow-alien-glow hover:shadow-alien-glow-strong transition-all duration-300 hover:scale-110 hover:bg-alien-green/10">
+            <div className="relative w-12 h-12 bg-moss-accent hover:bg-olive-primary cursor-pointer border-2 border-alien-green rounded-full flex items-center justify-center shadow-alien-glow hover:shadow-alien-glow-strong transition-all duration-300 hover:scale-110 hover:bg-alien-green/10">
               {/* Icon container with animation */}
               <div className="relative">
                 <ChevronUp

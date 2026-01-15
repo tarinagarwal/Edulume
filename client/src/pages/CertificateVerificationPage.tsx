@@ -154,6 +154,29 @@ const CertificateVerificationPage: React.FC = () => {
 
   const { certificateDetails } = verificationData;
 
+  const detailsToShow = [
+    {
+      label: "Student Name",
+      value: certificateDetails?.studentName,
+      valueClass: "text-white font-semibold",
+    },
+    {
+      label: "Course Name",
+      value: certificateDetails?.courseName,
+      valueClass: "text-white font-semibold",
+    },
+    {
+      label: "Instructor",
+      value: certificateDetails?.instructorName,
+      valueClass: "text-white",
+    },
+    {
+      label: "Completion Date",
+      value: certificateDetails?.completionDate,
+      valueClass: "text-white",
+    },
+  ];
+
   return (
     <>
     <SEO
@@ -197,41 +220,14 @@ const CertificateVerificationPage: React.FC = () => {
 
             <div className="grid md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Student Name
-                  </label>
-                  <p className="text-white font-semibold">
-                    {certificateDetails.studentName}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Course Name
-                  </label>
-                  <p className="text-white font-semibold">
-                    {certificateDetails.courseName}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Instructor
-                  </label>
-                  <p className="text-white">
-                    {certificateDetails.instructorName}
-                  </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-400 mb-1">
-                    Completion Date
-                  </label>
-                  <p className="text-white">
-                    {certificateDetails.completionDate}
-                  </p>
-                </div>
+                {detailsToShow.map(({ label, value, valueClass }) => (
+                  <div key={label}>
+                    <label className="block text-sm font-medium text-gray-400 mb-1">
+                      {label}
+                    </label>
+                    <p className={valueClass}>{value}</p>
+                  </div>
+                ))}
               </div>
 
               <div className="space-y-4">
@@ -241,11 +237,11 @@ const CertificateVerificationPage: React.FC = () => {
                   </label>
                   <div className="flex items-center space-x-2">
                     <div className="text-2xl font-bold text-green-500">
-                      {certificateDetails.score}%
+                      {certificateDetails?.score}%
                     </div>
                     <div className="text-gray-400">
-                      ({certificateDetails.marksObtained}/
-                      {certificateDetails.totalMarks} marks)
+                      ({certificateDetails?.marksObtained}/
+                      {certificateDetails?.totalMarks} marks)
                     </div>
                   </div>
                 </div>
@@ -255,7 +251,7 @@ const CertificateVerificationPage: React.FC = () => {
                     Certificate ID
                   </label>
                   <p className="text-white font-mono text-sm bg-gray-700 p-2 rounded">
-                    {certificateDetails.certificateId}
+                    {certificateDetails?.certificateId}
                   </p>
                 </div>
 
@@ -263,7 +259,7 @@ const CertificateVerificationPage: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-400 mb-1">
                     Issue Date
                   </label>
-                  <p className="text-white">{certificateDetails.issueDate}</p>
+                  <p className="text-white">{certificateDetails?.issueDate}</p>
                 </div>
 
                 <div className="flex items-center space-x-2 text-green-500">

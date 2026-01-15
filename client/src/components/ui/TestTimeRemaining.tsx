@@ -64,4 +64,4 @@ const TestTimeRemaining : React.FC<{
   );
 };
 
-export default TestTimeRemaining ;
+export default TestTimeRemaining;

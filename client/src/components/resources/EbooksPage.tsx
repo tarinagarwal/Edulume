@@ -43,22 +43,30 @@ const EbookCard = React.memo(({ ebook }: { ebook: EbookItem }) => (
     </p>
 
     <div className="space-y-2 mb-4 text-xs text-gray-500 min-h-[60px]">
-      {ebook.course && (
-        <div className="flex items-center">
-          <FileText size={14} className="mr-2" />
-          <span>{ebook.course}</span>
-        </div>
-      )}
-      {ebook.department && (
-        <div className="flex items-center">
-          <User size={14} className="mr-2" />
-          <span>{ebook.department}</span>
-        </div>
-      )}
-      <div className="flex items-center">
-        <Calendar size={14} className="mr-2" />
-        <span>{new Date(ebook.upload_date).toLocaleDateString()}</span>
-      </div>
+      {[
+        {
+          show: ebook.course,
+          icon: FileText,
+          value: ebook.course,
+        },
+        {
+          show: ebook.department,
+          icon: User,
+          value: ebook.department,
+        },
+        {
+          show: true,
+          icon: Calendar,
+          value: new Date(ebook.upload_date).toLocaleDateString(),
+        },
+      ]
+        .filter(item => item.show)
+        .map(({ icon: Icon, value }, index) => (
+          <div key={index} className="flex items-center">
+            <Icon size={14} className="mr-2" />
+            <span>{value}</span>
+          </div>
+        ))}
     </div>
 
     <div className="mt-auto">
@@ -303,11 +311,10 @@ const EbooksPage: React.FC = () => {
             <div className="flex flex-wrap items-center gap-4 mb-4">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${
-                  showFilters || hasActiveFilters
+                className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${showFilters || hasActiveFilters
                     ? "border-alien-green bg-alien-green/10 text-alien-green"
                     : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
-                }`}
+                  }`}
               >
                 <Filter size={16} />
                 <span>Filters</span>
@@ -430,12 +437,11 @@ const EbooksPage: React.FC = () => {
                     onChange={(e) => setSelectedYear(e.target.value)}
                     className="alien-input w-full text-sm"
                   >
-                    <option value="">All Years</option>
-                    <option value="1">1st Year</option>
-                    <option value="2">2nd Year</option>
-                    <option value="3">3rd Year</option>
-                    <option value="4">4th Year</option>
-                    <option value="5">5th Year</option>
+                    {["", "1", "2", "3", "4"].map((year) => (
+                    <option key={year} value={year}>
+                      {year === "" ? "All Years" : `Year ${year}`}
+                    </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -517,11 +523,10 @@ const EbooksPage: React.FC = () => {
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
                           disabled={loading}
-                          className={`px-4 py-2 rounded-lg border transition-all duration-300 ${
-                            currentPage === pageNum
+                          className={`px-4 py-2 rounded-lg border transition-all duration-300 ${currentPage === pageNum
                               ? "border-alien-green bg-alien-green/10 text-alien-green"
                               : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           {pageNum}
                         </button>

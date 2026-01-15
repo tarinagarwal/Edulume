@@ -44,6 +44,8 @@ import ScrollToTop from "./components/ui/ScrollToTop";
 import ScrollToTopOnRouteChange from "./components/ui/ScrollToTopOnRouteChange";
 import { isAuthenticated } from "./utils/auth";
 import { SocketProvider } from "./contexts/SocketContext";
+import AOS from "aos";
+import "aos/dist/aos.css";
 
 interface AppProps { }
 
@@ -93,6 +95,13 @@ const App: React.FC<AppProps> = () => {
   useEffect(() => {
     checkAuthStatus();
   }, [checkAuthStatus]);
+
+  useEffect(() => {
+    AOS.init({
+      duration: 1000,
+      once: true,
+    });
+  }, []);
 
   return (
     <Router>

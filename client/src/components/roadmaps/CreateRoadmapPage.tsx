@@ -69,6 +69,27 @@ const CreateRoadmapPage: React.FC = () => {
     }
   };
 
+  const features = [
+    {
+      icon: Target,
+      title: "Structured Learning",
+      description:
+        "Progressive stages from beginner to advanced with clear milestones",
+    },
+    {
+      icon: BookOpen,
+      title: "Curated Resources",
+      description:
+        "Hand-picked tutorials, courses, and documentation for each stage",
+    },
+    {
+      icon: Zap,
+      title: "Practical Projects",
+      description:
+        "Real-world projects to build your portfolio and skills",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-royal-black text-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -94,25 +115,22 @@ const CreateRoadmapPage: React.FC = () => {
         <div className="flex items-center justify-center mb-8">
           <div className="flex items-center space-x-4">
             <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                step >= 1
-                  ? "bg-alien-green text-royal-black"
-                  : "bg-smoke-gray text-gray-400"
-              }`}
+              className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1
+                ? "bg-alien-green text-royal-black"
+                : "bg-smoke-gray text-gray-400"
+                }`}
             >
               1
             </div>
             <div
-              className={`w-16 h-1 ${
-                step >= 2 ? "bg-alien-green" : "bg-smoke-gray"
-              }`}
+              className={`w-16 h-1 ${step >= 2 ? "bg-alien-green" : "bg-smoke-gray"
+                }`}
             ></div>
             <div
-              className={`flex items-center justify-center w-8 h-8 rounded-full ${
-                step >= 2
-                  ? "bg-alien-green text-royal-black"
-                  : "bg-smoke-gray text-gray-400"
-              }`}
+              className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2
+                ? "bg-alien-green text-royal-black"
+                : "bg-smoke-gray text-gray-400"
+                }`}
             >
               2
             </div>
@@ -197,40 +215,16 @@ const CreateRoadmapPage: React.FC = () => {
 
             {/* Feature highlights */}
             <div className="mt-12 grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-alien-green/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Target className="text-alien-green" size={24} />
-                </div>
-                <h3 className="font-semibold text-white mb-2">
-                  Structured Learning
-                </h3>
-                <p className="text-sm text-gray-400">
-                  Progressive stages from beginner to advanced with clear
-                  milestones
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-alien-green/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <BookOpen className="text-alien-green" size={24} />
-                </div>
-                <h3 className="font-semibold text-white mb-2">
-                  Curated Resources
-                </h3>
-                <p className="text-sm text-gray-400">
-                  Hand-picked tutorials, courses, and documentation for each
-                  stage
-                </p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-alien-green/20 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Zap className="text-alien-green" size={24} />
-                </div>
-                <h3 className="font-semibold text-white mb-2">
-                  Practical Projects
-                </h3>
-                <p className="text-sm text-gray-400">
-                  Real-world projects to build your portfolio and skills
-                </p>
+              <div className="mt-12 grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+                {features.map(({ icon: Icon, title, description }) => (
+                  <div key={title} className="text-center">
+                    <div className="w-12 h-12 bg-alien-green/20 rounded-lg flex items-center justify-center mx-auto mb-3">
+                      <Icon className="text-alien-green" size={24} />
+                    </div>
+                    <h3 className="font-semibold text-white mb-2">{title}</h3>
+                    <p className="text-sm text-gray-400">{description}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
