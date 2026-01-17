@@ -20,13 +20,13 @@ model User {
   resetToken        String?  @map("reset_token")
   resetTokenExpires DateTime? @map("reset_token_expires")
   createdAt         DateTime @default(now()) @map("created_at")
-  
+
   // OAuth fields
   googleId          String?  @map("google_id")
   authProvider      String   @default("local") @map("auth_provider") // "local" or "google"
   profilePicture    String?  @map("profile_picture")
   needsUsername     Boolean  @default(false) @map("needs_username")
-  
+
   @@index([googleId], map: "users_google_id_key")
 
   // Relations
@@ -51,6 +51,10 @@ model User {
   bugReports        BugReport[]
   pdfChatSessions   PdfChatSession[]
   vault             Vault?
+  labs              Lab[]
+  labShares         LabShare[]
+  labProgress       LabProgress[]
+
 
   @@map("users")
 }
@@ -511,4 +515,56 @@ model VaultOutput {
   file VaultFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
 
   @@map("vault_outputs")
+}
+model Lab {
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String?
+  language    String
+  difficulty  String
+  content     String
+  starterCode String
+  tasks       String
+  testCases   String?
+  solution    String?
+  visibility  String  @default("private")
+
+  creatorId String @db.ObjectId
+  creator   User   @relation(fields: [creatorId], references: [id])
+
+  shares   LabShare[]
+  progress LabProgress[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LabShare {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  labId String @db.ObjectId
+  lab   Lab    @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([labId, userId])
+}
+
+model LabProgress {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+
+  labId String @db.ObjectId
+  lab   Lab    @relation(fields: [labId], references: [id], onDelete: Cascade)
+
+  userId String @db.ObjectId
+  user   User   @relation(fields: [userId], references: [id])
+
+  userCode     String
+  completed    Boolean  @default(false)
+  lastAccessed DateTime @default(now())
+
+  @@unique([labId, userId])
 }
