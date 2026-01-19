@@ -15,115 +15,162 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
 } from "../../utils/api";
-import { Notification } from "../../types/discussions";
-import useSocket from "../../hooks/useSocket";
+import type { Notification as AppNotification } from "../../types/discussions";
+import { useSocket } from "../../contexts/SocketContext";
 
 const NotificationDropdown: React.FC = () => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const socket = useSocket();
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
-    fetchNotifications();
-
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    if (isOpen) fetchNotifications(1);
+  }, [isOpen]);
 
   // Listen for real-time notifications
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("new_notification", (notification: Notification) => {
-      setNotifications((prev) => [notification, ...prev]);
-      setUnreadCount((prev) => prev + 1);
+    const handler = (notification: AppNotification) => {
+      setNotifications((prev) => {
+        // const exists = prev.some((n) => n.id === notification.id);
+        const nid = getNotifId(notification);
+        const exists = prev.some((n: any) => getNotifId(n) === nid);
 
-      // Show browser notification if permission granted
-      if (Notification.permission === "granted") {
-        new Notification(notification.title, {
+        if (exists) return prev;
+
+        if (!notification.is_read) {
+          setUnreadCount((c) => c + 1);
+        }
+
+        return [notification, ...prev];
+      });
+
+      if (window.Notification?.permission === "granted") {
+        new window.Notification(notification.title, {
           body: notification.message,
           icon: "/logo.png",
         });
       }
-    });
+    };
+
+    socket.on("new_notification", handler);
 
     return () => {
-      socket.off("new_notification");
+      socket.off("new_notification", handler);
     };
   }, [socket]);
+
+  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    function handleClickOutside(event: MouseEvent) {
       if (
         dropdownRef.current &&
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
       }
-    };
+    }
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fetchNotifications = async () => {
+  useEffect(() => {
+    fetchNotifications(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const getNotifId = (n: any) => (n?.id ?? n?._id)?.toString();
+
+  const fetchNotifications = async (pageToFetch: number = 1) => {
     try {
-      setLoading(true);
-      const response = await getNotifications();
-      setNotifications(response.notifications);
-      setUnreadCount(response.unreadCount);
+      if (pageToFetch === 1) setLoading(true);
+      else setLoadingMore(true);
+
+      const response = await getNotifications(pageToFetch);
+
+      if (response.pagination?.pages) {
+        setTotalPages(response.pagination.pages);
+      }
+
+      if (pageToFetch === 1) {
+        setNotifications(response.notifications);
+      } else {
+        setNotifications((prev) => [...prev, ...response.notifications]);
+      }
+
+      setUnreadCount(
+        typeof response.unreadCount === "number" ? response.unreadCount : 0
+      );
+
+      setPage(pageToFetch);
 
       // Request notification permission if not already granted
-      if (Notification.permission === "default") {
-        Notification.requestPermission();
+      if (window.Notification?.permission === "default") {
+        window.Notification.requestPermission();
       }
     } catch (error) {
-      console.error("Failed to fetch notifications:", error);
       // Don't show error to user for notifications, just log it
+      console.error("Error fetching notifications:", error);
     } finally {
-      setLoading(false);
+      if (pageToFetch === 1) setLoading(false);
+      else setLoadingMore(false);
     }
   };
 
-  const handleNotificationClick = async (notification: Notification) => {
+  const markAsRead = async (notificationId?: string) => {
+    if (!notificationId) return;
     try {
-      if (!notification.is_read) {
-        await markNotificationAsRead(notification.id.toString());
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === notification.id ? { ...n, is_read: 1 } : n))
-        );
-      }
+      await markNotificationAsRead(notificationId);
 
-      // Navigate to the related discussion
-      if (
-        notification.related_id &&
-        notification.related_type === "discussion"
-      ) {
-        navigate(`/discussions/${notification.related_id}`);
-        setIsOpen(false);
-      }
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notification) =>
+            getNotifId(notification) === notificationId
+            ? { ...notification, is_read: true }
+            : notification
+        )
+      );
+
+      setUnreadCount((prevCount) => Math.max(0, prevCount - 1));
     } catch (error) {
-      console.error("Failed to mark notification as read:", error);
+      console.error("Error marking notification as read:", error);
     }
   };
 
-  const handleMarkAllAsRead = async () => {
+  const markAllAsRead = async () => {
     try {
       setLoading(true);
       await markAllNotificationsAsRead();
+
+      setNotifications((prevNotifications) =>
+        prevNotifications.map((notification) => ({ ...notification, is_read: true }))
+      );
+
       setUnreadCount(0);
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: 1 })));
     } catch (error) {
-      console.error("Failed to mark all notifications as read:", error);
+      console.error("Error marking all notifications as read:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleNotificationClick = async (notification: AppNotification) => {
+    if (!notification.is_read) {
+      await markAsRead(getNotifId(notification));
+    }
+
+    // Navigate to the related discussion
+    if (notification.related_type === "discussion" && notification.related_id) {
+      navigate(`/discussions/${notification.related_id}`);
+      setIsOpen(false);
     }
   };
 
@@ -132,7 +179,7 @@ const NotificationDropdown: React.FC = () => {
       case "new_answer":
         return <MessageSquare size={16} className="text-blue-400" />;
       case "mention":
-        return <AtSign size={16} className="text-alien-green" />;
+        return <AtSign size={16} className="text-green-400" />;
       case "best_answer":
         return <Award size={16} className="text-yellow-400" />;
       case "reply":
@@ -160,27 +207,28 @@ const NotificationDropdown: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-300 hover:text-alien-green transition-colors duration-300 rounded-lg"
+        className="relative p-2 text-gray-300 hover:text-alien-green transition-colors duration-300 rounded-lg overflow-visible"
       >
         <Bell size={20} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
-            {unreadCount > 9 ? "9+" : unreadCount}
+          <span className="absolute -top-1 -right-1 z-[9999] bg-red-500 text-white text-[10px] font-semibold rounded-full h-5 min-w-5 px-1 flex items-center justify-center">
+            {unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-smoke-gray border border-smoke-light rounded-lg shadow-lg z-50 max-h-96 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 bg-smoke-gray border border-smoke-light rounded-lg shadow-lg z-50 overflow-hidden">
           {/* Header */}
           <div className="px-4 py-3 border-b border-smoke-light flex items-center justify-between">
             <h3 className="text-sm font-medium text-white">Notifications</h3>
             <div className="flex items-center space-x-2">
               {unreadCount > 0 && (
                 <button
-                  onClick={handleMarkAllAsRead}
+                  onClick={markAllAsRead}
                   disabled={loading}
-                  className="text-xs text-alien-green hover:text-alien-green-dark transition-colors duration-300 disabled:opacity-50"
+                  className="text-gray-400 hover:text-alien-green transition-colors duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Mark all as read"
                 >
                   <CheckCheck size={16} />
                 </button>
@@ -188,6 +236,7 @@ const NotificationDropdown: React.FC = () => {
               <button
                 onClick={() => setIsOpen(false)}
                 className="text-gray-400 hover:text-white transition-colors duration-300"
+                title="Close"
               >
                 <X size={16} />
               </button>
@@ -196,52 +245,52 @@ const NotificationDropdown: React.FC = () => {
 
           {/* Notifications List */}
           <div className="max-h-80 overflow-y-auto">
-            {notifications.length === 0 ? (
-              <div className="px-4 py-8 text-center text-gray-400">
-                <Bell size={32} className="mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No notifications yet</p>
+            {loading && page === 1 ? (
+              <div className="p-4 text-center text-gray-400">
+                Loading notifications...
+              </div>
+            ) : notifications.length === 0 ? (
+              <div className="p-4 text-center text-gray-400">
+                No notifications
               </div>
             ) : (
               notifications.map((notification) => (
                 <div
-                  key={notification.id}
+                  key={getNotifId(notification)}
                   onClick={() => handleNotificationClick(notification)}
-                  className={`px-4 py-3 border-b border-smoke-light/50 cursor-pointer hover:bg-smoke-light/30 transition-colors duration-300 ${
-                    !notification.is_read
-                      ? "bg-alien-green/5 border-l-2 border-l-alien-green"
-                      : ""
+                  className={`px-4 py-3 border-b border-smoke-light cursor-pointer hover:bg-smoke-light/30 transition-colors duration-300 ${
+                    !notification.is_read ? "bg-smoke-light/10" : ""
                   }`}
                 >
                   <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 mt-1">
-                      {getNotificationIcon(notification.type)}
-                    </div>
+                    <div className="mt-1">{getNotificationIcon(notification.type)}</div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <p
-                          className={`text-sm font-medium ${
-                            !notification.is_read
-                              ? "text-white"
-                              : "text-gray-300"
-                          }`}
-                        >
+                      <div className="flex items-start justify-between">
+                        <p className="text-sm font-medium text-white truncate">
                           {notification.title}
                         </p>
                         {!notification.is_read && (
-                          <div className="w-2 h-2 bg-alien-green rounded-full flex-shrink-0"></div>
+                          <span className="ml-2 w-2 h-2 bg-alien-green rounded-full flex-shrink-0 mt-1"></span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 line-clamp-2 mb-1">
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">
                         {notification.message}
                       </p>
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-gray-500">
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-gray-500">
                           {formatTimeAgo(notification.created_at)}
-                        </p>
-                        {notification.from_username && (
-                          <p className="text-xs text-alien-green">
-                            @{notification.from_username}
-                          </p>
+                        </span>
+                        {!notification.is_read && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              markAsRead(getNotifId(notification));
+                            }}
+                            className="text-xs text-alien-green hover:text-alien-green-dark transition-colors duration-300 flex items-center space-x-1 cursor-pointer"
+                          >
+                            <Check size={12} />
+                            <span>Mark as read</span>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -249,22 +298,19 @@ const NotificationDropdown: React.FC = () => {
                 </div>
               ))
             )}
-          </div>
 
-          {/* Footer */}
-          {notifications.length > 0 && (
-            <div className="px-4 py-2 border-t border-smoke-light text-center">
-              <button
-                onClick={() => {
-                  navigate("/discussions");
-                  setIsOpen(false);
-                }}
-                className="text-xs text-alien-green hover:text-alien-green-dark transition-colors duration-300"
-              >
-                View All Discussions
-              </button>
-            </div>
-          )}
+            {page < totalPages && (
+              <div className="p-3 text-center">
+                <button
+                  onClick={() => fetchNotifications(page + 1)}
+                  disabled={loadingMore}
+                  className="text-xs text-alien-green hover:text-alien-green-dark transition-colors duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingMore ? "Loading..." : "Load More"}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

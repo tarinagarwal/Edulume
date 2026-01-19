@@ -58,7 +58,7 @@ export interface Notification {
   related_type?: "discussion" | "answer";
   from_user_id?: number;
   from_username?: string;
-  is_read: number;
+  is_read: boolean;
   created_at: string;
 }
 

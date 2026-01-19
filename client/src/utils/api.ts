@@ -474,11 +474,19 @@ export const voteReply = async (
   return response.data;
 };
 
-export const getNotifications = async (): Promise<{
+export const getNotifications = async (pageToFetch:number=1): Promise<{
   notifications: Notification[];
   unreadCount: number;
+  pagination?:{
+    page:number;
+    limit:number;
+    total:number;
+    pages:number;
+  }
 }> => {
-  const response = await api.get("/notifications");
+  const response = await api.get("/notifications",{
+    params:{page:pageToFetch,limit:20}
+  });
   return response.data;
 };
 
