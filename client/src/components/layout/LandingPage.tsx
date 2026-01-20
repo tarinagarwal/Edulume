@@ -142,7 +142,7 @@ const LandingPage: React.FC = () => {
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
               {/* AI Courses */}
-              <Link data-aos="fade-up" to="/courses" className="group rounded-lg shadow-lg shadow-gray-500 hover:shadow-alien-green transition-all duration-300">
+              <Link data-aos="fade-up" to="/courses" className="group rounded-lg shadow-lg shadow-gray-500 hover:shadow-olive-forest transition-all duration-300">
                 <div className="bg-beige-warm p-6 sm:p-8 relative rounded-lg smoke-effect hover:shadow-olive-forest transition-all h-full">
                   <div className="w-12 sm:w-16 h-12 sm:h-16 bg-olive-forest rounded-full flex items-center justify-center mb-4 sm:mb-6 shadow-olive-forest group-hover:scale-110 transition-transform">
                     <GraduationCap className="text-gray-50" size={28} />

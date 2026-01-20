@@ -67,29 +67,29 @@ export default function CompleteProfile() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-royal-black">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
-        <div className="bg-smoke-gray border border-smoke-light rounded-lg p-8">
+        <div className="smoke-card shadow-lg shadow-gray-500 p-8 relative smoke-effect">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-alien-green rounded-full flex items-center justify-center mx-auto mb-4">
-              <User className="text-royal-black" size={32} />
+            <div className="w-16 h-16 bg-olive-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-olive-forest">
+              <User className="text-olive-gold" size={32} />
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2">
+            <h2 className="text-3xl font-bold glow-text mb-2">
               Choose Your Username
             </h2>
-            <p className="text-gray-400">
+            <p className="text-matcha-primary font-semibold">
               Complete your profile to get started
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-moss-accent mb-2">
                 Username
               </label>
               <div className="relative">
                 <User
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-moss-accent"
                   size={20}
                 />
                 <input
@@ -99,24 +99,24 @@ export default function CompleteProfile() {
                   placeholder="Choose a unique username"
                   required
                   minLength={3}
-                  className="w-full pl-10 pr-4 py-3 bg-smoke-light border border-smoke-light rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-alien-green transition-colors"
+                  className="alien-input w-full pl-10 py-1 rounded-lg border border-matcha-primary"
                 />
               </div>
-              <p className="text-xs text-gray-400 mt-1">
+              <p className="text-xs text-moss-accent mt-1">
                 At least 3 characters, letters and numbers only
               </p>
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3">
-                <p className="text-red-400 text-sm">{error}</p>
+              <div className="bg-red-800 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
+                <p className="text-red-200 text-sm">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading || username.length < 3}
-              className="w-full bg-alien-green hover:bg-alien-green/80 text-royal-black font-semibold py-3 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="alien-button w-full py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
             >
               {loading ? (
                 "Setting up..."

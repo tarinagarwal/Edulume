@@ -64,19 +64,19 @@ const ForgotPasswordForm: React.FC = () => {
   const renderEmailStep = () => (
     <form onSubmit={handleSendOTP} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-moss-accent mb-2">
           Email Address
         </label>
         <div className="relative">
           <Mail
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-moss-accent"
             size={20}
           />
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="alien-input w-full pl-10"
+            className="alien-input w-full pl-10 py-1 rounded-lg border border-matcha-primary"
             placeholder="Enter your email address"
             required
           />
@@ -86,7 +86,7 @@ const ForgotPasswordForm: React.FC = () => {
       <button
         type="submit"
         disabled={loading}
-        className="alien-button w-full py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
+        className="alien-button cursor-pointer w-full py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? "Sending..." : "Send Reset Code"}
       </button>
@@ -102,19 +102,19 @@ const ForgotPasswordForm: React.FC = () => {
       className="space-y-6"
     >
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-moss-accent mb-2">
           Verification Code
         </label>
         <div className="relative">
           <Shield
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-moss-accent"
             size={20}
           />
           <input
             type="text"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
-            className="alien-input w-full pl-10"
+            className="alien-input w-full pl-10 py-1 rounded-lg border border-matcha-primary"
             placeholder="Enter 6-digit code"
             maxLength={6}
             required
@@ -139,7 +139,7 @@ const ForgotPasswordForm: React.FC = () => {
           handleSendOTP({ preventDefault: () => {} } as React.FormEvent)
         }
         disabled={loading}
-        className="w-full text-sm text-gray-400 hover:text-alien-green transition-colors duration-300"
+        className="w-full text-sm text-moss-accent hover:text-olive-forest transition-colors duration-300"
       >
         Resend Code
       </button>
@@ -149,19 +149,19 @@ const ForgotPasswordForm: React.FC = () => {
   const renderPasswordStep = () => (
     <form onSubmit={handleResetPassword} className="space-y-6">
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-moss-accent mb-2">
           New Password
         </label>
         <div className="relative">
           <Lock
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-moss-accent"
             size={20}
           />
           <input
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            className="alien-input w-full pl-10"
+            className="alien-input w-full pl-10 py-1 rounded-lg border border-matcha-primary"
             placeholder="Enter new password"
             required
           />
@@ -169,19 +169,19 @@ const ForgotPasswordForm: React.FC = () => {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
+        <label className="block text-sm font-medium text-moss-accent mb-2">
           Confirm Password
         </label>
         <div className="relative">
           <Lock
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 text-moss-accent"
             size={20}
           />
           <input
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="alien-input w-full pl-10"
+            className="alien-input w-full pl-10 py-1 rounded-lg border border-matcha-primary"
             placeholder="Confirm new password"
             required
           />
@@ -227,15 +227,15 @@ const ForgotPasswordForm: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
-        <div className="smoke-card p-8 relative smoke-effect">
+        <div className="smoke-card shadow-lg shadow-gray-500 p-8 relative smoke-effect">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-alien-green rounded-full flex items-center justify-center mx-auto mb-4 shadow-alien-glow">
-              <Lock className="text-royal-black" size={32} />
+            <div className="w-16 h-16 bg-olive-primary rounded-full flex items-center justify-center mx-auto mb-4 shadow-alien-glow">
+              <Lock className="text-olive-gold" size={32} />
             </div>
             <h2 className="text-3xl font-alien font-bold glow-text">
               {getStepTitle()}
             </h2>
-            <p className="text-gray-400 mt-2">{getStepDescription()}</p>
+            <p className="text-matcha-primary font-semibold mt-2">{getStepDescription()}</p>
           </div>
 
           {step === "email" && renderEmailStep()}
@@ -243,13 +243,13 @@ const ForgotPasswordForm: React.FC = () => {
           {step === "password" && renderPasswordStep()}
 
           {error && (
-            <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg mt-6">
+            <div className="bg-red-800 border border-red-500 text-red-200 px-4 py-3 rounded-lg mt-6">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="bg-green-900/50 border border-green-500 text-green-200 px-4 py-3 rounded-lg mt-6">
+            <div className="bg-olive-forest border border-matcha-primary text-green-200 px-4 py-3 rounded-lg mt-6">
               {success}
             </div>
           )}
@@ -257,7 +257,7 @@ const ForgotPasswordForm: React.FC = () => {
           <div className="mt-6 text-center">
             <Link
               to="/auth"
-              className="flex items-center justify-center text-alien-green hover:text-alien-green-dark transition-colors duration-300"
+              className="flex items-center justify-center text-matcha-primary font-semibold hover:text-moss-accent transition-colors duration-300"
             >
               <ArrowLeft className="mr-2" size={16} />
               Back to Login
