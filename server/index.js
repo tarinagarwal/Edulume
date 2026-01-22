@@ -20,6 +20,8 @@ import sitemapRoutes from "./routes/sitemap.js";
 import vaultRoutes from "./routes/vault.js";
 import { setupSocketHandlers } from "./socket/socketHandlers.js";
 import initRedis from "./utils/redis.js";
+import labsRoutes from "./routes/labs.js";
+import interviewsRouter from './routes/interviews.js';
 
 BigInt.prototype.toJSON = function () {
   return this.toString();
@@ -105,6 +107,8 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api/pdf-chat", pdfChatRoutes);
 app.use("/api/vault", vaultRoutes);
 app.use("/", sitemapRoutes);
+app.use("/api/labs", labsRoutes);
+app.use('/api/interviews', interviewsRouter);
 
 // Setup Socket.IO handlers
 setupSocketHandlers(io);

@@ -178,6 +178,24 @@ uvicorn main:app --reload
    - Server: http://localhost:3000
    - Python Backend: http://localhost:8080
 
+
+## MongoDB + Prisma (Important)
+
+This project uses Prisma with MongoDB.
+
+⚠️ MongoDB MUST be running as a replica set, even for local development.
+
+Quick setup (Windows):
+
+1. Stop MongoDB service
+2. Start MongoDB with replication enabled:
+   mongod --replSet rs0
+3. In another terminal:
+   rs.initiate()
+4. Use connection string:
+   mongodb://127.0.0.1:27017/edulume?replicaSet=rs0
+
+
 📖 **For detailed setup instructions, see [INSTALLATION.md](INSTALLATION.md)**
 
 ---
