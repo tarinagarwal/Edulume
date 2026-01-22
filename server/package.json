@@ -16,7 +16,7 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.864.0",
     "@prisma/client": "^5.22.0",
-    "@vercel/blob": "^1.1.1",
+    "@vercel/blob": "^0.0.2",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -34,7 +34,7 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
-    "@flydotio/dockerfile": "^0.7.10",
+    "@flydotio/dockerfile": "^0.7.4",
     "prisma": "^5.22.0"
   },
   "keywords": [

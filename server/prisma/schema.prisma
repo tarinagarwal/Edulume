@@ -11,51 +11,49 @@ datasource db {
 }
 
 model User {
-  id                String   @id @default(auto()) @map("_id") @db.ObjectId
-  username          String?  @unique
-  email             String   @unique
-  passwordHash      String?  @map("password_hash")
-  isVerified        Boolean  @default(false) @map("is_verified")
-  verificationToken String?  @map("verification_token")
-  resetToken        String?  @map("reset_token")
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  username          String?   @unique
+  email             String    @unique
+  passwordHash      String?   @map("password_hash")
+  isVerified        Boolean   @default(false) @map("is_verified")
+  verificationToken String?   @map("verification_token")
+  resetToken        String?   @map("reset_token")
   resetTokenExpires DateTime? @map("reset_token_expires")
-  createdAt         DateTime @default(now()) @map("created_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
 
   // OAuth fields
-  googleId          String?  @map("google_id")
-  authProvider      String   @default("local") @map("auth_provider") // "local" or "google"
-  profilePicture    String?  @map("profile_picture")
-  needsUsername     Boolean  @default(false) @map("needs_username")
-
-  @@index([googleId], map: "users_google_id_key")
+  googleId       String? @map("google_id")
+  authProvider   String  @default("local") @map("auth_provider") // "local" or "google"
+  profilePicture String? @map("profile_picture")
+  needsUsername  Boolean @default(false) @map("needs_username")
 
   // Relations
-  pdfs              Pdf[]
-  ebooks            Ebook[]
-  discussions       Discussion[]
-  discussionAnswers DiscussionAnswer[]
-  discussionReplies DiscussionReply[]
-  discussionVotes   DiscussionVote[]
-  answerVotes       AnswerVote[]
-  replyVotes        ReplyVote[]
-  notifications     Notification[] @relation("UserNotifications")
-  sentNotifications Notification[] @relation("NotificationSender")
-  courses           Course[]
-  bookmarkedCourses CourseBookmark[]
-  enrolledCourses   CourseEnrollment[]
-  chapterProgress   ChapterProgress[]
-  courseTests       CourseTest[]
-  roadmaps          Roadmap[]
+  pdfs               Pdf[]
+  ebooks             Ebook[]
+  discussions        Discussion[]
+  discussionAnswers  DiscussionAnswer[]
+  discussionReplies  DiscussionReply[]
+  discussionVotes    DiscussionVote[]
+  answerVotes        AnswerVote[]
+  replyVotes         ReplyVote[]
+  notifications      Notification[]      @relation("UserNotifications")
+  sentNotifications  Notification[]      @relation("NotificationSender")
+  courses            Course[]
+  bookmarkedCourses  CourseBookmark[]
+  enrolledCourses    CourseEnrollment[]
+  chapterProgress    ChapterProgress[]
+  courseTests        CourseTest[]
+  roadmaps           Roadmap[]
   bookmarkedRoadmaps RoadmapBookmark[]
   featureSuggestions FeatureSuggestion[]
-  bugReports        BugReport[]
-  pdfChatSessions   PdfChatSession[]
-  vault             Vault?
-  labs              Lab[]
-  labShares         LabShare[]
-  labProgress       LabProgress[]
+  bugReports         BugReport[]
+  pdfChatSessions    PdfChatSession[]
+  vault              Vault?
+  labs               Lab[]
+  labShares          LabShare[]
+  labProgress        LabProgress[]
 
-
+  @@index([googleId], map: "users_google_id_key")
   @@map("users")
 }
 
@@ -267,7 +265,7 @@ model CourseChapter {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course   Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
   progress ChapterProgress[]
 
   @@map("course_chapters")
@@ -292,7 +290,7 @@ model Roadmap {
   title       String
   description String
   topic       String
-  content     String   // JSON string containing the roadmap data
+  content     String // JSON string containing the roadmap data
   authorId    String   @map("author_id") @db.ObjectId
   isPublic    Boolean  @default(true) @map("is_public")
   views       Int      @default(0)
@@ -324,7 +322,7 @@ model FeatureSuggestion {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   title       String
   description String
-  category    String   // 'ui', 'functionality', 'performance', 'other'
+  category    String // 'ui', 'functionality', 'performance', 'other'
   priority    String   @default("medium") // 'low', 'medium', 'high'
   status      String   @default("pending") // 'pending', 'in-progress', 'completed', 'rejected'
   userEmail   String?  @map("user_email")
@@ -341,22 +339,22 @@ model FeatureSuggestion {
 }
 
 model BugReport {
-  id            String   @id @default(auto()) @map("_id") @db.ObjectId
-  title         String
-  description   String
-  stepsToReproduce String? @map("steps_to_reproduce")
-  expectedBehavior String? @map("expected_behavior")
-  actualBehavior   String? @map("actual_behavior")
-  severity      String   @default("medium") // 'low', 'medium', 'high', 'critical'
-  status        String   @default("open") // 'open', 'in-progress', 'resolved', 'closed'
-  browserInfo   String?  @map("browser_info")
-  deviceInfo    String?  @map("device_info")
-  userEmail     String?  @map("user_email")
-  userName      String?  @map("user_name")
-  userId        String?  @map("user_id") @db.ObjectId
-  adminNotes    String?  @map("admin_notes")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(auto()) @map("_id") @db.ObjectId
+  title            String
+  description      String
+  stepsToReproduce String?  @map("steps_to_reproduce")
+  expectedBehavior String?  @map("expected_behavior")
+  actualBehavior   String?  @map("actual_behavior")
+  severity         String   @default("medium") // 'low', 'medium', 'high', 'critical'
+  status           String   @default("open") // 'open', 'in-progress', 'resolved', 'closed'
+  browserInfo      String?  @map("browser_info")
+  deviceInfo       String?  @map("device_info")
+  userEmail        String?  @map("user_email")
+  userName         String?  @map("user_name")
+  userId           String?  @map("user_id") @db.ObjectId
+  adminNotes       String?  @map("admin_notes")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   // Relations
   user User? @relation(fields: [userId], references: [id])
@@ -365,18 +363,18 @@ model BugReport {
 }
 
 model PdfChatSession {
-  id                 String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId             String   @map("user_id") @db.ObjectId
-  sessionId          String   @unique @map("session_id")
-  pdfUrl             String   @map("pdf_url")
-  pdfName            String   @map("pdf_name")
-  cloudinaryPublicId String?  @map("cloudinary_public_id")
-  isActive           Boolean  @default(true) @map("is_active")
-  createdAt          DateTime @default(now()) @map("created_at")
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId             String    @map("user_id") @db.ObjectId
+  sessionId          String    @unique @map("session_id")
+  pdfUrl             String    @map("pdf_url")
+  pdfName            String    @map("pdf_name")
+  cloudinaryPublicId String?   @map("cloudinary_public_id")
+  isActive           Boolean   @default(true) @map("is_active")
+  createdAt          DateTime  @default(now()) @map("created_at")
   endedAt            DateTime? @map("ended_at")
 
   // Relations
-  user     User              @relation(fields: [userId], references: [id])
+  user     User             @relation(fields: [userId], references: [id])
   messages PdfChatMessage[]
 
   @@map("pdf_chat_sessions")
@@ -396,14 +394,14 @@ model PdfChatMessage {
 }
 
 model CourseEnrollment {
-  id           String    @id @default(auto()) @map("_id") @db.ObjectId
-  courseId     String    @map("course_id") @db.ObjectId
-  userId       String    @map("user_id") @db.ObjectId
-  enrolledAt   DateTime  @default(now()) @map("enrolled_at")
-  completedAt  DateTime? @map("completed_at")
-  isCompleted  Boolean   @default(false) @map("is_completed")
-  progressPercentage Int @default(0) @map("progress_percentage")
-  lastAccessedAt DateTime? @map("last_accessed_at")
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  courseId           String    @map("course_id") @db.ObjectId
+  userId             String    @map("user_id") @db.ObjectId
+  enrolledAt         DateTime  @default(now()) @map("enrolled_at")
+  completedAt        DateTime? @map("completed_at")
+  isCompleted        Boolean   @default(false) @map("is_completed")
+  progressPercentage Int       @default(0) @map("progress_percentage")
+  lastAccessedAt     DateTime? @map("last_accessed_at")
 
   // Relations
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -414,13 +412,13 @@ model CourseEnrollment {
 }
 
 model ChapterProgress {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  chapterId   String   @map("chapter_id") @db.ObjectId
-  userId      String   @map("user_id") @db.ObjectId
-  isCompleted Boolean  @default(false) @map("is_completed")
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  chapterId   String    @map("chapter_id") @db.ObjectId
+  userId      String    @map("user_id") @db.ObjectId
+  isCompleted Boolean   @default(false) @map("is_completed")
   completedAt DateTime? @map("completed_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   // Relations
   chapter CourseChapter @relation(fields: [chapterId], references: [id], onDelete: Cascade)
@@ -431,23 +429,23 @@ model ChapterProgress {
 }
 
 model CourseTest {
-  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
-  courseId           String    @map("course_id") @db.ObjectId
-  userId             String    @map("user_id") @db.ObjectId
-  questions          String    // JSON string containing the test questions
-  testInstructions   String    @map("test_instructions") // JSON string containing test instructions
-  answers            String?   // JSON string containing user answers
-  evaluationResults  String?   @map("evaluation_results") // JSON string containing evaluation results
-  timeLimit          Int       @map("time_limit") @default(180) // Time limit in minutes
-  passingScore       Int       @map("passing_score") @default(80) // Passing score percentage
-  totalMarks         Int       @map("total_marks") @default(100)
-  marksObtained      Float?    @map("marks_obtained")
-  score              Int?      // Score as percentage
-  hasPassed          Boolean?  @map("has_passed")
-  status             String    @default("in_progress") // 'in_progress', 'processing', 'completed', 'evaluation_failed', 'expired'
-  createdAt          DateTime  @default(now()) @map("created_at")
-  submittedAt        DateTime? @map("submitted_at")
-  updatedAt          DateTime  @updatedAt @map("updated_at")
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  courseId          String    @map("course_id") @db.ObjectId
+  userId            String    @map("user_id") @db.ObjectId
+  questions         String // JSON string containing the test questions
+  testInstructions  String    @map("test_instructions") // JSON string containing test instructions
+  answers           String? // JSON string containing user answers
+  evaluationResults String?   @map("evaluation_results") // JSON string containing evaluation results
+  timeLimit         Int       @default(180) @map("time_limit") // Time limit in minutes
+  passingScore      Int       @default(80) @map("passing_score") // Passing score percentage
+  totalMarks        Int       @default(100) @map("total_marks")
+  marksObtained     Float?    @map("marks_obtained")
+  score             Int? // Score as percentage
+  hasPassed         Boolean?  @map("has_passed")
+  status            String    @default("in_progress") // 'in_progress', 'processing', 'completed', 'evaluation_failed', 'expired'
+  createdAt         DateTime  @default(now()) @map("created_at")
+  submittedAt       DateTime? @map("submitted_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
 
   // Relations
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
@@ -459,25 +457,25 @@ model CourseTest {
 
 model Vault {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId       String   @map("user_id") @db.ObjectId @unique
+  userId       String   @unique @map("user_id") @db.ObjectId
   storageUsed  Int      @default(0) @map("storage_used")
   storageLimit Int      @default(524288000) @map("storage_limit") // 500 MB in bytes
   createdAt    DateTime @default(now()) @map("created_at")
 
   // Relations
-  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   folders VaultFolder[]
 
   @@map("vaults")
 }
 
 model VaultFolder {
-  id            String       @id @default(auto()) @map("_id") @db.ObjectId
-  vaultId       String       @map("vault_id") @db.ObjectId
-  parentId      String?      @map("parent_id") @db.ObjectId
-  name          String
-  isSystemFolder Boolean     @default(false) @map("is_system_folder")
-  createdAt     DateTime     @default(now()) @map("created_at")
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  vaultId        String   @map("vault_id") @db.ObjectId
+  parentId       String?  @map("parent_id") @db.ObjectId
+  name           String
+  isSystemFolder Boolean  @default(false) @map("is_system_folder")
+  createdAt      DateTime @default(now()) @map("created_at")
 
   // Relations
   vault    Vault         @relation(fields: [vaultId], references: [id], onDelete: Cascade)
@@ -498,7 +496,7 @@ model VaultFile {
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
-  folder  VaultFolder  @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  folder  VaultFolder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
   outputs VaultOutput[]
 
   @@map("vault_files")
@@ -516,6 +514,7 @@ model VaultOutput {
 
   @@map("vault_outputs")
 }
+
 model Lab {
   id          String  @id @default(auto()) @map("_id") @db.ObjectId
   title       String
