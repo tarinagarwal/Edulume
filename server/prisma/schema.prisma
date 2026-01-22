@@ -36,8 +36,8 @@ model User {
   discussionVotes    DiscussionVote[]
   answerVotes        AnswerVote[]
   replyVotes         ReplyVote[]
-  notifications      Notification[]      @relation("UserNotifications")
-  sentNotifications  Notification[]      @relation("NotificationSender")
+  notifications      Notification[]       @relation("UserNotifications")
+  sentNotifications  Notification[]       @relation("NotificationSender")
   courses            Course[]
   bookmarkedCourses  CourseBookmark[]
   enrolledCourses    CourseEnrollment[]
@@ -52,6 +52,7 @@ model User {
   labs               Lab[]
   labShares          LabShare[]
   labProgress        LabProgress[]
+  InterviewCandidate InterviewCandidate[]
 
   @@index([googleId], map: "users_google_id_key")
   @@map("users")
@@ -566,4 +567,23 @@ model LabProgress {
   lastAccessed DateTime @default(now())
 
   @@unique([labId, userId])
+}
+
+model InterviewCandidate {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String   @db.ObjectId
+  name              String?
+  role              String?
+  skills            String[]
+  yearsOfExperience Int?     @map("years_of_experience")
+  resumeUrl         String   @map("resume_url")
+  parsedData        Json?    @map("parsed_data")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("interview_candidates")
 }
