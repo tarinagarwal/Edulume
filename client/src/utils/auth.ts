@@ -45,6 +45,7 @@ export const isAuthenticated = async (): Promise<boolean> => {
       return false;
     }
 
+
     const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
     const profileUrl = `${API_BASE_URL}/auth/profile`;
 
