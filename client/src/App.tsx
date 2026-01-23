@@ -38,6 +38,7 @@ import BugReportPage from "./components/feedback/BugReportPage";
 import AdminPanel from "./components/admin/AdminPanel";
 import AdminRoute from "./components/admin/AdminRoute";
 import PdfChatbotPage from "./components/ai/PdfChatbotPage";
+import VaultPage from "./components/vault/VaultPage";
 import CertificateVerificationPage from "./pages/CertificateVerificationPage";
 import Footer from "./components/layout/Footer";
 import ScrollToTop from "./components/ui/ScrollToTop";
@@ -161,6 +162,14 @@ const App: React.FC<AppProps> = () => {
             <Route path="/roadmaps" element={<RoadmapsPage />} />
             <Route path="/roadmaps/:id" element={<RoadmapDetailPage />} />
             <Route path="/pdf-chatbot" element={<PdfChatbotPage />} />
+            <Route
+              path="/vault/*"
+              element={
+                <ProtectedRoute authenticated={isLoggedIn}>
+                  <VaultPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/suggest-feature"
               element={<FeatureSuggestionPage />}
