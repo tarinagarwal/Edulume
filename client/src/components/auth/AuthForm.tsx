@@ -84,6 +84,15 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
         <div className="smoke-card p-8 relative smoke-effect">
+          {/* ✅ Back to Home */}
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="mb-4 inline-flex items-center text-sm text-gray-400 hover:text-alien-green transition-colors duration-300"
+        >
+          ← Back to Home
+        </button>
+
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-alien-green rounded-full flex items-center justify-center mx-auto mb-4 shadow-alien-glow">
               {isLogin ? (
