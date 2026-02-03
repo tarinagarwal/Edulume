@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, Navigate } from "react-router-dom";
 import { getCertificateVerification } from "../utils/api";
+import SEO from '../components/seo/SEO';
 
 interface VerificationData {
   isValid: boolean;
@@ -154,6 +155,12 @@ const CertificateVerificationPage: React.FC = () => {
   const { certificateDetails } = verificationData;
 
   return (
+    <>
+    <SEO
+        title="Certificate Verification"
+        description="Verify the authenticity of Edulume certificates easily and securely."
+        canonicalUrl="https://edulume.site/verify-certificate"
+    />
     <div className="min-h-screen py-8">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
@@ -313,6 +320,7 @@ const CertificateVerificationPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

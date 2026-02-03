@@ -184,9 +184,14 @@ def main(query, chat_history, session_id=None):
         # Retrieve FRESH context for THIS specific query
         content_list = pinecone_retriever(query, session_id)
         
+        # ArnabG: If no documents found, check history before giving up
         if not content_list:
-            logger.warning("No relevant content found in vector store")
-            return "Sorry! I could not find relevant information in the document to answer your question."
+            if len(chat_history) > 0:
+                logger.info("No documents found, but attempting to answer using chat history context.")
+                content_list = ["(No new context found. Answer based on conversation history if possible.)"]
+            else:
+                logger.warning("No relevant content found in vector store and no chat history")
+                return "Sorry! I could not find relevant information in the document to answer your question."
         
         # Summarize chat history if it gets too long
         if len(chat_history) > 10:
