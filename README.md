@@ -54,7 +54,7 @@ To navigate our monorepo efficiently, understand how data flows between the thre
 ```mermaid
 graph TD
     subgraph Client_Side [Frontend]
-        A[Next.js App]
+        A[React + Vite App]
     end
 
     subgraph Logic_Layer [Backends]
@@ -203,7 +203,7 @@ Key environment variables needed:
 ---
 
 ## 📁 Project Directory Map
-* 📂 `client/`: The visual heart. Built with Next.js 15.
+* 📂 `client/`: The visual heart. Built with React 19 + Vite.
 * 📂 `server/`: The central nervous system. Handles Auth and Database logic.
 * 📂 `python-backend/`: The AI engine. Processes PDFs and generates roadmaps.
 
