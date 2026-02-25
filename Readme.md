@@ -161,6 +161,23 @@ cp .env.example .env  # Configure environment variables
 uvicorn main:app --reload
 ```
 
+### Running with Docker
+
+1. Ensure you have Docker and Docker Compose installed.
+2. Configure `.env` file:
+   ```bash
+   cp .env.example .env
+   ```
+3. Update `.env` with your API keys and configuration.
+4. Run the application:
+   ```bash
+   docker-compose up --build
+   ```
+5. Access the application:
+   - Client: http://localhost
+   - Server: http://localhost:3000
+   - Python Backend: http://localhost:8080
+
 📖 **For detailed setup instructions, see [INSTALLATION.md](INSTALLATION.md)**
 
 ---

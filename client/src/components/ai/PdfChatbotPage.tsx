@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import SEO from "../../components/seo/SEO";
 import {
   Upload,
   Send,
@@ -511,6 +512,13 @@ export default function PdfChatbotPage() {
   }
 
   return (
+    <>
+    <SEO
+        title="AI PDF Chatbot"
+        description="Interact with your PDFs using our AI-powered chatbot for quick insights and summaries."
+        canonicalUrl="https://edulume.site/pdf-chatbot"
+      />
+
     <div className="min-h-screen bg-royal-black pt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
@@ -796,5 +804,6 @@ export default function PdfChatbotPage() {
       {/* Toast Notifications */}
       <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
+    </>
   );
 }

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bug, Send, ArrowLeft, Monitor, Smartphone } from "lucide-react";
+import SEO from '../../components/seo/SEO';
+
 
 const BugReportPage: React.FC = () => {
   const navigate = useNavigate();
@@ -150,6 +152,12 @@ const BugReportPage: React.FC = () => {
   }
 
   return (
+    <>
+    <SEO
+        title="Report a Bug"
+        description="Found a bug? Report it here and help us improve Edulume."
+        canonicalUrl="https://edulume.site/report-bug"
+      />
     <div className="min-h-screen pt-20 px-4">
       <div className="max-w-2xl mx-auto">
         <button
@@ -333,6 +341,7 @@ const BugReportPage: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000/api}
+        VITE_SOCKET_URL: ${VITE_SOCKET_URL:-http://localhost:3000}
+        VITE_PYTHON_API_URL: ${VITE_PYTHON_API_URL:-http://localhost:8080}
+    ports:
+      - "80:80"
+    restart: always
+    depends_on:
+      - server
+      - python-backend
+
+  server:
+    build: ./server
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-mongodb://mongo:27017/edulume}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - PYTHON_API_URL=http://python-backend:8080
+    restart: always
+    depends_on:
+      - mongo
+      - redis
+
+  python-backend:
+    build: ./python-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost,http://localhost:3000}
+    restart: always
+    depends_on:
+      - redis
+
+  mongo:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    restart: always
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: always
+
+volumes:
+  mongo_data:
+  redis_data:
