@@ -613,6 +613,37 @@ export const deleteCourse = async (
   return response.data;
 };
 
+export const rateCourse = async (
+  courseId: string,
+  rating: number
+): Promise<{
+  message: string;
+  rating: number;
+}> => {
+  const response = await api.post(`/courses/${courseId}/rate`, { rating });
+  return response.data;
+};
+
+export const getCourseRatings = async (
+  courseId: string
+): Promise<{
+  ratings: Array<{
+    id: string;
+    rating: number;
+    user: {
+      id: string;
+      username: string;
+    };
+  }>;
+  averageRating: number;
+  totalRatings: number;
+  userRating: number | null;
+  hasRated: boolean;
+}> => {
+  const response = await api.get(`/courses/${courseId}/rate`);
+  return response.data;
+};
+
 // Course enrollment functions
 export const enrollInCourse = async (
   courseId: string

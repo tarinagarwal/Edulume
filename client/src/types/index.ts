@@ -43,6 +43,8 @@ export interface Course {
   chapter_count: number;
   bookmark_count: number;
   enrollment_count: number;
+  average_rating: number;
+  rating_count: number;
   is_bookmarked: boolean;
   is_enrolled: boolean;
   enrollment_data: CourseEnrollment | null;

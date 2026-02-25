@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import SEO from "../seo/SEO";
+import StarRating from "../ui/StarRating";
 import {
   getCourses,
   toggleCourseBookmark,
@@ -330,6 +331,26 @@ const CoursesPage: React.FC = () => {
                             <p className="text-gray-300 text-sm line-clamp-3 mb-4">
                               {course.description}
                             </p>
+
+                            {/* Rating Display */}
+                            <div className="flex items-center space-x-2 mb-2">
+                              <StarRating
+                                size="size-4"
+                                readonly={true}
+                                rating={course.average_rating}
+                                onRatingChange={() => { }}
+                              />
+                              <span className="font-semibold text-gray-400 text-sm">
+                                {course.average_rating == 0 ? "" : course.average_rating.toFixed(1)}
+                              </span>
+                              <span className="text-gray-400 text-sm">
+                                ({course.rating_count}{" "}
+                                {course.rating_count <= 1
+                                  ? "rating"
+                                  : "ratings"}
+                                )
+                              </span>
+                            </div>
                           </div>
                           {isAuth && (
                             <button

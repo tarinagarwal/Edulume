@@ -208,6 +208,61 @@ PUT /api/courses/:id
 	{ "message": "Course updated successfully", "course": { /* updated */ } }
 	```
 
+GET /api/courses/:id/rate
+
+- Authentication: Optional
+- Request body: None
+- Response (200):
+  ```json
+  {
+    "ratings": [
+      {
+        "id": "rating_id_1",
+        "rating": 5,
+        "user": {
+          "id": "user_id_1",
+          "username": "john_doe"
+        }
+      },
+      {
+        "id": "rating_id_2",
+        "rating": 4,
+        "user": {
+          "id": "user_id_2",
+          "username": "jane_smith"
+        }
+      }
+    ],
+    "averageRating": 4.5,
+    "totalRatings": 2,
+    "userRating": 5,
+    "hasRated": true
+  }
+  ```
+- Description: Get all ratings for a course with user information. If authenticated, also returns the current user's rating. Returns `userRating: null` and `hasRated: false` if user hasn't rated or is not authenticated.
+
+POST /api/courses/:id/rate
+- Authentication: Yes (Bearer token)
+- Request body:
+  ```json
+  { "rating": 5 }
+  ```
+- Response (200):
+  ```json
+  {
+    "message": "Rating submitted successfully",
+    "rating": 5
+  }
+  ```
+  OR (if updating existing rating):
+  ```json
+  {
+    "message": "Rating updated successfully",
+    "rating": 4
+  }
+  ```
+- Description: Submit or update a rating for a course. The `rating` must be a number between 1 and 5 (inclusive). If the user has already rated the course, their existing rating will be updated. If not, a new rating will be created. Only authenticated users can rate courses.
+
 DELETE /api/courses/:id
 - Authentication: Yes
 - Response (200):
