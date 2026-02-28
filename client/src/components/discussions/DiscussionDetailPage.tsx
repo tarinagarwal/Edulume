@@ -17,6 +17,7 @@ import {
   Tag,
   Reply,
   Users,
+  Flag,
 } from "lucide-react";
 import SEO from "../seo/SEO";
 import {
@@ -35,6 +36,9 @@ import { getUserProfile } from "../../utils/api";
 import MentionInput from "./MentionInput";
 import { useSocket } from "../../contexts/SocketContext";
 import { Skeleton } from "../ui/Skeleton";
+import ReportModal from "../ui/ReportModal";
+import { submitReport } from "../../utils/api";
+import toast from "react-hot-toast";
 
 const DiscussionDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -70,6 +74,11 @@ const DiscussionDetailPage: React.FC = () => {
   const [replyImages, setReplyImages] = useState<string[]>([]);
   const [submittingReply, setSubmittingReply] = useState(false);
   const [replyToUsername, setReplyToUsername] = useState<string>("");
+
+  // Report state
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: "discussion" | "answer" | "reply", id: string } | null>(null);
+  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
 
   // Typing indicator timeout
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -416,7 +425,7 @@ const DiscussionDetailPage: React.FC = () => {
       console.log("✅ Reply submitted successfully");
       // Reset form
       handleCancelReply();
-      
+
       // Refresh the discussion to show the new reply
       await fetchDiscussion();
     } catch (err: any) {
@@ -458,7 +467,7 @@ const DiscussionDetailPage: React.FC = () => {
       // Reset form
       setAnswerContent("");
       setAnswerImages([]);
-      
+
       // Refresh the discussion to show the new answer
       await fetchDiscussion();
     } catch (err: any) {
@@ -496,6 +505,33 @@ const DiscussionDetailPage: React.FC = () => {
       }
     }
   };
+
+  const handleReportClick = (type: "discussion" | "answer" | "reply", id: string) => {
+    if (!currentUser) {
+      navigate("/auth");
+      return;
+    }
+    setReportTarget({ type, id });
+    setIsReportModalOpen(true);
+  };
+
+  const handleReportSubmit = async (reason: string) => {
+    if (!reportTarget) return;
+
+    setIsSubmittingReport(true);
+    try {
+      await submitReport(reportTarget.type, reportTarget.id, reason);
+      toast.success("Report submitted successfully");
+      setIsReportModalOpen(false);
+      setReportTarget(null);
+    } catch (err: any) {
+      console.error("❌ Report submission failed:", err);
+      toast.error(err.response?.data?.error || "Failed to submit report");
+    } finally {
+      setIsSubmittingReport(false);
+    }
+  };
+
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -548,7 +584,7 @@ const DiscussionDetailPage: React.FC = () => {
               <Skeleton className="h-4 w-40 bg-white/[0.06]" />
             </div>
           </div>
-    
+
           <div className="smoke-card p-8 mb-8 relative smoke-effect">
             <div className="flex items-start space-x-6">
               <div className="flex-1 min-w-0">
@@ -556,19 +592,19 @@ const DiscussionDetailPage: React.FC = () => {
                   <Skeleton className="h-7 w-2/3 bg-white/[0.07]" />
                   <Skeleton className="h-6 w-20 rounded-full bg-white/[0.06]" />
                 </div>
-    
+
                 <div className="flex flex-wrap items-center gap-4 mb-6">
                   <Skeleton className="h-4 w-32 bg-white/[0.06]" />
                   <Skeleton className="h-4 w-24 bg-white/[0.06]" />
                   <Skeleton className="h-4 w-24 bg-white/[0.06]" />
                 </div>
-    
+
                 <div className="space-y-3 mb-6">
                   <Skeleton className="h-4 w-full bg-white/[0.06]" />
                   <Skeleton className="h-4 w-11/12 bg-white/[0.06]" />
                   <Skeleton className="h-4 w-4/5 bg-white/[0.06]" />
                 </div>
-    
+
                 <div className="flex flex-wrap gap-2">
                   <Skeleton className="h-6 w-20 rounded-full bg-white/[0.06]" />
                   <Skeleton className="h-6 w-24 rounded-full bg-white/[0.06]" />
@@ -577,7 +613,7 @@ const DiscussionDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
-    
+
           <div className="smoke-card p-6 mt-10 mb-5 smoke-effect">
             <Skeleton className="h-5 w-28 bg-white/[0.07] mb-4" />
             <div className="space-y-4">
@@ -588,7 +624,7 @@ const DiscussionDetailPage: React.FC = () => {
               </div>
             </div>
           </div>
-    
+
           <div className="space-y-6">
             <Skeleton className="h-6 w-40 bg-white/[0.07]" />
             {Array.from({ length: 3 }).map((_, i) => (
@@ -601,7 +637,7 @@ const DiscussionDetailPage: React.FC = () => {
                   <Skeleton className="h-4 w-5/6 bg-white/[0.06]" />
                   <Skeleton className="h-4 w-2/3 bg-white/[0.05]" />
                 </div>
-            
+
                 <div className="flex items-center justify-between">
                   <Skeleton className="h-4 w-28 bg-white/[0.05]" />
                   <div className="flex items-center space-x-3">
@@ -641,11 +677,10 @@ const DiscussionDetailPage: React.FC = () => {
       <SEO
         title={discussion.title}
         description={discussion.content.substring(0, 160)}
-        keywords={`${discussion.category}, discussion, Q&A, ${
-          Array.isArray(discussion.tags)
+        keywords={`${discussion.category}, discussion, Q&A, ${Array.isArray(discussion.tags)
             ? discussion.tags.join(", ")
             : discussion.tags || ""
-        }`}
+          }`}
       />
       <div className="min-h-screen py-8 px-4">
         <div className="max-w-4xl mx-auto">
@@ -717,6 +752,15 @@ const DiscussionDetailPage: React.FC = () => {
                     <MessageCircle size={16} />
                     <span>{answers.length} answers</span>
                   </div>
+
+                  <button
+                    onClick={() => handleReportClick("discussion", discussion.id)}
+                    className="flex items-center space-x-1 hover:text-red-400 transition-colors ml-auto"
+                    title="Report Discussion"
+                  >
+                    <Flag size={16} />
+                    <span>Report</span>
+                  </button>
                 </div>
 
                 {/* Content */}
@@ -905,11 +949,10 @@ const DiscussionDetailPage: React.FC = () => {
               return (
                 <div key={answer.id} className="space-y-4">
                   <div
-                    className={`smoke-card p-6 relative smoke-effect ${
-                      answer.is_best_answer
+                    className={`smoke-card p-6 relative smoke-effect ${answer.is_best_answer
                         ? "border-2 border-alien-green shadow-alien-glow"
                         : ""
-                    }`}
+                      }`}
                   >
                     {answer.is_best_answer === 1 && (
                       <div className="absolute top-4 right-4 flex items-center space-x-2 text-alien-green">
@@ -951,6 +994,14 @@ const DiscussionDetailPage: React.FC = () => {
                               <User size={14} />
                               <span>{answer.author_username}</span>
                             </div>
+                            <button
+                              onClick={() => handleReportClick("answer", answer.id.toString())}
+                              className="flex items-center space-x-1 hover:text-red-400 transition-colors"
+                              title="Report Answer"
+                            >
+                              <Flag size={14} />
+                              <span>Report</span>
+                            </button>
                           </div>
                           <div className="flex items-center space-x-3">
                             {canMarkBest && (
@@ -986,151 +1037,156 @@ const DiscussionDetailPage: React.FC = () => {
 
                   {((answer.replies && answer.replies.length > 0) ||
                     replyingTo === answer.id) && (
-                    <div className="ml-8 border-l-2 border-smoke-light/30 pl-6">
-                      {/* Replies Header */}
-                      {answer.replies && answer.replies.length > 0 && (
-                        <div className="flex items-center space-x-2 mb-4 text-sm text-gray-400">
-                          <MessageCircle size={16} />
-                          <span>
-                            {answer.replies.length}{" "}
-                            {answer.replies.length === 1 ? "reply" : "replies"}
-                          </span>
-                        </div>
-                      )}
+                      <div className="ml-8 border-l-2 border-smoke-light/30 pl-6">
+                        {/* Replies Header */}
+                        {answer.replies && answer.replies.length > 0 && (
+                          <div className="flex items-center space-x-2 mb-4 text-sm text-gray-400">
+                            <MessageCircle size={16} />
+                            <span>
+                              {answer.replies.length}{" "}
+                              {answer.replies.length === 1 ? "reply" : "replies"}
+                            </span>
+                          </div>
+                        )}
 
-                      {answer.replies && answer.replies.length > 0 && (
-                        <div
-                          className={`space-y-4 ${
-                            answer.replies.length > 3
-                              ? "max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-smoke-dark scrollbar-thumb-smoke-light hover:scrollbar-thumb-alien-green"
-                              : ""
-                          }`}
-                        >
-                          {answer.replies.map((reply, index) => {
-                            const replyImages = parseImages(reply.images);
+                        {answer.replies && answer.replies.length > 0 && (
+                          <div
+                            className={`space-y-4 ${answer.replies.length > 3
+                                ? "max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-smoke-dark scrollbar-thumb-smoke-light hover:scrollbar-thumb-alien-green"
+                                : ""
+                              }`}
+                          >
+                            {answer.replies.map((reply, index) => {
+                              const replyImages = parseImages(reply.images);
 
-                            return (
-                              <div key={reply.id} className="relative">
-                                <div className="bg-smoke-dark/50 border border-smoke-light/20 rounded-lg p-4 hover:bg-smoke-dark/70 hover:border-smoke-light/40 transition-all duration-300">
-                                  <div className="flex items-start space-x-4">
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0">
-                                      {/* Reply Header */}
-                                      <div className="flex items-center space-x-3 mb-2">
-                                        <div className="flex items-center space-x-2 text-xs text-gray-400">
-                                          <User size={12} />
-                                          <span className="font-medium text-gray-300">
-                                            {reply.author_username}
-                                          </span>
-                                        </div>
-                                      </div>
-
-                                      {/* Reply Content */}
-                                      <div className="prose prose-invert max-w-none mb-3">
-                                        <p className="text-gray-300 text-sm whitespace-pre-wrap leading-relaxed">
-                                          {reply.content}
-                                        </p>
-                                      </div>
-
-                                      {/* Images */}
-                                      {replyImages.length > 0 && (
-                                        <div className="grid grid-cols-2 gap-2 mb-3">
-                                          {replyImages.map(
-                                            (imageUrl, index) => (
-                                              <img
-                                                key={index}
-                                                src={
-                                                  imageUrl || "/placeholder.svg"
-                                                }
-                                                alt={`Reply image ${index + 1}`}
-                                                className="w-full h-20 object-cover rounded border border-smoke-light cursor-pointer hover:opacity-80 transition-opacity duration-300"
-                                                onClick={() =>
-                                                  window.open(
-                                                    imageUrl,
-                                                    "_blank"
-                                                  )
-                                                }
-                                              />
-                                            )
-                                          )}
-                                        </div>
-                                      )}
-
-                                      {/* Reply Actions */}
-                                      {currentUser && (
-                                        <div className="flex justify-end">
+                              return (
+                                <div key={reply.id} className="relative">
+                                  <div className="bg-smoke-dark/50 border border-smoke-light/20 rounded-lg p-4 hover:bg-smoke-dark/70 hover:border-smoke-light/40 transition-all duration-300">
+                                    <div className="flex items-start space-x-4">
+                                      {/* Content */}
+                                      <div className="flex-1 min-w-0">
+                                        {/* Reply Header */}
+                                        <div className="flex items-center space-x-3 mb-2">
+                                          <div className="flex items-center space-x-2 text-xs text-gray-400">
+                                            <User size={12} />
+                                            <span className="font-medium text-gray-300">
+                                              {reply.author_username}
+                                            </span>
+                                          </div>
                                           <button
-                                            onClick={() =>
-                                              handleReplyClick(
-                                                answer.id,
-                                                reply.author_username
-                                              )
-                                            }
-                                            className="flex items-center space-x-1 text-xs text-gray-400 hover:text-alien-green transition-colors duration-300 px-2 py-1 rounded hover:bg-smoke-light/20"
+                                            onClick={() => handleReportClick("reply", reply.id.toString())}
+                                            className="text-gray-500 hover:text-red-400 transition-colors ml-auto"
+                                            title="Report Reply"
                                           >
-                                            <Reply size={12} />
-                                            <span>Reply</span>
+                                            <Flag size={12} />
                                           </button>
                                         </div>
-                                      )}
+
+                                        {/* Reply Content */}
+                                        <div className="prose prose-invert max-w-none mb-3">
+                                          <p className="text-gray-300 text-sm whitespace-pre-wrap leading-relaxed">
+                                            {reply.content}
+                                          </p>
+                                        </div>
+
+                                        {/* Images */}
+                                        {replyImages.length > 0 && (
+                                          <div className="grid grid-cols-2 gap-2 mb-3">
+                                            {replyImages.map(
+                                              (imageUrl, index) => (
+                                                <img
+                                                  key={index}
+                                                  src={
+                                                    imageUrl || "/placeholder.svg"
+                                                  }
+                                                  alt={`Reply image ${index + 1}`}
+                                                  className="w-full h-20 object-cover rounded border border-smoke-light cursor-pointer hover:opacity-80 transition-opacity duration-300"
+                                                  onClick={() =>
+                                                    window.open(
+                                                      imageUrl,
+                                                      "_blank"
+                                                    )
+                                                  }
+                                                />
+                                              )
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {/* Reply Actions */}
+                                        {currentUser && (
+                                          <div className="flex justify-end">
+                                            <button
+                                              onClick={() =>
+                                                handleReplyClick(
+                                                  answer.id,
+                                                  reply.author_username
+                                                )
+                                              }
+                                              className="flex items-center space-x-1 text-xs text-gray-400 hover:text-alien-green transition-colors duration-300 px-2 py-1 rounded hover:bg-smoke-light/20"
+                                            >
+                                              <Reply size={12} />
+                                              <span>Reply</span>
+                                            </button>
+                                          </div>
+                                        )}
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {replyingTo === answer.id && (
+                          <div
+                            className={`${answer.replies && answer.replies.length > 0
+                                ? "mt-4 pt-4 border-t border-smoke-light/20"
+                                : ""
+                              }`}
+                          >
+                            <div className="bg-smoke-light/5 border-2 border-alien-green/30 rounded-lg p-4">
+                              <div className="flex items-center space-x-2 mb-3 text-sm text-alien-green">
+                                <Reply size={14} />
+                                <span>
+                                  Replying
+                                  {replyToUsername
+                                    ? ` to @${replyToUsername}`
+                                    : ""}
+                                </span>
                               </div>
-                            );
-                          })}
-                        </div>
-                      )}
 
-                      {replyingTo === answer.id && (
-                        <div
-                          className={`${
-                            answer.replies && answer.replies.length > 0
-                              ? "mt-4 pt-4 border-t border-smoke-light/20"
-                              : ""
-                          }`}
-                        >
-                          <div className="bg-smoke-light/5 border-2 border-alien-green/30 rounded-lg p-4">
-                            <div className="flex items-center space-x-2 mb-3 text-sm text-alien-green">
-                              <Reply size={14} />
-                              <span>
-                                Replying
-                                {replyToUsername
-                                  ? ` to @${replyToUsername}`
-                                  : ""}
-                              </span>
-                            </div>
+                              <form
+                                onSubmit={handleSubmitReply}
+                                className="space-y-4"
+                              >
+                                <MentionInput
+                                  value={replyContent}
+                                  onChange={setReplyContent}
+                                  placeholder="Write your reply..."
+                                  className="alien-input w-full h-20 resize-none"
+                                  rows={3}
+                                  replyToUsername={replyToUsername}
+                                  onKeyDown={(e) => {
+                                    if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && !submittingReply) {
+                                      e.preventDefault();
+                                      submitReplyAction();
+                                    }
+                                  }}
+                                />
 
-                            <form
-                              onSubmit={handleSubmitReply}
-                              className="space-y-4"
-                            >
-                              <MentionInput
-                                value={replyContent}
-                                onChange={setReplyContent}
-                                placeholder="Write your reply..."
-                                className="alien-input w-full h-20 resize-none"
-                                rows={3}
-                                replyToUsername={replyToUsername}
-                                onKeyDown={(e) => {
-                                  if ((e.ctrlKey || e.metaKey) && e.key === "Enter" && !submittingReply) {
-                                    e.preventDefault();
-                                    submitReplyAction();
-                                  }
-                                }}
-                              />
-
-                              {/* Image Upload for Reply */}
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                  <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileSelect}
-                                    accept="image/*"
-                                    className="hidden"
-                                  />
-                                  {/* <button
+                                {/* Image Upload for Reply */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-4">
+                                    <input
+                                      type="file"
+                                      ref={fileInputRef}
+                                      onChange={handleFileSelect}
+                                      accept="image/*"
+                                      className="hidden"
+                                    />
+                                    {/* <button
                                   type="button"
                                   onClick={() => fileInputRef.current?.click()}
                                   disabled={
@@ -1152,69 +1208,79 @@ const DiscussionDetailPage: React.FC = () => {
                                     </>
                                   )}
                                 </button> */}
-                                </div>
-
-                                {/* Form Actions */}
-                                <div className="flex flex-col space-y-2">
-                                  <p className="text-xs text-gray-500">
-                                    Tip: Press <kbd className="px-1.5 py-0.5 text-xs bg-smoke-light rounded border border-smoke-dark">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-xs bg-smoke-light rounded border border-smoke-dark">Enter</kbd> to submit
-                                  </p>
-                                  <div className="flex items-center space-x-2 justify-end">
-                                    <button
-                                      type="button"
-                                      onClick={handleCancelReply}
-                                      className="px-3 py-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-300"
-                                    >
-                                      Cancel
-                                    </button>
-                                    <button
-                                      type="submit"
-                                      disabled={
-                                        !replyContent.trim() || submittingReply
-                                      }
-                                      className="px-4 py-2 bg-alien-green text-black text-sm font-medium rounded hover:bg-alien-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
-                                    >
-                                      {submittingReply
-                                        ? "Posting..."
-                                        : "Post Reply"}
-                                    </button>
                                   </div>
-                                </div>
-                              </div>
 
-                              {/* Reply Image Preview */}
-                              {replyImages.length > 0 && (
-                                <div className="grid grid-cols-2 gap-2">
-                                  {replyImages.map((imageUrl, index) => (
-                                    <div key={index} className="relative group">
-                                      <img
-                                        src={imageUrl || "/placeholder.svg"}
-                                        alt={`Reply upload ${index + 1}`}
-                                        className="w-full h-20 object-cover rounded border border-smoke-light"
-                                      />
+                                  {/* Form Actions */}
+                                  <div className="flex flex-col space-y-2">
+                                    <p className="text-xs text-gray-500">
+                                      Tip: Press <kbd className="px-1.5 py-0.5 text-xs bg-smoke-light rounded border border-smoke-dark">Ctrl</kbd> + <kbd className="px-1.5 py-0.5 text-xs bg-smoke-light rounded border border-smoke-dark">Enter</kbd> to submit
+                                    </p>
+                                    <div className="flex items-center space-x-2 justify-end">
                                       <button
                                         type="button"
-                                        onClick={() => removeReplyImage(index)}
-                                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
+                                        onClick={handleCancelReply}
+                                        className="px-3 py-2 text-sm text-gray-400 hover:text-gray-300 transition-colors duration-300"
                                       >
-                                        ×
+                                        Cancel
+                                      </button>
+                                      <button
+                                        type="submit"
+                                        disabled={
+                                          !replyContent.trim() || submittingReply
+                                        }
+                                        className="px-4 py-2 bg-alien-green text-black text-sm font-medium rounded hover:bg-alien-green/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                                      >
+                                        {submittingReply
+                                          ? "Posting..."
+                                          : "Post Reply"}
                                       </button>
                                     </div>
-                                  ))}
+                                  </div>
                                 </div>
-                              )}
-                            </form>
+
+                                {/* Reply Image Preview */}
+                                {replyImages.length > 0 && (
+                                  <div className="grid grid-cols-2 gap-2">
+                                    {replyImages.map((imageUrl, index) => (
+                                      <div key={index} className="relative group">
+                                        <img
+                                          src={imageUrl || "/placeholder.svg"}
+                                          alt={`Reply upload ${index + 1}`}
+                                          className="w-full h-20 object-cover rounded border border-smoke-light"
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={() => removeReplyImage(index)}
+                                          className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-red-600"
+                                        >
+                                          ×
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </form>
+                            </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                        )}
+                      </div>
+                    )}
                 </div>
               );
             })}
           </div>
         </div>
       </div>
+
+      <ReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => {
+          setIsReportModalOpen(false);
+          setReportTarget(null);
+        }}
+        onSubmit={handleReportSubmit}
+        isLoading={isSubmittingReport}
+      />
     </>
   );
 };
