@@ -1,13 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Upload, FileText, BookOpen, AlertCircle } from "lucide-react";
+import { Upload, FileText, BookOpen } from "lucide-react";
 import {
-  generatePDFUploadUrl,
-  generateEbookUploadUrl,
   storePDFMetadata,
   storeEbookMetadata,
   uploadToVercelBlob,
 } from "../../utils/api";
+import toast from "react-hot-toast";
 
 const UploadForm: React.FC = () => {
   const [uploadType, setUploadType] = useState<"pdf" | "ebook">("pdf");
@@ -19,32 +18,27 @@ const UploadForm: React.FC = () => {
   const [department, setDepartment] = useState("");
   const [yearOfStudy, setYearOfStudy] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       if (selectedFile.type !== "application/pdf") {
-        setError("Please select a PDF file");
+        toast.error("Please select a PDF file");
         return;
       }
       setFile(selectedFile);
-      setError("");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      setError("Please select a file");
+      toast.error("Please select a file");
       return;
     }
 
     setLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
       // Step 1: Upload file directly to Vercel Blob
@@ -69,7 +63,7 @@ const UploadForm: React.FC = () => {
         await storeEbookMetadata(metadata);
       }
 
-      setSuccess(`${uploadType.toUpperCase()} uploaded successfully!`);
+      toast.success(`${uploadType.toUpperCase()} uploaded successfully!`);
 
       // Reset form
       setFile(null);
@@ -85,7 +79,7 @@ const UploadForm: React.FC = () => {
         navigate(uploadType === "pdf" ? "/pdfs" : "/ebooks");
       }, 2000);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Upload failed");
+      toast.error(err.userMessage || err.response?.data?.error || "Upload failed");
     } finally {
       setLoading(false);
     }
@@ -117,11 +111,10 @@ const UploadForm: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setUploadType("pdf")}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${
-                    uploadType === "pdf"
-                      ? "border-alien-green bg-alien-green/10 text-alien-green"
-                      : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
-                  }`}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${uploadType === "pdf"
+                    ? "border-alien-green bg-alien-green/10 text-alien-green"
+                    : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
+                    }`}
                 >
                   <FileText size={20} />
                   <span>PDF</span>
@@ -129,11 +122,10 @@ const UploadForm: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setUploadType("ebook")}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${
-                    uploadType === "ebook"
-                      ? "border-alien-green bg-alien-green/10 text-alien-green"
-                      : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
-                  }`}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-300 ${uploadType === "ebook"
+                    ? "border-alien-green bg-alien-green/10 text-alien-green"
+                    : "border-smoke-light text-gray-400 hover:border-alien-green hover:text-alien-green"
+                    }`}
                 >
                   <BookOpen size={20} />
                   <span>E-book</span>
@@ -258,19 +250,6 @@ const UploadForm: React.FC = () => {
                 <option value="5">5th Year</option>
               </select>
             </div>
-
-            {error && (
-              <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg flex items-center">
-                <AlertCircle className="mr-2" size={20} />
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-900/50 border border-green-500 text-green-200 px-4 py-3 rounded-lg">
-                {success}
-              </div>
-            )}
 
             <button
               type="submit"

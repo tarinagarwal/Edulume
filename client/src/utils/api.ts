@@ -72,6 +72,39 @@ api.interceptors.request.use(
   }
 );
 
+// Error handling helpers
+export const isNetworkError = (error: any) => {
+  return (
+    !error.response &&
+    error.code !== "ECONNABORTED" &&
+    error.message !== "canceled"
+  );
+};
+
+export const isTimeoutError = (error: any) => {
+  return error.code === "ECONNABORTED" || error.message?.includes("timeout");
+};
+
+export function getRetrySuggestion(error: any): string | undefined {
+  const status = error?.response?.status;
+  if (isNetworkError(error)) {
+    return "Check your internet connection, then try again.";
+  }
+  if (isTimeoutError(error)) {
+    return "The request timed out. Retry in a moment.";
+  }
+  if (status === 429) {
+    return "You're doing this too often. Please wait and retry.";
+  }
+  if (status && status >= 500) {
+    return "Server issue. Please retry shortly or contact support.";
+  }
+  if (status === 401) {
+    return "Log in and then retry the action.";
+  }
+  return "Please try again in a moment.";
+}
+
 // Add response interceptor to handle 401 errors globally
 api.interceptors.response.use(
   (response) => {
@@ -106,6 +139,44 @@ api.interceptors.response.use(
         baseURL: error.config?.baseURL,
       });
     }
+
+    const status = error.response?.status;
+    const serverMessage = error.response?.data?.message || error.response?.data?.error;
+    const rawMessage = error.message;
+
+    let title = "Something went wrong";
+    let message = serverMessage || rawMessage || "An unexpected error occurred. Please try again.";
+    
+    if (isNetworkError(error)) {
+      title = "Connection Problem";
+      message = "Couldn't connect to server. Check your internet connection.";
+    } else if (isTimeoutError(error)) {
+      title = "Request Timed Out";
+      message = "The request took too long. Please try again.";
+    } else if (status === 401) {
+      title = "Unauthorized";
+      message = "Please log in to continue.";
+    } else if (status === 403) {
+      title = "Access Denied";
+      message = "You don't have permission to perform this action.";
+    } else if (status === 404) {
+      title = "Not Found";
+      message = "The requested resource wasn't found.";
+    } else if (status === 429) {
+      title = "Too Many Requests";
+      message = serverMessage || "You're doing this too often. Please wait and retry.";
+    } else if (status && status >= 500) {
+      title = "Server Error";
+      message = "The server hit a snag. Please try again.";
+    } else if (!status && serverMessage) {
+      // Generic server-sent message for non-HTTP cases
+      title = "Error";
+      message = serverMessage;
+    }
+
+    error.userTitle = title;
+    error.userMessage = message;
+    error.retrySuggestion = getRetrySuggestion(error);
 
     if (error.response?.status === 401) {
       console.log("🔐 401 Unauthorized - Clearing auth state");

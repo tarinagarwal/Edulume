@@ -62,24 +62,61 @@ We're excited to be part of **Social Winter of Code 2026**! This is a great oppo
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (Client)                         │
-│         React 19 + TypeScript + Tailwind CSS + Vite         │
-│                    Deployed on Vercel                        │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                  Backend (Node.js Server)                    │
-│          Express.js + Prisma + MongoDB + Socket.io          │
-│                    Deployed on Fly.io                        │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│               AI Backend (Python FastAPI)                    │
-│          FastAPI + LangChain + Pinecone + Groq              │
-│                    Deployed on Fly.io                        │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    %% Define Styles
+    classDef frontend fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef backend fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef aibackend fill:#f3e5f5,stroke:#4a148c,stroke-width:2px;
+    classDef db fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px;
+    classDef external fill:#eee,stroke:#333,stroke-width:2px;
+
+    subgraph Client ["🖥️ Frontend (Vercel)"]
+        direction TB
+        React["React 19 + Vite + Tailwind CSS"]:::frontend
+    end
+
+    subgraph Server ["⚙️ Node.js Backend (Fly.io)"]
+        direction TB
+        API["Express.js + Socket.io"]:::backend
+        Prisma["Prisma ORM"]:::backend
+    end
+
+    subgraph AI ["🤖 AI Python Backend (Fly.io)"]
+        direction TB
+        FastAPI["FastAPI Server + LangChain"]:::aibackend
+        PyPDF["PDF Processor"]:::aibackend
+    end
+
+    subgraph Data ["💾 Databases & Storage"]
+        direction LR
+        Mongo[("MongoDB Atlas")]:::db
+        Redis[("Redis Cloud")]:::db
+        Pinecone[("Pinecone Vector DB")]:::db
+        Blob["Cloud Storage (R2/Blob)"]:::db
+    end
+
+    subgraph Ext ["☁️ External APIs"]
+        direction LB
+        Groq["Groq LLM API"]:::external
+        SMTP["SMTP (Emails)"]:::external
+    end
+
+    %% Core Connections
+    Client <-->|REST & WebSockets| API
+    Client -.->|Direct Uploads| Blob
+    
+    API --- Prisma
+    Prisma <-->|CRUD Operations| Mongo
+    API <-->|Session/Cache| Redis
+    API -->|Dispatch| SMTP
+    
+    API <-->|HTTP Queries| FastAPI
+    
+    FastAPI --- PyPDF
+    FastAPI <-->|Store/Search Vectors| Pinecone
+    PyPDF -.->|Process Docs| Blob
+    FastAPI <-->|LLM Context/Prompts| Groq
 ```
 
 ---

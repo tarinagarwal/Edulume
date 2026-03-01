@@ -10,10 +10,15 @@ const initRedis = async () => {
 
   try {
     // Use Redis URL from environment or default to local Redis
-    const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
+    const redisUrl = process.env.REDIS_URL;
+    if (redisUrl === "disabled") {
+      console.log("⚠️  Redis disabled by REDIS_URL=disabled in environment");
+      return null;
+    }
+    const finalUrl = redisUrl || "redis://localhost:6379";
 
     redisClient = createClient({
-      url: redisUrl,
+      url: finalUrl,
       socket: {
         reconnectStrategy: (retries) => {
           if (retries > 10) {

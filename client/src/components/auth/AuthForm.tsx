@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, UserPlus, LogIn, Mail, Shield } from "lucide-react";
 import { login, signup, sendOTP } from "../../utils/api";
+import toast from "react-hot-toast";
 
 interface AuthFormProps {
   onAuthChange: () => void;
@@ -18,27 +19,23 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
   const handleSendOTP = async () => {
     if (!email) {
-      setError("Please enter your email first");
+      toast.error("Please enter your email first");
       return;
     }
 
     setOtpLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
       const response = await sendOTP(email, "signup");
-      setSuccess(response.message);
+      toast.success(response.message);
       setOtpSent(true);
       setShowOTPField(true);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to send OTP");
+      toast.error(err.userMessage || err.response?.data?.error || "Failed to send OTP");
     } finally {
       setOtpLoading(false);
     }
@@ -47,8 +44,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
       const authResponse = isLogin
@@ -59,7 +54,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
 
       // Set success message for signup
       if (!isLogin) {
-        setSuccess("Account created successfully! Welcome to Edulume!");
+        toast.success("Account created successfully! Welcome to Edulume!");
       }
 
       // Notify parent component to re-check auth status
@@ -74,7 +69,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
       ); // Shorter delay for signup
     } catch (err: any) {
       console.error("❌ Authentication failed:", err);
-      setError(err.response?.data?.error || err.message || "An error occurred");
+      toast.error(err.userMessage || err.response?.data?.error || err.message || "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -225,18 +220,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
                 />
               </div>
             </div>
-
-            {error && (
-              <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-900/50 border border-green-500 text-green-200 px-4 py-3 rounded-lg">
-                {success}
-              </div>
-            )}
 
             <button
               type="submit"

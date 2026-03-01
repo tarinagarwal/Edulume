@@ -2,29 +2,26 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { User, ArrowLeft } from "lucide-react";
 import { changeUsername } from "../../utils/api";
+import toast from "react-hot-toast";
 
 export default function ChangeUsernameForm() {
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
       await changeUsername(username);
-      setSuccess("Username changed successfully!");
+      toast.success("Username changed successfully!");
       setTimeout(() => {
         navigate("/");
         window.location.reload(); // Refresh to update navbar
       }, 1500);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to change username");
+      toast.error(err.userMessage || err.response?.data?.error || "Failed to change username");
     } finally {
       setLoading(false);
     }
@@ -78,18 +75,6 @@ export default function ChangeUsernameForm() {
                 At least 3 characters, letters and numbers only
               </p>
             </div>
-
-            {error && (
-              <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
-                {error}
-              </div>
-            )}
-
-            {success && (
-              <div className="bg-green-900/50 border border-green-500 text-green-200 px-4 py-3 rounded-lg">
-                {success}
-              </div>
-            )}
 
             <button
               type="submit"

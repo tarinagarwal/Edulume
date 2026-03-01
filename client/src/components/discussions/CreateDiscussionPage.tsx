@@ -45,7 +45,7 @@ const CreateDiscussionPage: React.FC = () => {
       const result = await uploadImage(file, `discussion-${Date.now()}`);
       setImages([...images, result.url]);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to upload image");
+      setError(err.userMessage || err.response?.data?.error || "Failed to upload image");
     } finally {
       setImageUploading(false);
     }
@@ -112,7 +112,7 @@ const CreateDiscussionPage: React.FC = () => {
         navigate(`/discussions/${result.id}`);
       }, 500);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to create discussion");
+      setError(err.userMessage || err.response?.data?.error || "Failed to create discussion");
     } finally {
       setLoading(false);
     }
