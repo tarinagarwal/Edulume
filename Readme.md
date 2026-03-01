@@ -62,24 +62,41 @@ We're excited to be part of **Social Winter of Code 2026**! This is a great oppo
 
 ## 🏗️ Architecture
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Frontend (Client)                         │
-│         React 19 + TypeScript + Tailwind CSS + Vite         │
-│                    Deployed on Vercel                        │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                  Backend (Node.js Server)                    │
-│          Express.js + Prisma + MongoDB + Socket.io          │
-│                    Deployed on Fly.io                        │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│               AI Backend (Python FastAPI)                    │
-│          FastAPI + LangChain + Pinecone + Groq              │
-│                    Deployed on Fly.io                        │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    Client("📱 React Frontend<br/>(Vercel)")
+
+    subgraph Backends ["Backends (Fly.io)"]
+        NodeAPI("⚙️ Node.js Backend<br/>(Express.js, Socket.io)")
+        FastAPI("🧠 AI Backend<br/>(Python, FastAPI)")
+    end
+
+    subgraph Databases ["Databases & Cache"]
+        Mongo[("🍃 MongoDB Atlas<br/>(Primary DB)")]
+        Pinecone[("🌲 Pinecone<br/>(Vector DB)")]
+        Redis[("⚡ Redis Cloud<br/>(Cache & WebSockets)")]
+    end
+
+    subgraph Services ["External APIs & Services"]
+        Groq("🤖 Groq API<br/>(LLM / Content Gen)")
+        OpenAI("💡 OpenAI API<br/>(Embeddings)")
+        Storage("☁️ Cloud Storage<br/>(Cloudinary / R2)")
+        Email("✉️ SMTP / NodeMailer<br/>(Emails)")
+    end
+
+    %% Connections
+    Client <-->|"REST API & WebSockets"| NodeAPI
+    Client <-->|"PDF Uploads & RAG"| FastAPI
+
+    NodeAPI <-->|"CRUD"| Mongo
+    NodeAPI <-->|"Cache/PubSub"| Redis
+    NodeAPI --->|"Course Outlines"| Groq
+    NodeAPI --->|"Uploads"| Storage
+    NodeAPI --->|"Notifications"| Email
+
+    FastAPI <-->|"Vector Search"| Pinecone
+    FastAPI --->|"Embeddings"| OpenAI
+    FastAPI --->|"AI Completions"| Groq
 ```
 
 ---
