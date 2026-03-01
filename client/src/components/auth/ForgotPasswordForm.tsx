@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Shield, Lock, ArrowLeft } from "lucide-react";
 import { forgotPassword, resetPassword } from "../../utils/api";
+import toast from "react-hot-toast";
 
 const ForgotPasswordForm: React.FC = () => {
   const [step, setStep] = useState<"email" | "otp" | "password">("email");
@@ -10,22 +11,18 @@ const ForgotPasswordForm: React.FC = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
       const response = await forgotPassword(email);
-      setSuccess(response.message);
+      toast.success(response.message);
       setStep("otp");
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to send reset code");
+      toast.error(err.userMessage || err.response?.data?.error || "Failed to send reset code");
     } finally {
       setLoading(false);
     }
@@ -35,27 +32,25 @@ const ForgotPasswordForm: React.FC = () => {
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+      toast.error("Passwords do not match");
       return;
     }
 
     if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters long");
+      toast.error("Password must be at least 6 characters long");
       return;
     }
 
     setLoading(true);
-    setError("");
-    setSuccess("");
 
     try {
       const response = await resetPassword(email, otp, newPassword);
-      setSuccess(response.message);
+      toast.success(response.message);
       setTimeout(() => {
         navigate("/auth");
       }, 2000);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to reset password");
+      toast.error(err.userMessage || err.response?.data?.error || "Failed to reset password");
     } finally {
       setLoading(false);
     }
@@ -136,7 +131,7 @@ const ForgotPasswordForm: React.FC = () => {
       <button
         type="button"
         onClick={() =>
-          handleSendOTP({ preventDefault: () => {} } as React.FormEvent)
+          handleSendOTP({ preventDefault: () => { } } as React.FormEvent)
         }
         disabled={loading}
         className="w-full text-sm text-gray-400 hover:text-alien-green transition-colors duration-300"
@@ -241,18 +236,6 @@ const ForgotPasswordForm: React.FC = () => {
           {step === "email" && renderEmailStep()}
           {step === "otp" && renderOTPStep()}
           {step === "password" && renderPasswordStep()}
-
-          {error && (
-            <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg mt-6">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div className="bg-green-900/50 border border-green-500 text-green-200 px-4 py-3 rounded-lg mt-6">
-              {success}
-            </div>
-          )}
 
           <div className="mt-6 text-center">
             <Link

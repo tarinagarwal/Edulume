@@ -223,11 +223,12 @@ const App: React.FC<AppProps> = () => {
         gutter={12}
         containerStyle={{ top: 40 }}
         toastOptions={{
+          duration: 4000,
           style: {
             fontSize: "14px",
             maxWidth: "500px",
             padding: "12px 20px",
-            backgroundColor: "#1e1e1e", 
+            backgroundColor: "#1e1e1e",
             color: "#fff",
             border: "2px solid #00cc33",
             borderRadius: "12px",
