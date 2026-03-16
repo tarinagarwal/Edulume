@@ -3,7 +3,9 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import prisma from "../db.js";
 import { generateOTP, sendOTPEmail, isOTPEnabled } from "../utils/email.js";
+import { signupSchema, resetPasswordSchema } from "../schemas/auth.schema. js";
 import passport from "../config/passport.js";
+
 
 const router = express.Router();
 
@@ -141,23 +143,14 @@ router.post("/signup", async (req, res) => {
 
     console.log("🔐 Signup attempt:", { username, email });
 
-    if (!username || !email || !password) {
-      return res
-        .status(400)
-        .json({ error: "Username, email, and password are required" });
-    }
-
-    if (username.length < 3) {
-      return res
-        .status(400)
-        .json({ error: "Username must be at least 3 characters" });
-    }
-
-    if (password.length < 6) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 6 characters long" });
-    }
+    // Validate request body with Zod schema
+try {
+  signupSchema.parse({ username, email, password, otp });
+} catch (zodError) {
+  // Format Zod errors into user-friendly messages
+  const errors = zodError.errors.map(err => err.message).join('; ');
+  return res.status(400).json({ error: errors });
+}
 
     // Verify OTP if enabled
     if (isOTPEnabled()) {
@@ -342,17 +335,14 @@ router.post("/reset-password", async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
 
-    if (!email || !otp || !newPassword) {
-      return res
-        .status(400)
-        .json({ error: "Email, OTP, and new password are required" });
-    }
-
-    if (newPassword.length < 6) {
-      return res
-        .status(400)
-        .json({ error: "Password must be at least 6 characters long" });
-    }
+    // Validate request body with Zod schema
+try {
+  resetPasswordSchema.parse({ email, otp, newPassword });
+} catch (zodError) {
+  // Format Zod errors into user-friendly messages
+  const errors = zodError.errors.map(err => err.message).join('; ');
+  return res.status(400).json({ error: errors });
+}
 
     // Verify OTP
     const otpRecord = await prisma.otp.findFirst({
