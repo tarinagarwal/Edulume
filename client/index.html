@@ -55,6 +55,27 @@
       content="https://edulume.site/og-image.png"
     />
 
+    <style>
+      .lcp-hero {
+        max-width: 960px;
+        margin: 4rem auto;
+        padding: 0 1.5rem;
+      }
+     .lcp-title {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: clamp(2.2rem, 5vw, 3.2rem);
+        font-weight: 800;
+        line-height: 1.1;
+        color: #00cc33;
+      }
+
+      .lcp-sub {
+        margin-top: 1rem;
+        font-size: 1.1rem;
+        color: #d1d5db;
+        max-width: 720px;
+      }
+    </style>
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
       {
@@ -83,13 +104,27 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://res.cloudinary.com">
+    <link rel="preconnect" href="https://edulume.site">
+    <link rel="preconnect" href="https://fly.io">
     <link
-      href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap"
-      rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap"
+    rel="stylesheet"
     />
+
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <section id="lcp-static" class="lcp-hero">
+        <h1 class="lcp-title">
+          Master Tech Skills with AI-Powered Learning
+        </h1>
+        <p class="lcp-sub">
+          Your complete learning platform with AI-powered courses,
+          structured roadmaps, and a growing developer community.
+        </p>
+      </section>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
