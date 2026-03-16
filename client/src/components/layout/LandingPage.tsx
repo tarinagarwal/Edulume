@@ -127,7 +127,7 @@ const LandingPage: React.FC = () => {
         </section>
 
         {/* Main Features Section */}
-        <section className="py-12 sm:py-20 px-4 bg-gradient-to-b from-transparent to-gray-900/20">
+        <section className="pt-12 sm:pt-20 pb-6 sm:pb-10 bg-gradient-to-b from-transparent to-gray-900/20">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-12 sm:mb-16">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-alien font-bold mb-4 glow-text">
@@ -348,7 +348,7 @@ const LandingPage: React.FC = () => {
         </section>
 
         {/* Why Choose Section */}
-        <section className="py-12 sm:py-20 px-4">
+        <section className="pt-6 sm:pt-10 pb-12 sm:pb-20 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12 sm:mb-16">
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-alien font-bold mb-4 glow-text">

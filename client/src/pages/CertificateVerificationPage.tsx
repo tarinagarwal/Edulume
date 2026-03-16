@@ -161,10 +161,10 @@ const CertificateVerificationPage: React.FC = () => {
         description="Verify the authenticity of Edulume certificates easily and securely."
         canonicalUrl="https://edulume.site/verify-certificate"
     />
-    <div className="min-h-screen py-8">
+    <div className="min-h-screen py-4 md:py-6">
       <div className="max-w-4xl mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-4">
           <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
               className="w-10 h-10 text-white"
@@ -190,8 +190,8 @@ const CertificateVerificationPage: React.FC = () => {
 
         {/* Certificate Details */}
         {certificateDetails && (
-          <div className="bg-gray-800 rounded-lg p-6 mb-6">
-            <h2 className="text-xl font-semibold text-white mb-6 border-b border-gray-700 pb-2">
+          <div className="bg-gray-800 rounded-lg p-6 mb-4">
+            <h2 className="text-xl font-semibold text-white mb-4 border-b border-gray-700 pb-2">
               Certificate Details
             </h2>
 
