@@ -258,6 +258,7 @@ Key environment variables needed:
 | ------------------------- | ------------------------- |
 | `DATABASE_URL`            | MongoDB connection string |
 | `JWT_SECRET`              | JWT signing secret        |
+| `CSRF_SECRET`             | CSRF token signing secret |
 | `GROQ_API_KEY`            | Groq API for AI features  |
 | `OPENAI_API_KEY`          | OpenAI for embeddings     |
 | `PINECONE_API_KEY`        | Pinecone vector database  |

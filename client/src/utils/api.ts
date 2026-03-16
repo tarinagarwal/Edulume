@@ -44,7 +44,22 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true, // Enable cookies for CSRF
 });
+
+// Store CSRF token
+let csrfToken: string | null = null;
+
+// Fetch CSRF token from server
+export const initCSRF = async (): Promise<void> => {
+  try {
+    const response = await api.get("/csrf-token");
+    csrfToken = response.data.csrfToken;
+    console.log("✅ CSRF token initialized");
+  } catch (error) {
+    console.error("❌ Failed to fetch CSRF token:", error);
+  }
+};
 
 // Request interceptor for debugging
 api.interceptors.request.use(
@@ -53,6 +68,15 @@ api.interceptors.request.use(
     const token = getAuthToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    // Add CSRF token for state-changing requests
+    if (
+      csrfToken &&
+      config.method &&
+      ["post", "put", "delete", "patch"].includes(config.method.toLowerCase())
+    ) {
+      config.headers["x-csrf-token"] = csrfToken;
     }
 
     // Debug logging for courses API
@@ -96,7 +120,7 @@ api.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
     if (!isDev) {
       console.error("❌ API Error:", {
         status: error.response?.status,
@@ -105,6 +129,25 @@ api.interceptors.response.use(
         message: error.message,
         baseURL: error.config?.baseURL,
       });
+    }
+
+    // Handle CSRF token errors
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.message?.includes("CSRF") &&
+      !error.config._retry
+    ) {
+      error.config._retry = true;
+
+      // Refresh CSRF token
+      await initCSRF();
+
+      // Retry the original request
+      if (csrfToken) {
+        error.config.headers["x-csrf-token"] = csrfToken;
+      }
+
+      return api(error.config);
     }
 
     if (error.response?.status === 401) {

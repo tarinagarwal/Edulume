@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { doubleCsrf } from "csrf-csrf";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -39,6 +40,32 @@ initRedis().catch((err) => {
 
 const app = express();
 const server = createServer(app);
+
+// CSRF Configuration
+const csrfProtection = doubleCsrf({
+  getSecret: () => {
+    if (!process.env.CSRF_SECRET) {
+      throw new Error("CSRF_SECRET environment variable is not configured. Please set it in your .env file.");
+    }
+    return process.env.CSRF_SECRET;
+  },
+  cookieName: "x-csrf-token",
+  cookieOptions: {
+    httpOnly: true,
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 3600000, // 1 hour
+  },
+  size: 64,
+  ignoredMethods: ["GET", "HEAD", "OPTIONS"],
+  getSessionIdentifier: (req) => {
+    // Use session ID or user ID if available, otherwise use a default
+    return req.session?.id || req.user?.id || "anonymous";
+  },
+});
+
+const generateToken = csrfProtection.generateCsrfToken; // Correct function name
+const doubleCsrfProtection = csrfProtection.doubleCsrfProtection;
 
 // Determine allowed origins based on environment
 const getAllowedOrigins = () => {
@@ -80,6 +107,17 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // Initialize Passport
 app.use(passport.initialize());
 
+// CSRF token endpoint - clients fetch token from here
+app.get("/api/csrf-token", (req, res) => {
+  try {
+    const token = generateToken(req, res);
+    res.json({ csrfToken: token });
+  } catch (error) {
+    console.error("CSRF token generation error:", error);
+    res.status(500).json({ error: "Failed to generate CSRF token" });
+  }
+});
+
 // Debug middleware to log all requests
 app.use((req, res, next) => {
   console.log(`🔍 ${req.method} ${req.path}`);
@@ -90,6 +128,33 @@ app.use((req, res, next) => {
 app.use((req, res, next) => {
   req.io = io;
   next();
+});
+
+// Apply CSRF protection to all API routes (except specific public endpoints)
+app.use("/api", (req, res, next) => {
+  // Skip CSRF validation for:
+  // 1. Safe methods (GET, HEAD, OPTIONS - already ignored by default)
+  // 2. CSRF token endpoint itself
+  // 3. Public authentication endpoints
+  const publicPaths = [
+    "/csrf-token",
+    "/auth/login",
+    "/auth/signup",
+    "/auth/send-otp",
+    "/auth/verify-otp",
+    "/auth/forgot-password",
+    "/auth/reset-password",
+    "/auth/google",
+    "/auth/google/callback",
+    "/health",
+  ];
+
+  if (publicPaths.some((path) => req.path === path)) {
+    return next();
+  }
+
+  // Apply CSRF protection
+  doubleCsrfProtection(req, res, next);
 });
 
 // Routes
@@ -144,6 +209,15 @@ app.get("/api/health", async (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+  // Handle CSRF token errors
+  if (err.code === "EBADCSRFTOKEN") {
+    console.log("❌ CSRF validation failed:", req.method, req.path);
+    return res.status(403).json({
+      error: "Invalid or missing CSRF token",
+      code: "EBADCSRFTOKEN",
+    });
+  }
+
   console.error("Unhandled error:", err);
   res.status(500).json({ error: "Internal server error" });
 });
