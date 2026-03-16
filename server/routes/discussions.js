@@ -396,29 +396,31 @@ router.post("/:id/answers", authenticateToken, async (req, res) => {
 
     // Handle mentions
     const mentions = extractMentions(content);
+
     for (const mentionedUsername of mentions) {
       const mentionedUser = await prisma.user.findUnique({
         where: { username: mentionedUsername },
       });
 
-      if (mentionedUser && mentionedUser.id !== req.user.id) {
-        await createNotification(
-          mentionedUser.id,
-          "mention",
-          "You were mentioned",
-          `${req.user.username} mentioned you in an answer`,
-          answer.id,
-          "answer",
-          req.user.id,
-          req.user.username,
-          req.io
-        );
+      if (mentionedUser) {
+        if (mentionedUser.id !== req.user.id) {
+          await createNotification(
+            mentionedUser.id,
+            "mention",
+            "You were mentioned",
+            `${req.user.username} mentioned you in an answer`,
+            answer.id,
+            "answer",
+            req.user.id,
+            req.user.username,
+            req.io
+          );
+        }
       }
     }
 
     // Emit real-time event
     if (req.io) {
-      console.log("🚀 Emitting new answer event:", id);
       emitNewAnswer(req.io, id, {
         ...answer,
         author_username: req.user.username,
@@ -450,7 +452,6 @@ router.post(
   "/answers/:answerId/replies",
   authenticateToken,
   async (req, res) => {
-    console.log("🔥 Reply route hit! AnswerId:", req.params.answerId);
     try {
       const { answerId } = req.params;
       const { content, images } = req.body;
@@ -506,33 +507,31 @@ router.post(
 
       // Handle mentions
       const mentions = extractMentions(content);
+
       for (const mentionedUsername of mentions) {
         const mentionedUser = await prisma.user.findUnique({
           where: { username: mentionedUsername },
         });
 
-        if (mentionedUser && mentionedUser.id !== req.user.id) {
-          await createNotification(
-            mentionedUser.id,
-            "mention",
-            "You were mentioned",
-            `${req.user.username} mentioned you in a reply`,
-            reply.id,
-            "reply",
-            req.user.id,
-            req.user.username,
-            req.io
-          );
+        if (mentionedUser) {
+          if (mentionedUser.id !== req.user.id) {
+            await createNotification(
+              mentionedUser.id,
+              "mention",
+              "You were mentioned",
+              `${req.user.username} mentioned you in a reply`,
+              reply.id,
+              "reply",
+              req.user.id,
+              req.user.username,
+              req.io
+            );
+          }
         }
       }
 
       // Emit real-time event
       if (req.io) {
-        console.log(
-          "🚀 Emitting new reply event:",
-          answer.discussionId,
-          answerId
-        );
         emitNewReply(req.io, answer.discussionId, answerId, {
           ...reply,
           author_username: req.user.username,

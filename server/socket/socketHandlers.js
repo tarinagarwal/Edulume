@@ -24,7 +24,6 @@ const authenticateSocket = async (socket, next) => {
     }
 
     if (!token) {
-      console.log("❌ Socket auth: No token found in any location");
       return next(new Error("Authentication error"));
     }
 
@@ -39,11 +38,9 @@ const authenticateSocket = async (socket, next) => {
     });
 
     if (!user) {
-      console.log("❌ Socket auth: User not found for token");
       return next(new Error("User not found"));
     }
 
-    console.log("✅ Socket authenticated:", user.username);
     socket.user = user;
     next();
   } catch (error) {
@@ -57,42 +54,19 @@ export const setupSocketHandlers = (io) => {
   io.use(authenticateSocket);
 
   io.on("connection", (socket) => {
-    console.log(
-      `✅ User ${socket.user.username} connected with socket ID: ${socket.id}`
-    );
-
     // Join user to their personal room for notifications
-    socket.join(`user_${socket.user.id}`);
+    const userRoom = `user_${socket.user.id}`;
+    socket.join(userRoom);
 
     // Join discussion room
     socket.on("join_discussion", (discussionId) => {
       const roomName = `discussion_${discussionId}`;
       socket.join(roomName);
-      console.log(
-        `✅ User ${socket.user.username} joined discussion room: ${roomName}`
-      );
-
-      // Check room membership immediately after joining
-      setTimeout(() => {
-        const room = io.sockets.adapter.rooms.get(roomName);
-        const clientCount = room ? room.size : 0;
-        console.log(`👥 Clients in room ${roomName} after join:`, clientCount);
-
-        // List all rooms this socket is in
-        const socketRooms = Array.from(socket.rooms);
-        console.log(
-          `🏠 Socket ${socket.user.username} is in rooms:`,
-          socketRooms
-        );
-      }, 100);
     });
 
     // Leave discussion room
     socket.on("leave_discussion", (discussionId) => {
       socket.leave(`discussion_${discussionId}`);
-      console.log(
-        `User ${socket.user.username} left discussion ${discussionId}`
-      );
     });
 
     // Handle typing indicators
@@ -125,7 +99,6 @@ export const setupSocketHandlers = (io) => {
 
     // Test event handler
     socket.on("test_event", (data) => {
-      console.log(`🧪 Test event from ${socket.user.username}:`, data);
       socket.emit("test_event", {
         message: `Hello back from server, ${socket.user.username}!`,
         timestamp: new Date().toISOString(),
@@ -134,14 +107,7 @@ export const setupSocketHandlers = (io) => {
 
     // Handle disconnect
     socket.on("disconnect", (reason) => {
-      console.log(
-        `❌ User ${socket.user.username} disconnected. Reason:`,
-        reason
-      );
-      console.log(
-        `🏠 Socket ${socket.id} was in rooms:`,
-        Array.from(socket.rooms)
-      );
+      // Silent disconnect
     });
   });
 };
@@ -149,28 +115,11 @@ export const setupSocketHandlers = (io) => {
 // Helper functions to emit events from routes
 export const emitNewAnswer = (io, discussionId, answer) => {
   const roomName = `discussion_${discussionId}`;
-  console.log("📡 Emitting new_answer to room:", roomName);
-
-  // Check how many clients are in the room
-  const room = io.sockets.adapter.rooms.get(roomName);
-  const clientCount = room ? room.size : 0;
-  console.log(`👥 Clients in room ${roomName}:`, clientCount);
-
   io.to(roomName).emit("new_answer", answer);
 };
 
 export const emitNewReply = (io, discussionId, answerId, reply) => {
   const roomName = `discussion_${discussionId}`;
-  console.log("📡 Emitting new_reply to room:", roomName, {
-    answerId,
-    reply,
-  });
-
-  // Check how many clients are in the room
-  const room = io.sockets.adapter.rooms.get(roomName);
-  const clientCount = room ? room.size : 0;
-  console.log(`👥 Clients in room ${roomName}:`, clientCount);
-
   io.to(roomName).emit("new_reply", {
     answerId,
     reply,
@@ -198,5 +147,6 @@ export const emitVoteUpdate = (
 };
 
 export const emitNotification = (io, userId, notification) => {
-  io.to(`user_${userId}`).emit("new_notification", notification);
+  const userRoom = `user_${userId}`;
+  io.to(userRoom).emit("new_notification", notification);
 };
