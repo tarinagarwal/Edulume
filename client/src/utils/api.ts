@@ -474,11 +474,19 @@ export const voteReply = async (
   return response.data;
 };
 
-export const getNotifications = async (): Promise<{
+export const getNotifications = async (page = 1, limit = 20): Promise<{
   notifications: Notification[];
   unreadCount: number;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+  };
 }> => {
-  const response = await api.get("/notifications");
+  const response = await api.get("/notifications", {
+    params: { page, limit },
+  });
   return response.data;
 };
 
