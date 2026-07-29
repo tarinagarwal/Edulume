@@ -18,6 +18,7 @@ import feedbackRoutes from "./routes/feedback.js";
 import pdfChatRoutes from "./routes/pdfChat.js";
 import sitemapRoutes from "./routes/sitemap.js";
 import vaultRoutes from "./routes/vault.js";
+import reportsRoutes from "./routes/reports.js";
 import { setupSocketHandlers } from "./socket/socketHandlers.js";
 import initRedis from "./utils/redis.js";
 import labsRoutes from "./routes/labs.js";
@@ -105,6 +106,7 @@ app.use("/api/roadmaps", roadmapRoutes);
 app.use("/api/feedback", feedbackRoutes);
 app.use("/api/pdf-chat", pdfChatRoutes);
 app.use("/api/vault", vaultRoutes);
+app.use("/api/reports", reportsRoutes);
 app.use("/", sitemapRoutes);
 app.use("/api/labs", labsRoutes);
 

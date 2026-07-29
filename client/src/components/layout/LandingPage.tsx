@@ -450,7 +450,7 @@ const LandingPage: React.FC = () => {
                 courses and community support
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link
+                              <Link
                   to="/courses"
                   className="alien-button text-base sm:text-lg px-8 py-4"
                 >
@@ -459,10 +459,19 @@ const LandingPage: React.FC = () => {
                 </Link>
                 <Link
                   to="/auth"
-                  className="alien-button text-base sm:text-lg px-8 py-4"
+                  className="text-sm sm:text-base px-6 py-3 border border-alien-green/60 text-alien-green font-medium rounded-lg hover:bg-alien-green/10 transition-all duration-200"
                 >
                   Create Free Account
                 </Link>
+
+                <Link
+                  to="/auth"
+                  className="text-sm sm:text-base px-5 py-3 border border-alien-green/60 text-alien-green font-medium rounded-lg hover:bg-alien-green/10 transition-all duration-200"
+                >
+                  Create Free Account
+                </Link>
+
+
               </div>
             </div>
           </div>

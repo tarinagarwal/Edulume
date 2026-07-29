@@ -567,3 +567,16 @@ model LabProgress {
 
   @@unique([labId, userId])
 }
+model Report {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  contentType String   @map("content_type") // 'discussion', 'answer', 'reply'
+  contentId   String   @map("content_id") @db.ObjectId
+  reason      String
+  userId      String   @map("user_id") @db.ObjectId
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("reports")
+}

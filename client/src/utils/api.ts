@@ -86,11 +86,11 @@ api.interceptors.response.use(
         coursesCount: response.data.courses?.length || 0,
         sampleCourse: response.data.courses?.[0]
           ? {
-              id: response.data.courses[0].id,
-              title: response.data.courses[0].title,
-              is_enrolled: response.data.courses[0].is_enrolled,
-              is_bookmarked: response.data.courses[0].is_bookmarked,
-            }
+            id: response.data.courses[0].id,
+            title: response.data.courses[0].title,
+            is_enrolled: response.data.courses[0].is_enrolled,
+            is_bookmarked: response.data.courses[0].is_bookmarked,
+          }
           : null,
       });
     }
@@ -899,6 +899,25 @@ export const getRoadmaps = async (params?: {
 
 export const getRoadmap = async (id: string): Promise<{ roadmap: Roadmap }> => {
   const response = await api.get(`/roadmaps/${id}`);
+  return response.data;
+};
+
+export const getAdminStats = async () => {
+  const response = await api.get('/admin/stats');
+  return response.data;
+};
+
+// Report Content
+export const submitReport = async (
+  contentType: "discussion" | "answer" | "reply",
+  contentId: string,
+  reason: string
+) => {
+  const response = await api.post("/reports", {
+    contentType,
+    contentId,
+    reason,
+  });
   return response.data;
 };
 

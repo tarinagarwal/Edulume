@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, UserPlus, LogIn, Mail, Shield } from "lucide-react";
 import { login, signup, sendOTP } from "../../utils/api";
-
+import PasswordInput from "../ui/PasswordInput";
 interface AuthFormProps {
   onAuthChange: () => void;
 }
@@ -210,22 +210,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuthChange }) => {
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Password
               </label>
-              <div className="relative">
-                <Lock
-                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="alien-input w-full pl-10"
-                  placeholder="Enter your password"
-                  required
-                />
-              </div>
+              <PasswordInput
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="alien-input" // This keeps your project's green/black theme
+                placeholder="Enter your password"
+              />
             </div>
-
             {error && (
               <div className="bg-red-900/50 border border-red-500 text-red-200 px-4 py-3 rounded-lg">
                 {error}
