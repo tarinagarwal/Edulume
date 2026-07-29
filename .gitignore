@@ -1,3 +1,4 @@
 .vscode
 myapp
 cmd.md
+/generated/prisma

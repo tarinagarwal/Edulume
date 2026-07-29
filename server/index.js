@@ -21,6 +21,7 @@ import vaultRoutes from "./routes/vault.js";
 import reportsRoutes from "./routes/reports.js";
 import { setupSocketHandlers } from "./socket/socketHandlers.js";
 import initRedis from "./utils/redis.js";
+import labsRoutes from "./routes/labs.js";
 
 BigInt.prototype.toJSON = function () {
   return this.toString();
@@ -107,6 +108,7 @@ app.use("/api/pdf-chat", pdfChatRoutes);
 app.use("/api/vault", vaultRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/", sitemapRoutes);
+app.use("/api/labs", labsRoutes);
 
 // Setup Socket.IO handlers
 setupSocketHandlers(io);
